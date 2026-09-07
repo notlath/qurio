@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PrimaryButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
@@ -19,7 +20,6 @@ import { useQlikAuth } from '@/auth/session';
 import { useReloadAnswersPort } from '@/qlik/context';
 
 function SignInSection({ config }: { config: TenantConfig }) {
-  const theme = useTheme();
   const { signIn, signOut, ready } = useQlikAuth(config);
   const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,16 +47,18 @@ function SignInSection({ config }: { config: TenantConfig }) {
     <ThemedView type="background" style={styles.signIn}>
       <ThemedText type="smallBold">Sign-in</ThemedText>
       <ThemedText themeColor="textSecondary">{signedIn ? 'Signed in' : 'Not signed in'}</ThemedText>
-      {error && <ThemedText type="small">{error}</ThemedText>}
-      <Pressable onPress={handlePress} disabled={busy || !ready} accessibilityLabel="Sign in or out" accessibilityRole="button">
-        <ThemedView type="primary" style={styles.saveButton}>
-          {busy ? (
-            <ActivityIndicator color={theme.primaryForeground} />
-          ) : (
-            <ThemedText type="smallBold" themeColor="primaryForeground">{signedIn ? 'Sign out' : 'Sign in'}</ThemedText>
-          )}
-        </ThemedView>
-      </Pressable>
+      {error && (
+        <ThemedText type="small" themeColor="danger">
+          {error}
+        </ThemedText>
+      )}
+      <PrimaryButton
+        label={signedIn ? 'Sign out' : 'Sign in'}
+        busy={busy}
+        disabled={!ready}
+        onPress={handlePress}
+        style={styles.saveButton}
+      />
     </ThemedView>
   );
 }
@@ -113,7 +115,7 @@ function TenantConfigForm() {
       <ThemedView style={styles.field}>
         <ThemedText type="small">Tenant hostname</ThemedText>
         <TextInput
-          style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
+          style={[styles.input, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }]}
           placeholder="acme.eu.qlikcloud.com"
           placeholderTextColor={theme.textSecondary}
           autoCapitalize="none"
@@ -131,7 +133,7 @@ function TenantConfigForm() {
       <ThemedView style={styles.field}>
         <ThemedText type="small">OAuth client id</ThemedText>
         <TextInput
-          style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
+          style={[styles.input, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }]}
           autoCapitalize="none"
           autoCorrect={false}
           value={clientId}
@@ -142,7 +144,7 @@ function TenantConfigForm() {
       <ThemedView style={styles.field}>
         <ThemedText type="small">Assistant id</ThemedText>
         <TextInput
-          style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
+          style={[styles.input, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }]}
           autoCapitalize="none"
           autoCorrect={false}
           value={assistantId}
@@ -152,11 +154,7 @@ function TenantConfigForm() {
 
       {fieldError?.field === 'form' && <ThemedText type="small">{fieldError.message}</ThemedText>}
 
-      <Pressable onPress={handleSave} disabled={saving} accessibilityLabel="Validate and save" accessibilityRole="button">
-        <ThemedView type="primary" style={styles.saveButton}>
-          {saving ? <ActivityIndicator color={theme.primaryForeground} /> : <ThemedText type="smallBold" themeColor="primaryForeground">Validate & Save</ThemedText>}
-        </ThemedView>
-      </Pressable>
+      <PrimaryButton label="Validate & Save" busy={saving} onPress={handleSave} style={styles.saveButton} />
 
       {resolved &&
         (Platform.OS === 'web' ? (
@@ -202,10 +200,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  saveButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
-    borderRadius: Radius.control,
-    marginTop: Spacing.two,
-  },
+  saveButton: { marginTop: Spacing.two },
 });

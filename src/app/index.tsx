@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { InteractionRow } from '@/components/interaction-row';
+import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
@@ -22,18 +15,20 @@ import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAnswersPort } from '@/qlik/context';
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
+  const theme = useTheme();
+
   return (
-    <Pressable onPress={() => onPress(starter.prompt)} accessibilityRole="button" accessibilityLabel={starter.prompt}>
-      <ThemedView type="backgroundElement" style={styles.starterRow}>
-        <ThemedText>{starter.prompt}</ThemedText>
-      </ThemedView>
-    </Pressable>
+    <AppPressable
+      onPress={() => onPress(starter.prompt)}
+      accessibilityLabel={`Ask: ${starter.prompt}`}
+      style={[styles.starterRow, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+      <ThemedText type="small">{starter.prompt}</ThemedText>
+    </AppPressable>
   );
 }
 
 export default function NewThreadScreen() {
   const port = useAnswersPort();
-  const theme = useTheme();
   const [starters, setStarters] = useState<Starter[]>([]);
   const threadRef = useRef<Promise<Thread> | null>(null);
   // The Thread is created by the first question, not by opening the screen — and only once,
@@ -68,9 +63,7 @@ export default function NewThreadScreen() {
   }, [port]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.select({ ios: 'padding', default: undefined })}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.select({ ios: 'padding', default: undefined })}>
       <SafeAreaView style={styles.flex} edges={['bottom']}>
         <FlatList
           style={styles.flex}
@@ -78,12 +71,13 @@ export default function NewThreadScreen() {
           data={interactions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <InteractionRow interaction={item} />}
+          keyboardDismissMode="interactive"
           ListEmptyComponent={
             asking ? null : (
-              <ThemedView style={styles.emptyState}>
+              <View style={styles.emptyState}>
                 <View style={styles.kicker}>
                   <ThemedView type="primary" style={styles.kickerMark} />
-                  <ThemedText type="smallBold" themeColor="primary">
+                  <ThemedText type="caption" themeColor="primary">
                     QLIK ANSWERS
                   </ThemedText>
                 </View>
@@ -91,68 +85,37 @@ export default function NewThreadScreen() {
                   Find the signal in your work.
                 </ThemedText>
                 <ThemedText themeColor="textSecondary" style={styles.welcomeCopy}>
-                  Ask a clear question. Answers stay grounded in your organization’s knowledge.
+                  Ask a clear question. Answers stay grounded in your organization&rsquo;s knowledge.
                 </ThemedText>
                 {starters.length > 0 && (
-                  <ThemedView style={styles.startersSection}>
-                    <ThemedText type="smallBold" themeColor="textSecondary">
+                  <View style={styles.startersSection}>
+                    <ThemedText type="caption" themeColor="textSecondary">
                       START WITH A PROMPT
                     </ThemedText>
                     {starters.map((starter) => (
                       <StarterRow key={starter.id} starter={starter} onPress={ask} />
                     ))}
-                  </ThemedView>
+                  </View>
                 )}
-              </ThemedView>
+              </View>
             )
           }
           ListFooterComponent={
             asking ? (
-              <ThemedView type="backgroundElement" style={[styles.interactionRow, { borderColor: theme.border }]}>
-                <ThemedView type="backgroundSelected" style={styles.pendingQuestion}>
-                  <ThemedText type="smallBold">{pendingQuestion}</ThemedText>
-                </ThemedView>
-                {partialAnswer ? <ThemedText>{partialAnswer}</ThemedText> : <ActivityIndicator color={theme.primary} />}
-              </ThemedView>
+              <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
             ) : error && erroredAt ? (
               <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
             ) : null
           }
         />
-        <ThemedView style={[styles.composer, { borderColor: theme.border }]}>
-          <TextInput
-            style={[styles.input, { color: theme.text }]}
-            placeholder="Ask a question"
-            placeholderTextColor={theme.textSecondary}
-            value={question}
-            onChangeText={setQuestion}
-            onSubmitEditing={() => ask()}
-            editable={!asking}
-            returnKeyType="send"
-          />
-          {asking ? (
-            <Pressable onPress={stop} accessibilityLabel="Stop generating" accessibilityRole="button">
-              <ThemedView type="backgroundSelected" style={styles.sendButton}>
-                <ThemedText type="smallBold" themeColor="primary">
-                  Stop
-                </ThemedText>
-              </ThemedView>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => ask()}
-              disabled={!question.trim()}
-              accessibilityLabel="Ask question"
-              accessibilityRole="button"
-              style={!question.trim() ? styles.disabled : undefined}>
-              <ThemedView type="primary" style={styles.sendButton}>
-                <ThemedText type="smallBold" themeColor="primaryForeground">
-                  Ask
-                </ThemedText>
-              </ThemedView>
-            </Pressable>
-          )}
-        </ThemedView>
+
+        <Composer
+          question={question}
+          setQuestion={setQuestion}
+          asking={asking}
+          onAsk={() => ask()}
+          onStop={stop}
+        />
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -164,23 +127,13 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
   kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
-  welcomeTitle: { maxWidth: 340, letterSpacing: -0.8 },
+  welcomeTitle: { maxWidth: 340 },
   welcomeCopy: { maxWidth: 340 },
   startersSection: { gap: Spacing.two, marginTop: Spacing.three },
-  starterRow: { padding: Spacing.three, borderRadius: Radius.control },
-  interactionRow: { gap: Spacing.two, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.three, borderRadius: Radius.card },
-  pendingQuestion: { padding: Spacing.two, borderRadius: Radius.small },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    padding: Spacing.three,
-    margin: Spacing.three,
-    marginTop: 0,
+  starterRow: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.card,
+    borderRadius: Radius.control,
   },
-  input: { flex: 1, fontSize: 16, minHeight: 32 },
-  sendButton: { alignItems: 'center', justifyContent: 'center', minWidth: 52, minHeight: 40, paddingHorizontal: Spacing.two, borderRadius: Radius.control },
-  disabled: { opacity: 0.45 },
 });
