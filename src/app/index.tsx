@@ -1,98 +1,186 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { ErrorState } from '@/components/error-state';
+import { InteractionRow } from '@/components/interaction-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import type { Starter, Thread } from '@/domain';
+import { useTheme } from '@/hooks/use-theme';
+import { useThreadConversation } from '@/hooks/use-thread-conversation';
+import { useAnswersPort } from '@/qlik/context';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <Pressable onPress={() => onPress(starter.prompt)} accessibilityRole="button" accessibilityLabel={starter.prompt}>
+      <ThemedView type="backgroundElement" style={styles.starterRow}>
+        <ThemedText>{starter.prompt}</ThemedText>
+      </ThemedView>
+    </Pressable>
   );
 }
 
-export default function HomeScreen() {
+export default function NewThreadScreen() {
+  const port = useAnswersPort();
+  const theme = useTheme();
+  const [starters, setStarters] = useState<Starter[]>([]);
+  const threadRef = useRef<Promise<Thread> | null>(null);
+  // The Thread is created by the first question, not by opening the screen — and only once,
+  // however many questions follow. A failed creation is forgotten rather than cached, so
+  // retrying after signing in works instead of replaying the same rejection forever.
+  const ensureThreadId = useCallback(async () => {
+    const pending = (threadRef.current ??= port.createThread('New thread'));
+    try {
+      return (await pending).id;
+    } catch (e) {
+      if (threadRef.current === pending) threadRef.current = null;
+      throw e;
+    }
+  }, [port]);
+  const {
+    interactions,
+    question,
+    setQuestion,
+    asking,
+    pendingQuestion,
+    partialAnswer,
+    error,
+    erroredAt,
+    ask,
+    stop,
+    dismissError,
+  } = useThreadConversation(ensureThreadId);
+
+  useEffect(() => {
+    // Starters are a nicety — a tenant that cannot serve them still answers questions.
+    port.listStarters().then(setStarters, () => setStarters([]));
+  }, [port]);
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.select({ ios: 'padding', default: undefined })}>
+      <SafeAreaView style={styles.flex} edges={['bottom']}>
+        <FlatList
+          style={styles.flex}
+          contentContainerStyle={styles.listContent}
+          data={interactions}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <InteractionRow interaction={item} />}
+          ListEmptyComponent={
+            asking ? null : (
+              <ThemedView style={styles.emptyState}>
+                <View style={styles.kicker}>
+                  <ThemedView type="primary" style={styles.kickerMark} />
+                  <ThemedText type="smallBold" themeColor="primary">
+                    QLIK ANSWERS
+                  </ThemedText>
+                </View>
+                <ThemedText type="title" style={styles.welcomeTitle}>
+                  Find the signal in your work.
+                </ThemedText>
+                <ThemedText themeColor="textSecondary" style={styles.welcomeCopy}>
+                  Ask a clear question. Answers stay grounded in your organization’s knowledge.
+                </ThemedText>
+                {starters.length > 0 && (
+                  <ThemedView style={styles.startersSection}>
+                    <ThemedText type="smallBold" themeColor="textSecondary">
+                      START WITH A PROMPT
+                    </ThemedText>
+                    {starters.map((starter) => (
+                      <StarterRow key={starter.id} starter={starter} onPress={ask} />
+                    ))}
+                  </ThemedView>
+                )}
+              </ThemedView>
+            )
+          }
+          ListFooterComponent={
+            asking ? (
+              <ThemedView type="backgroundElement" style={[styles.interactionRow, { borderColor: theme.border }]}>
+                <ThemedView type="backgroundSelected" style={styles.pendingQuestion}>
+                  <ThemedText type="smallBold">{pendingQuestion}</ThemedText>
+                </ThemedView>
+                {partialAnswer ? <ThemedText>{partialAnswer}</ThemedText> : <ActivityIndicator color={theme.primary} />}
+              </ThemedView>
+            ) : error && erroredAt ? (
+              <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
+            ) : null
+          }
+        />
+        <ThemedView style={[styles.composer, { borderColor: theme.border }]}>
+          <TextInput
+            style={[styles.input, { color: theme.text }]}
+            placeholder="Ask a question"
+            placeholderTextColor={theme.textSecondary}
+            value={question}
+            onChangeText={setQuestion}
+            onSubmitEditing={() => ask()}
+            editable={!asking}
+            returnKeyType="send"
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
+          {asking ? (
+            <Pressable onPress={stop} accessibilityLabel="Stop generating" accessibilityRole="button">
+              <ThemedView type="backgroundSelected" style={styles.sendButton}>
+                <ThemedText type="smallBold" themeColor="primary">
+                  Stop
+                </ThemedText>
+              </ThemedView>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => ask()}
+              disabled={!question.trim()}
+              accessibilityLabel="Ask question"
+              accessibilityRole="button"
+              style={!question.trim() ? styles.disabled : undefined}>
+              <ThemedView type="primary" style={styles.sendButton}>
+                <ThemedText type="smallBold" themeColor="primaryForeground">
+                  Ask
+                </ThemedText>
+              </ThemedView>
+            </Pressable>
+          )}
         </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
-    </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  flex: { flex: 1 },
+  listContent: { flexGrow: 1, padding: Spacing.four, gap: Spacing.four },
+  emptyState: { flex: 1, justifyContent: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
+  kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
+  kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
+  welcomeTitle: { maxWidth: 340, letterSpacing: -0.8 },
+  welcomeCopy: { maxWidth: 340 },
+  startersSection: { gap: Spacing.two, marginTop: Spacing.three },
+  starterRow: { padding: Spacing.three, borderRadius: Radius.control },
+  interactionRow: { gap: Spacing.two, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.three, borderRadius: Radius.card },
+  pendingQuestion: { padding: Spacing.two, borderRadius: Radius.small },
+  composer: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    gap: Spacing.two,
+    padding: Spacing.three,
+    margin: Spacing.three,
+    marginTop: 0,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.card,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  input: { flex: 1, fontSize: 16, minHeight: 32 },
+  sendButton: { alignItems: 'center', justifyContent: 'center', minWidth: 52, minHeight: 40, paddingHorizontal: Spacing.two, borderRadius: Radius.control },
+  disabled: { opacity: 0.45 },
 });
