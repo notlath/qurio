@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
 import { resolveCurrentTenantConfig } from '@/config';
@@ -9,6 +9,7 @@ import { createFixtureAnswersPort } from './fixtures/port';
 import type { AnswersPort } from './port';
 
 const AnswersPortContext = createContext<AnswersPort | null>(null);
+const ReloadAnswersPortContext = createContext<() => void>(() => {});
 
 /**
  * Every call fails the same curated way when no TenantConfig resolved, rather than the
@@ -48,12 +49,33 @@ export async function resolveAnswersPort(): Promise<AnswersPort> {
 export function AnswersPortProvider({ children }: { children: ReactNode }) {
   const [port, setPort] = useState<AnswersPort | null>(null);
 
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
   useEffect(() => {
-    resolveAnswersPort().then(setPort);
-  }, []);
+    let current = true;
+    // A rejected resolve must still produce a port: leaving it null renders nothing at all,
+    // and a blank app is a worse failure than a screen saying it is not configured.
+    resolveAnswersPort().then(
+      (resolved) => current && setPort(resolved),
+      () => current && setPort(createUnconfiguredPort()),
+    );
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
 
   if (!port) return null;
-  return <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>;
+  return (
+    <ReloadAnswersPortContext.Provider value={reload}>
+      <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>
+    </ReloadAnswersPortContext.Provider>
+  );
+}
+
+/** Rebuilds the port against the current TenantConfig — the dev Settings screen calls this after a save. */
+export function useReloadAnswersPort(): () => void {
+  return useContext(ReloadAnswersPortContext);
 }
 
 export function useAnswersPort(): AnswersPort {
