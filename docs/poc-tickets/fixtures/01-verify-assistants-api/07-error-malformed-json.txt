@@ -1,0 +1,15 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/invoke
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"input":{"prompt": this is not valid json
+
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/plain; charset=utf-8
+Qlik-Api-Version: 2026-05
+
+Internal Server Error
+
+NOTE: syntactically-invalid JSON produces a bare 500 with a plain-text body, NOT the structured
+`{"errors":[...]}` contract used for every other error case captured (see 06 and 08). The adapter
+cannot rely on a uniform error shape.

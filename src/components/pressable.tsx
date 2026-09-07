@@ -42,6 +42,7 @@ export function PrimaryButton({
   label,
   busy,
   disabled,
+  style,
   ...rest
 }: Omit<AppPressableProps, 'children'> & { label: string; busy?: boolean }) {
   const theme = useTheme();
@@ -51,7 +52,7 @@ export function PrimaryButton({
       accessibilityLabel={label}
       accessibilityState={{ busy: !!busy }}
       disabled={disabled || busy}
-      style={[styles.primary, { backgroundColor: theme.primary }]}
+      style={[styles.primary, { backgroundColor: theme.primary }, style as ViewStyle]}
       {...rest}>
       {busy ? (
         <ActivityIndicator color={theme.primaryForeground} />
@@ -71,6 +72,7 @@ export function PrimaryButton({
 export function Chip({
   label,
   selected,
+  style,
   ...rest
 }: Omit<AppPressableProps, 'children'> & { label: string; selected?: boolean }) {
   const theme = useTheme();
@@ -85,6 +87,7 @@ export function Chip({
           backgroundColor: selected ? theme.backgroundSelected : 'transparent',
           borderColor: selected ? theme.primary : theme.borderStrong,
         },
+        style as ViewStyle,
       ]}
       {...rest}>
       <ThemedText type="small" themeColor={selected ? 'primary' : 'textSecondary'}>

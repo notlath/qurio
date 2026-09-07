@@ -162,7 +162,7 @@ export function InteractionRow({ interaction }: { interaction: Interaction }) {
   return (
     <View style={styles.interactionRow}>
       <ThemedView type="backgroundSelected" style={styles.question}>
-        <ThemedText type="smallBold">{interaction.question}</ThemedText>
+        <ThemedText type="question">{interaction.question}</ThemedText>
       </ThemedView>
 
       <ThemedView type="backgroundElement" style={[styles.answerCard, { borderColor: theme.border }, Elevation.card]}>

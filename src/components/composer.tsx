@@ -72,7 +72,7 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
   return (
     <View style={styles.pendingRow}>
       <ThemedView type="backgroundSelected" style={styles.pendingQuestion}>
-        <ThemedText type="smallBold">{question}</ThemedText>
+        <ThemedText type="question">{question}</ThemedText>
       </ThemedView>
       <ThemedView
         type="backgroundElement"

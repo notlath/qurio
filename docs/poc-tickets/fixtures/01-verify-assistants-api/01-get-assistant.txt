@@ -1,0 +1,9 @@
+GET /api/v1/assistants/{assistantId}
+Authorization: Bearer {apiKey}
+Accept: application/json
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"id":"{assistantId}","name":"qlik-answers-mobile","title":"","description":"","tags":[],"ownerId":"{ownerId}","createdBy":"{ownerId}","createdAt":"2026-09-02T00:19:45Z","updatedBy":"{ownerId}","updatedAt":"2026-09-02T00:19:45Z","tenantId":"{tenantId}","spaceId":"","knowledgeBases":["{knowledgeBaseId}"],"welcomeMessage":"","customProperties":{},"legacy":true}

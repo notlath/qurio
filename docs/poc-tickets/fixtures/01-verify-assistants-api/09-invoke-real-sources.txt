@@ -1,0 +1,24 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/invoke
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"input":{"prompt":"What is the compound effect and why does it matter?","promptType":"thread","includeText":true}}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"question":"What is the compound effect and why does it matter?","output":"{sanitised — real prose answer, several paragraphs, omitted: source is a copyrighted book uploaded to the tenant's Knowledge Base}","sources":[{"knowledgebaseId":"{knowledgeBaseId}","datasourceId":"{datasourceId}","documentId":"{documentId}","source":"{documentName}","chunks":[{"chunkId":"{chunkId1}","text":"File name: {documentName}\n{sanitised paragraph 1 of matched chunk text, ~700 chars}"},{"chunkId":"{chunkId2}","text":"File name: {documentName}\n{sanitised paragraph 2}"},{"chunkId":"{chunkId3}","text":"File name: {documentName}\n{sanitised paragraph 3}"},{"chunkId":"{chunkId4}","text":"{sanitised paragraph 4}"},{"chunkId":"{chunkId5}","text":"{sanitised paragraph 5}"},{"chunkId":"{chunkId6}","text":"{sanitised paragraph 6}"}],"title":null,"generated_from_placeholder":null,"links_placeholder":null}
+
+NOTE: this run's source content is a real copyrighted book uploaded to the KB — chunk text is
+redacted here rather than sanitised-in-place, unlike the empty-source case in fixture 03.
+NOTE: exactly one `source` object was returned, containing SIX chunks — confirms the documented
+shape `{ source, documentId, datasourceId, knowledgebaseId, chunks[] }` (technical-proposal.md:91)
+with a real multi-chunk payload (fixture 03 only had an empty `sources: []`, so couldn't confirm this).
+NOTE: three of the six chunks' `text` are prefixed with a Qlik-injected `File name: {documentName}\n`
+header — not documented anywhere in technical-proposal.md §2.3. The other three chunks in this same
+response have no such prefix, so it isn't consistently present even within one answer.
+NOTE: `title`, `generated_from_placeholder`, `links_placeholder` are all `null` here, on an `invoke`
+call that returned real matched sources. Compare fixture 10 (`stream`, different question): the same
+three fields came back non-null with real generated content. Whether that's an invoke-vs-stream
+difference or a per-question difference wasn't isolated in this pass — see NOTES.md.

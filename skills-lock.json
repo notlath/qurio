@@ -236,6 +236,12 @@
       "skillPath": "skills/gamekit/SKILL.md",
       "computedHash": "0306696313a7f144bb28dac326f21ff88dbc2d17166eae22a5c2ca7e569d30f8"
     },
+    "handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "computedHash": "9ea2a5de5ca2d717f913356de982fdc4fe27d28a300c16598cd43a4865491008"
+    },
     "healthkit": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
@@ -403,6 +409,12 @@
       "sourceType": "github",
       "skillPath": "skills/sensorkit/SKILL.md",
       "computedHash": "643b49f1d19a22ac0b8a5c359d027b19cf0b0ed7655cf3b8fa989bf703bc08bd"
+    },
+    "setup-matt-pocock-skills": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "computedHash": "a45163cba56f72f5f224c46557c047d51547147a29e383e5a769ec39eecd1188"
     },
     "shareplay-activities": {
       "source": "dpearson2699/swift-ios-skills",
@@ -573,6 +585,12 @@
       "sourceType": "well-known",
       "computedHash": "34305420bba52f3fe7d1d3b2dd355b64ccf12de7411cbbf4557a1231e8ef8ddb",
       "wellKnownDigest": "sha256:461cf4d25b9e74840cb6f20ab81751ec5352dbcb28dac8e3bce001602965279e"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "3f1e66e08e3d1d3feaf2a3187705022812e0bece8ff5bee80fe7cf782f26fe8b"
     },
     "vercel-react-native-skills": {
       "source": "vercel-labs/agent-skills",

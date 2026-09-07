@@ -1,0 +1,26 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/stream
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"input":{"prompt":"Tell me about the sample documents in the knowledge base","promptType":"thread","includeText":true}}
+
+HTTP/1.1 200 OK
+Content-Type: text/event-stream; charset=utf-8
+Transfer-Encoding: chunked
+Qlik-Api-Version: 2026-05
+
+--- raw response body, byte for byte, below this line (131 bytes total) ---
+{"output": "I'm sorry, I don't have any information to answer that question, but I could help with something else."}{"sources": []}
+--- end of body — connection closed, no terminator, no [DONE], no completion/error event ---
+
+OBSERVATIONS:
+- Exactly two JSON objects, concatenated with zero delimiter (`}{`) — matches technical-proposal.md:99's
+  predicted framing. Object boundary in this sample lands cleanly (not split across a network read),
+  so this fixture does NOT evidence split-object handling on its own.
+- `sources` arrives as its own object, LAST in the sequence — resolves the [ASSUMED] at
+  technical-proposal.md:103 ("Confirm ordering and whether sources always arrive last"): confirmed, for
+  this sample, sources is last. A multi-source / longer-answer sample would be needed to fully rule out
+  sources arriving mid-stream.
+- No `question` echo anywhere in the stream (invoke's response includes one; stream's does not).
+- No interaction id in the stream — consistent with technical-proposal.md:105.
+- Response ends when the connection closes. No sentinel, no completion event, no error event.

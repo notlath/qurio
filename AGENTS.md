@@ -4,14 +4,14 @@
 
 ## 1. Project Overview
 
-| Field | Value |
-|-------|-------|
-| Project | QlikAnswersApp |
-| Platform | Expo (Managed) + expo-router |
-| Language | TypeScript (strict) |
-| Package Manager | npm |
-| Path Alias | `@/*` → `./src/*`, `@/assets/*` → `./assets/*` |
-| Routing | File-based routing in `src/app/` |
+| Field           | Value                                          |
+| --------------- | ---------------------------------------------- |
+| Project         | QlikAnswersApp                                 |
+| Platform        | Expo (Managed) + expo-router                   |
+| Language        | TypeScript (strict)                            |
+| Package Manager | npm                                            |
+| Path Alias      | `@/*` → `./src/*`, `@/assets/*` → `./assets/*` |
+| Routing         | File-based routing in `src/app/`               |
 
 ## 2. Technology Stack
 
@@ -56,34 +56,37 @@
 
 Source of truth is `.gitignore:1`. Do not commit ignored artifacts.
 
-| Group | Patterns | Reason |
-|-------|----------|--------|
-| Dependencies | `node_modules/`, `.pnp/`, `*.log` | Install output, not source |
-| Expo & Build | `.expo/`, `.expo-shared/`, `expo-env.d.ts`, `dist/`, `web-build/`, `.metro-health-check*` | Generated Expo/Metro cache and output |
-| Native (managed) | `/android`, `/ios`, `.kotlin/`, `.cxx/`, `build/`, `.gradle/` | Regenerated via `npx expo prebuild` |
-| Secrets / Env | `.env`, `.env*.local`, `*.pem`, `*.p12`, `*.p8`, `*.key`, `*.jks`, `*.mobileprovision` | Credentials, must not be committed |
-| OS | `.DS_Store`, `Thumbs.db`, `Desktop.ini` | Platform-specific noise |
-| Editor | `.idea/`, `.vscode/*` (allowlist: `settings.json`, `tasks.json`, `launch.json`, `extensions.json`) | Local IDE state; shared settings are allowlisted |
-| Cache | `*.tsbuildinfo`, `.eslintcache`, `.parcel-cache/`, `.turbo/`, `graphify-out/`, `.opencode/` | Incremental build caches |
-| Coverage | `coverage/`, `.nyc_output/` | Test reporting output |
-| Agent tooling | `.agents/`, `agent/`, `.claude/skills/`, `.claude/settings.local.json`, `.serena/`, `.scratch/` | Installed skill packages and MCP tool state; `skills-lock.json` is the committed manifest |
+| Group            | Patterns                                                                                           | Reason                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Dependencies     | `node_modules/`, `.pnp/`, `*.log`                                                                  | Install output, not source                                                                |
+| Expo & Build     | `.expo/`, `.expo-shared/`, `expo-env.d.ts`, `dist/`, `web-build/`, `.metro-health-check*`          | Generated Expo/Metro cache and output                                                     |
+| Native (managed) | `/android`, `/ios`, `.kotlin/`, `.cxx/`, `build/`, `.gradle/`                                      | Regenerated via `npx expo prebuild`                                                       |
+| Secrets / Env    | `.env`, `.env*.local`, `*.pem`, `*.p12`, `*.p8`, `*.key`, `*.jks`, `*.mobileprovision`             | Credentials, must not be committed                                                        |
+| OS               | `.DS_Store`, `Thumbs.db`, `Desktop.ini`                                                            | Platform-specific noise                                                                   |
+| Editor           | `.idea/`, `.vscode/*` (allowlist: `settings.json`, `tasks.json`, `launch.json`, `extensions.json`) | Local IDE state; shared settings are allowlisted                                          |
+| Cache            | `*.tsbuildinfo`, `.eslintcache`, `.parcel-cache/`, `.turbo/`, `graphify-out/`, `.opencode/`        | Incremental build caches                                                                  |
+| Coverage         | `coverage/`, `.nyc_output/`                                                                        | Test reporting output                                                                     |
+| Agent tooling    | `.agents/`, `agent/`, `.claude/skills/`, `.claude/settings.local.json`, `.serena/`, `.scratch/`    | Installed skill packages and MCP tool state; `skills-lock.json` is the committed manifest |
 
 - Keep `.env.example` (if present) committed as a template; never commit real `.env` files.
 - If a generated directory must be committed for an ejected workflow, remove its entry from `.gitignore` explicitly and document why.
 
 ## 5. Commands
 
-| Task | Command |
-|------|---------|
-| Install dependencies | `npm install` |
-| Start dev server | `npm start` / `npx expo start` |
-| Run on Android | `npm run android` |
-| Run on iOS | `npm run ios` |
-| Run on Web | `npm run web` |
-| Lint | `npm run lint` / `npx expo lint` |
-| Reset starter template | `npm run reset-project` |
+| Task                   | Command                          |
+| ---------------------- | -------------------------------- |
+| Install dependencies   | `npm install`                    |
+| Start dev server       | `npm start` / `npx expo start`   |
+| Run on Android         | `npm run android`                |
+| Run on iOS             | `npm run ios`                    |
+| Run on Web             | `npm run web`                    |
+| Lint                   | `npm run lint` / `npx expo lint` |
+| Test                   | `npm test` / `npx jest`          |
+| Reset starter template | `npm run reset-project`          |
 
 Verify commands from `package.json:34` and `app.json:2` before adding new scripts.
+
+**Do not run the app in Expo Go.** The project depends on `expo-secure-store`, `expo-screen-capture`, a local Expo module (Android managed config) and a custom URL scheme (`qlikanswers://auth`) — none of which Expo Go can run. Use a development build instead; see [docs/dev-build-runbook.md](docs/dev-build-runbook.md).
 
 ## 6. Engineering Principles
 
@@ -180,3 +183,21 @@ These guidelines are working if:
 - Rewrites due to overcomplication decrease.
 - Clarifying questions are asked before implementation, not after mistakes.
 - Expo v57 APIs are used correctly per versioned docs.
+
+## Knowledge Graph & Token Optimization
+
+### Strict Tool Priority
+
+- **CRITICAL:** Before reading any raw code files, executing glob patterns, or performing grep searches, you MUST first read `graphify-out/GRAPH_REPORT.md` or query `graphify-out/graph.json` to locate the target modules.
+- Use the knowledge graph to trace call chains, pinpoint dependencies, and understand cross-module architecture before touching individual files.
+- If you notice yourself performing multiple sequential grep or find actions, interrupt the cycle and query Graphify first to save tokens.
+
+### Graph Navigation Workflow
+
+1. Read `graphify-out/GRAPH_REPORT.md` to identify structural highlights, core concept hubs, and important file clusters.
+2. Navigate via `graphify-out/wiki/index.md` (if available) to locate codebase logic instead of scanning files line-by-line from scratch.
+3. Only open the specific target files mapped out by Graphify to execute code modifications.
+
+### Session Synchronization
+
+- At the start of every session, verify if codebase modifications occurred and run `graphify update .` to keep the AST map current without incurring unnecessary API costs.
