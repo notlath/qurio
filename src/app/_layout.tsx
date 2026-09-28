@@ -15,6 +15,7 @@ import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { LockGate } from '@/components/lock-gate';
+import { IS_INTERNAL_BUILD } from '@/config';
 import { AnswersPortProvider } from '@/qlik/context';
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +23,15 @@ SplashScreen.preventAutoHideAsync();
 function HeaderNav() {
   return (
     <View style={styles.headerNav}>
+      {IS_INTERNAL_BUILD && Platform.OS !== 'web' && (
+        <Link href="/agentic-spike" asChild>
+          <AppPressable accessibilityLabel="Open agentic assistant spike" style={styles.headerAction}>
+            <ThemedText type="link" themeColor="primary">
+              Spike
+            </ThemedText>
+          </AppPressable>
+        </Link>
+      )}
       <Link href="/history" asChild>
         <AppPressable accessibilityLabel="Open conversation history" style={styles.headerAction}>
           <ThemedText type="link" themeColor="primary">
@@ -79,6 +89,7 @@ export default function RootLayout() {
             <Stack.Screen name="history" options={{ title: 'History' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
             <Stack.Screen name="thread/[id]" options={{ title: 'Thread' }} />
+            <Stack.Screen name="agentic-spike" options={{ title: 'Agentic spike' }} />
           </Stack>
         </LockGate>
       </AnswersPortProvider>

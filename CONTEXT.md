@@ -27,7 +27,12 @@ A configured Qlik Answers conversational endpoint within a Tenant, identified by
 _Avoid_: Bot, agent, chatbot
 
 **Agentic Assistant**:
-An Assistant that reasons over both Knowledge Bases and a Qlik analytics app, returning insights and explanations as well as document answers. Distinct from a classic Assistant, which covers Knowledge Bases only.
+An Assistant that reasons over both Knowledge Bases and an Analytics App, returning insights and explanations as well as document answers. Distinct from a classic Assistant, which covers Knowledge Bases only.
+_Avoid_: Agentic chat, agent
+
+**Analytics App**:
+A Qlik Sense application in the Tenant that an Agentic Assistant reasons over. Distinct from a Knowledge Base, which holds documents.
+_Avoid_: Dashboard, app (unqualified)
 
 **Knowledge Base**:
 A governed collection of indexed source documents an Assistant draws answers from. Access to its sources is enforced per Qlik User by Qlik, not by this app.
