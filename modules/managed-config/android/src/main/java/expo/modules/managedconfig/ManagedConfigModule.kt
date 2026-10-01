@@ -7,7 +7,7 @@ import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-private val RESTRICTION_KEYS = listOf("tenantHost", "clientId", "assistantId", "biometricTimeoutMs")
+private val RESTRICTION_KEYS = listOf("tenantHost", "clientId", "assistantId", "agenticAssistantId", "biometricTimeoutMs")
 
 // Single responsibility: read managed restrictions and expose them to JS. Never touches
 // auth or UI (ticket 14) — src/config/managed.ts owns turning this into a TenantConfig.

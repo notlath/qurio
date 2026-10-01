@@ -8,5 +8,6 @@
     <string name="managed_config_tenant_host_description">e.g. acme.eu.qlikcloud.com — no scheme, no trailing slash</string>
     <string name="managed_config_client_id_description">From the Native OAuth client created for this tenant</string>
     <string name="managed_config_assistant_id_description">The Assistant this app should talk to</string>
+    <string name="managed_config_agentic_assistant_id_description">Optional. The Agentic Assistant for the embedded Assistant tab; the tab is hidden when not set. Not the Assistant ID above.</string>
     <string name="managed_config_biometric_timeout_description">Optional. Defaults to 5 minutes when not set.</string>
 </resources>

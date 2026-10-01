@@ -69,6 +69,7 @@ function TenantConfigForm() {
   const [tenantHost, setTenantHost] = useState('');
   const [clientId, setClientId] = useState('');
   const [assistantId, setAssistantId] = useState('');
+  const [agenticAssistantId, setAgenticAssistantId] = useState('');
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [resolved, setResolved] = useState<TenantConfig | null>(null);
@@ -78,6 +79,7 @@ function TenantConfigForm() {
       setTenantHost(dev?.tenantHost ?? '');
       setClientId(dev?.clientId ?? '');
       setAssistantId(dev?.assistantId ?? '');
+      setAgenticAssistantId(dev?.agenticAssistantId ?? '');
     });
     resolveCurrentTenantConfig().then(setResolved);
   }, []);
@@ -95,7 +97,13 @@ function TenantConfigForm() {
         setFieldError({ field: preflight.field, message: preflight.message });
         return;
       }
-      await saveDevConfig({ tenantHost: tenantHost.trim(), clientId: clientId.trim(), assistantId: assistantId.trim() });
+      await saveDevConfig({
+        tenantHost: tenantHost.trim(),
+        clientId: clientId.trim(),
+        assistantId: assistantId.trim(),
+        // Optional: a blank field clears it, since a save replaces the whole dev entry.
+        agenticAssistantId: agenticAssistantId.trim() || undefined,
+      });
       setResolved(await resolveCurrentTenantConfig());
       reloadPort(); // the port was built from the old config — without this the save needs an app restart
     } finally {
@@ -149,6 +157,17 @@ function TenantConfigForm() {
           autoCorrect={false}
           value={assistantId}
           onChangeText={setAssistantId}
+        />
+      </ThemedView>
+
+      <ThemedView style={styles.field}>
+        <ThemedText type="small">Agentic Assistant id (optional)</ThemedText>
+        <TextInput
+          style={[styles.input, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }]}
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={agenticAssistantId}
+          onChangeText={setAgenticAssistantId}
         />
       </ThemedView>
 

@@ -22,6 +22,8 @@ export function normalizeManagedConfig(raw: unknown): Partial<TenantConfig> | un
   if (tenantHost) config.tenantHost = tenantHost;
   if (clientId) config.clientId = clientId;
   if (assistantId) config.assistantId = assistantId;
+  const agenticAssistantId = stringField(record, 'agenticAssistantId');
+  if (agenticAssistantId) config.agenticAssistantId = agenticAssistantId;
   const biometricTimeoutMs = positiveIntField(record, 'biometricTimeoutMs');
   if (biometricTimeoutMs !== undefined) config.biometricTimeoutMs = biometricTimeoutMs;
 

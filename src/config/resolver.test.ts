@@ -56,6 +56,49 @@ describe('resolveTenantConfig', () => {
     });
   });
 
+  describe('agenticAssistantId', () => {
+    const base = { tenantHost: 'acme.eu.qlikcloud.com', clientId: 'client-1', assistantId: 'assistant-1' };
+
+    it('is passed through from a complete managed config', () => {
+      const result = resolveTenantConfig({ managed: { ...base, agenticAssistantId: 'agentic-1' } });
+
+      expect(result?.agenticAssistantId).toBe('agentic-1');
+    });
+
+    it('is cleaned like every other identifier', () => {
+      const result = resolveTenantConfig({ managed: { ...base, agenticAssistantId: `\tagentic${NUL}-1\n` } });
+
+      expect(result?.agenticAssistantId).toBe('agentic-1');
+    });
+
+    it('is absent, not an empty string, when it is empty after cleaning', () => {
+      const result = resolveTenantConfig({ managed: { ...base, agenticAssistantId: `${NUL} ${ZERO_WIDTH_SPACE}` } });
+
+      expect(result).toEqual(base);
+      expect(result).not.toHaveProperty('agenticAssistantId');
+    });
+
+    it('is not filled in from a dev config when complete managed config omits it', () => {
+      // The dev entry may name a different Tenant, so its Assistant must never leak into MDM's.
+      const result = resolveTenantConfig({
+        managed: base,
+        dev: { ...base, tenantHost: 'dev.eu.qlikcloud.com', agenticAssistantId: 'dev-agentic' },
+      });
+
+      expect(result).toEqual(base);
+    });
+
+    it('comes from the dev config when it is the source used', () => {
+      const result = resolveTenantConfig({ managed: undefined, dev: { ...base, agenticAssistantId: 'dev-agentic' } });
+
+      expect(result?.agenticAssistantId).toBe('dev-agentic');
+    });
+
+    it('does not make an otherwise complete config incomplete when absent', () => {
+      expect(resolveTenantConfig({ managed: base })).toEqual(base);
+    });
+  });
+
   it('returns null when neither source is complete', () => {
     const result = resolveTenantConfig({ managed: undefined, dev: { tenantHost: 'dev.eu.qlikcloud.com' } });
 

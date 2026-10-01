@@ -47,3 +47,28 @@ test('a complete, well-typed raw object normalises to the same values', () => {
     biometricTimeoutMs: 300000,
   });
 });
+
+describe('agenticAssistantId', () => {
+  it('is kept when delivered as a non-empty string', () => {
+    expect(normalizeManagedConfig({ agenticAssistantId: 'agentic-789' })).toEqual({
+      agenticAssistantId: 'agentic-789',
+    });
+  });
+
+  it('is dropped, not coerced, when it has the wrong type', () => {
+    expect(normalizeManagedConfig({ agenticAssistantId: 42 })).toEqual({});
+    expect(normalizeManagedConfig({ agenticAssistantId: { id: 'x' } })).toEqual({});
+    expect(normalizeManagedConfig({ agenticAssistantId: null })).toEqual({});
+  });
+
+  it('is treated as absent when blank', () => {
+    expect(normalizeManagedConfig({ agenticAssistantId: '' })).toEqual({});
+    expect(normalizeManagedConfig({ agenticAssistantId: '   ' })).toEqual({});
+  });
+
+  it('does not disturb an older payload that never mentions it', () => {
+    expect(
+      normalizeManagedConfig({ tenantHost: 'acme.eu.qlikcloud.com', clientId: 'c', assistantId: 'a' }),
+    ).toEqual({ tenantHost: 'acme.eu.qlikcloud.com', clientId: 'c', assistantId: 'a' });
+  });
+});
