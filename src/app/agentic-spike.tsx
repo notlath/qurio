@@ -21,16 +21,22 @@ import { useTheme } from '@/hooks/use-theme';
  */
 
 type Ui = 'ai/agentic-assistant' | 'classic/app';
-type Inputs = { ui: Ui; id: string; authTypeOauth2: boolean; tenantOrigin: boolean };
+type Inputs = { ui: Ui; id: string; authTypeOauth2: boolean; tenantOrigin: boolean; stubCsrf: boolean; injectBearer: boolean; answerExchange: boolean };
 
 // Module scope so the inputs survive Back — this screen unmounts on every pop.
-let saved: Inputs = { ui: 'ai/agentic-assistant', id: '', authTypeOauth2: false, tenantOrigin: true };
+let saved: Inputs = { ui: 'ai/agentic-assistant', id: '', authTypeOauth2: false, tenantOrigin: true, stubCsrf: false, injectBearer: false, answerExchange: false };
 
 // The first script on the page: forwards everything worth knowing to native before qlik-embed loads.
-const LOGGER = `<script>
+const loggerScript = (
+  stubCsrf: boolean,
+  bearer: { token: string; origin: string } | null,
+  answerExchange: boolean,
+) => `<script>
 (function () {
+  var t0 = Date.now();
   function post(kind, msg) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ kind: kind, msg: String(msg).slice(0, 400) }));
+    var at = '+' + Math.round((Date.now() - t0) / 1000) + 's ';
+    window.ReactNativeWebView.postMessage(JSON.stringify({ kind: kind, msg: at + String(msg).slice(0, 400) }));
   }
   window.__spikeLog = post;
   ['error', 'warn'].forEach(function (level) {
@@ -44,10 +50,79 @@ const LOGGER = `<script>
   window.addEventListener('unhandledrejection', function (e) {
     post('rejection', e.reason && (e.reason.message || e.reason));
   });
+  post('origin', 'location.origin=' + location.origin);
   var originalFetch = window.fetch;
+  var stubCsrf = ${stubCsrf};
+  var bearer = ${JSON.stringify(bearer)};
   window.fetch = function (input, init) {
+    // EXPERIMENT: the runtime's own same-origin calls carry no bearer token (round 3 log:
+    // bearer=no on /api/v1/accesscontrol/evaluation), so add ours. Never ship this.
+    try {
+      var target = new URL(String(input && input.url ? input.url : input), location.href);
+      var existing = (init && init.headers) || (input && input.headers);
+      var present = existing && (existing.get ? existing.get('authorization') : existing.Authorization || existing.authorization);
+      // Never the token endpoint: it wants Basic credentials and answers a Bearer with OAUTH-16.
+      if (bearer && target.origin === bearer.origin && !present && target.pathname.indexOf('/oauth/') !== 0) {
+        var withAuth = new Headers(existing || {});
+        withAuth.set('Authorization', 'Bearer ' + bearer.token);
+        init = Object.assign({}, init, { headers: withAuth });
+      }
+    } catch (e) {}
+    // EXPERIMENT: answer the CSRF call ourselves (204 + header, as the API documents) to see
+    // whether its 401 is what sends the runtime to the login page. Never ship this.
+    if (stubCsrf && String(input && input.url ? input.url : input).indexOf('/api/v1/csrf-token') !== -1) {
+      post('stub', 'served /api/v1/csrf-token locally');
+      return Promise.resolve(new Response(null, { status: 204, headers: { 'qlik-csrf-token': 'spike-stub' } }));
+    }
+    // EXPERIMENT: the runtime exchanges our token at /oauth/token (RFC 8693 field names) about
+    // 12-15 minutes in, and the tenant rejects the browser Origin (OAUTH-29). Answer that call
+    // with our own token instead. Never ship this.
+    try {
+      var exchangeUrl = new URL(String(input && input.url ? input.url : input), location.href);
+      if (${answerExchange} && bearer && exchangeUrl.pathname === '/oauth/token' && init && init.method === 'POST') {
+        post('stub', 'answered /oauth/token locally');
+        return Promise.resolve(new Response(JSON.stringify({
+          access_token: bearer.token,
+          issued_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+          token_type: 'Bearer',
+          expires_in: 3600,
+        }), { status: 200, headers: { 'content-type': 'application/json' } }));
+      }
+    } catch (e) {}
+    // Only grant_type is read from a token request body — never the token itself.
+    var sent = '';
+    try {
+      var body = init && init.body;
+      if (body && String(input && input.url ? input.url : input).indexOf('/oauth/token') !== -1) {
+        // Shape only — field names and content type, never values.
+        var ctype = (init.headers && (init.headers.get ? init.headers.get('content-type') : init.headers['Content-Type'] || init.headers['content-type'])) || '?';
+        var fields;
+        try { fields = Object.keys(JSON.parse(String(body))).join(','); }
+        catch (e) { fields = Array.from(new URLSearchParams(String(body)).keys()).join(','); }
+        // Enumerations and public identifiers only — never subject_token.
+        var shown = '';
+        try {
+          var parsed = JSON.parse(String(body));
+          ['grant_type', 'subject_token_type', 'purpose', 'redirect_uri'].forEach(function (k) { shown += ' ' + k + '=' + parsed[k]; });
+        } catch (e) {}
+        sent = ' content-type=' + ctype + ' fields=[' + fields + ']' + shown;
+      }
+    } catch (e) {}
+    // Whether the call carries a bearer token and cookies — presence only, never the values.
+    try {
+      var headers = (init && init.headers) || (input && input.headers);
+      var hasAuth = headers && (headers.get ? headers.get('authorization') : headers.Authorization || headers.authorization);
+      sent += ' bearer=' + (hasAuth ? 'yes' : 'no') + ' credentials=' + ((init && init.credentials) || (input && input.credentials) || 'default');
+    } catch (e) {}
     return originalFetch(input, init).then(function (r) {
-      if (!r.ok) post('http', r.status + ' ' + (input && input.url ? input.url : input));
+      if (!r.ok) {
+        var where = r.status + ' ' + (init && init.method ? init.method + ' ' : '') + (input && input.url ? input.url : input) + sent;
+        r.clone().text().then(function (t) { post('http', where + ' body=' + t.slice(0, 200)); },
+          function () { post('http', where); });
+      } else {
+        // Successes too, path only (no query string), so we can see what a working session does.
+        try { post('ok', r.status + ' ' + new URL(String(input && input.url ? input.url : input), location.href).pathname); } catch (e) {}
+      }
       return r;
     });
   };
@@ -59,7 +134,7 @@ function spikeHtml(tenantHost: string, clientId: string, token: string, inputs: 
   const idAttr = inputs.ui === 'classic/app' ? 'app-id' : 'assistant-id';
   return `<!doctype html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-${LOGGER}
+${loggerScript(inputs.stubCsrf, inputs.injectBearer ? { token, origin: `https://${tenantHost}` } : null, inputs.answerExchange)}
 <script>
 window.getAccessToken = async function () {
   window.__spikeLog('auth', 'getAccessToken called by the runtime');
@@ -74,7 +149,7 @@ window.getAccessToken = async function () {
   data-get-access-token="getAccessToken"></script>
 <style>html,body,qlik-embed{margin:0;height:100%;display:block}</style>
 </head><body>
-<qlik-embed ui=${JSON.stringify(inputs.ui)} ${idAttr}=${JSON.stringify(inputs.id.trim())}></qlik-embed>
+<qlik-embed ui=${JSON.stringify(inputs.ui)} ${idAttr}=${JSON.stringify(inputs.id.replace(/[\p{C}\s]/gu, ''))}></qlik-embed>
 </body></html>`;
 }
 
@@ -105,7 +180,7 @@ export default function AgenticSpikeScreen() {
       setLog([
         `ui=${inputs.ui} auth-type=${inputs.authTypeOauth2 ? 'Oauth2' : '(unset)'} origin=${
           inputs.tenantOrigin ? 'tenant' : 'none'
-        }`,
+        } stub-csrf=${inputs.stubCsrf ? 'on' : 'off'} inject-bearer=${inputs.injectBearer ? 'on' : 'off'} answer-exchange=${inputs.answerExchange ? 'on' : 'off'}`,
       ]);
       const tenantOrigin = `https://${config.tenantHost}`;
       setLoaded({
@@ -154,6 +229,11 @@ export default function AgenticSpikeScreen() {
           source={{ html: loaded.html, baseUrl: loaded.baseUrl }}
           onShouldStartLoadWithRequest={(request) => allowNavigation(request, loaded.tenantOrigin)}
           onMessage={onMessage}
+          onNavigationStateChange={(state) => {
+            // Origin + path only: a login URL's query string carries OAuth state we do not need.
+            const { origin, pathname } = new URL(state.url);
+            record(`nav: ${origin === 'null' ? state.url.slice(0, 20) : origin + pathname}`);
+          }}
           onError={(e) => record(`load error: ${e.nativeEvent.description}`)}
           onHttpError={(e) => record(`http error: ${e.nativeEvent.statusCode} ${e.nativeEvent.url}`)}
         />
@@ -204,6 +284,21 @@ export default function AgenticSpikeScreen() {
       <View style={styles.row}>
         <Switch value={inputs.tenantOrigin} onValueChange={(tenantOrigin) => setInputs({ tenantOrigin })} />
         <ThemedText>Page origin = tenant (baseUrl)</ThemedText>
+      </View>
+
+      <View style={styles.row}>
+        <Switch value={inputs.stubCsrf} onValueChange={(stubCsrf) => setInputs({ stubCsrf })} />
+        <ThemedText>Stub /api/v1/csrf-token (experiment)</ThemedText>
+      </View>
+
+      <View style={styles.row}>
+        <Switch value={inputs.injectBearer} onValueChange={(injectBearer) => setInputs({ injectBearer })} />
+        <ThemedText>Inject bearer into tenant fetches (experiment)</ThemedText>
+      </View>
+
+      <View style={styles.row}>
+        <Switch value={inputs.answerExchange} onValueChange={(answerExchange) => setInputs({ answerExchange })} />
+        <ThemedText>Answer /oauth/token exchange locally (experiment, needs inject)</ThemedText>
       </View>
 
       <AppPressable accessibilityLabel="Load embed" onPress={load} disabled={!inputs.id.trim()}>
