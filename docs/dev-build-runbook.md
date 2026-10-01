@@ -19,6 +19,7 @@ Once any one of these lands, Expo Go can't run the app at all. **Do not add Expo
 - Apple Developer Program membership (for iOS device builds — provisioning profiles, TestFlight)
 - An Android device with USB debugging enabled, or a way to sideload an `.apk` (no Play Console access needed for internal dev builds)
 - `eas-cli`: `npm install -g eas-cli` (or `npx eas-cli`)
+- **Windows, local Android builds:** a short project path with no spaces, e.g. `C:\dev\QlikAnswersApp`. The ninja shipped with the SDK's CMake 3.22.1 is not long-path aware and joins paths without collapsing `..`, so from a deep path it cannot see `react-native-workletsConfigVersion.cmake` under `expo-modules-core`'s `.cxx` dir and fails with `ninja: error: manifest 'build.ninja' still dirty after 100 tries`. Enabling `LongPathsEnabled` does not help. After moving, delete every `android/.cxx` directory (under `android/app` and `node_modules/*/android`) — they cache the old absolute path.
 
 ## One-time setup
 
