@@ -1,6 +1,6 @@
 # QlikAnswersApp
 
-A dedicated iOS and Android client that lets a Customer's people ask questions of a Qlik Answers Assistant, with a purpose-built mobile experience rather than the Qlik web interface.
+A dedicated iOS and Android client, in the spirit of Qlik's own Qlik Analytics app, that lets a Customer's people browse the Sheets of their Analytics Apps and ask questions of a Qlik Answers Assistant — the latter being what Qlik's app lacks. Online only: nothing is downloaded for offline use.
 
 ## Language
 
@@ -31,8 +31,12 @@ An Assistant that reasons over both Knowledge Bases and an Analytics App, return
 _Avoid_: Agentic chat, agent
 
 **Analytics App**:
-A Qlik Sense application in the Tenant that an Agentic Assistant reasons over. Distinct from a Knowledge Base, which holds documents.
-_Avoid_: Dashboard, app (unqualified)
+A Qlik Sense application in the Tenant, made of Sheets. Qlik Users browse it in the app, and an Agentic Assistant can reason over it. Distinct from a Knowledge Base, which holds documents.
+_Avoid_: App (unqualified)
+
+**Sheet**:
+One page of charts inside an Analytics App — what people mean when they say "dashboard". Opening an Analytics App shows its list of Sheets.
+_Avoid_: Dashboard, page, report
 
 **Knowledge Base**:
 A governed collection of indexed source documents an Assistant draws answers from. Access to its sources is enforced per Qlik User by Qlik, not by this app.
