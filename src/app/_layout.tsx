@@ -5,50 +5,16 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Link, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 
-import { AppPressable } from '@/components/pressable';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 import { LockGate } from '@/components/lock-gate';
-import { IS_INTERNAL_BUILD } from '@/config';
 import { AnswersPortProvider } from '@/qlik/context';
 
 SplashScreen.preventAutoHideAsync();
-
-function HeaderNav() {
-  return (
-    <View style={styles.headerNav}>
-      {IS_INTERNAL_BUILD && Platform.OS !== 'web' && (
-        <Link href="/agentic-spike" asChild>
-          <AppPressable accessibilityLabel="Open agentic assistant spike" style={styles.headerAction}>
-            <ThemedText type="link" themeColor="primary">
-              Spike
-            </ThemedText>
-          </AppPressable>
-        </Link>
-      )}
-      <Link href="/history" asChild>
-        <AppPressable accessibilityLabel="Open conversation history" style={styles.headerAction}>
-          <ThemedText type="link" themeColor="primary">
-            History
-          </ThemedText>
-        </AppPressable>
-      </Link>
-      <Link href="/settings" asChild>
-        <AppPressable accessibilityLabel="Open settings" style={styles.headerAction}>
-          <ThemedText type="link" themeColor="primary">
-            Settings
-          </ThemedText>
-        </AppPressable>
-      </Link>
-    </View>
-  );
-}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -85,10 +51,7 @@ export default function RootLayout() {
       <AnswersPortProvider>
         <LockGate>
           <Stack>
-            <Stack.Screen name="index" options={{ title: 'QlikAnswersApp', headerRight: HeaderNav }} />
-            <Stack.Screen name="history" options={{ title: 'History' }} />
-            <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-            <Stack.Screen name="thread/[id]" options={{ title: 'Thread' }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="agentic-spike" options={{ title: 'Agentic spike' }} />
           </Stack>
         </LockGate>
@@ -96,12 +59,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  headerNav: {
-    flexDirection: 'row',
-    gap: Spacing.three,
-    paddingRight: Spacing.one,
-  },
-  headerAction: { justifyContent: 'center' },
-});

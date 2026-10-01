@@ -33,7 +33,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
     <ThemedView
       type="backgroundElement"
       style={[styles.row, { borderColor: theme.border }, Elevation.card]}>
-      <Link href={{ pathname: '/thread/[id]', params: { id: thread.id } }} asChild>
+      <Link href={{ pathname: '/assistant/thread/[id]', params: { id: thread.id } }} asChild>
         <AppPressable
           accessibilityLabel={`Open ${thread.name}`}
           accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}

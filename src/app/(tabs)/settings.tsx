@@ -1,8 +1,9 @@
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/components/pressable';
+import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
@@ -187,6 +188,31 @@ function TenantConfigForm() {
   );
 }
 
+/**
+ * Release builds have no development form, but a Qlik User still has to sign in against the
+ * Tenant that MDM configured. Without a resolved configuration there is nothing to sign in to.
+ */
+function ManagedSettings() {
+  const [resolved, setResolved] = useState<TenantConfig | null | undefined>(undefined);
+
+  useEffect(() => {
+    resolveCurrentTenantConfig().then(setResolved, () => setResolved(null));
+  }, []);
+
+  if (resolved === undefined) return null;
+  if (!resolved) {
+    return <ThemedText themeColor="textSecondary">{errorMessageFor({ kind: 'ConfigMissing' }).message}</ThemedText>;
+  }
+  if (Platform.OS === 'web') {
+    return (
+      <ThemedText type="small" themeColor="textSecondary">
+        Sign-in is native-only (ADR-0005) — not available in the web preview.
+      </ThemedText>
+    );
+  }
+  return <SignInSection config={resolved} />;
+}
+
 export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.flex}>
@@ -196,9 +222,20 @@ export default function SettingsScreen() {
           <ThemedText themeColor="textSecondary">Connect this build to your Qlik tenant.</ThemedText>
         </ThemedView>
         {IS_INTERNAL_BUILD ? (
-          <TenantConfigForm />
+          <>
+            <TenantConfigForm />
+            {Platform.OS !== 'web' && (
+              <Link href="/agentic-spike" asChild>
+                <AppPressable accessibilityLabel="Open agentic assistant spike">
+                  <ThemedText type="link" themeColor="primary">
+                    Agentic spike
+                  </ThemedText>
+                </AppPressable>
+              </Link>
+            )}
+          </>
         ) : (
-          <ThemedText themeColor="textSecondary">Nothing to configure yet.</ThemedText>
+          <ManagedSettings />
         )}
       </ScrollView>
     </SafeAreaView>
