@@ -30,6 +30,12 @@ export function errorMessageFor(error: AppError): ErrorMessage {
         message: `This app is misconfigured. ${CONTACT_ADMIN}`,
         canRetry: false,
       };
+    case 'AccessDenied':
+      return {
+        title: 'No access',
+        message: `Your account is not permitted to see Analytics Apps. ${CONTACT_ADMIN}`,
+        canRetry: false,
+      };
     case 'SessionExpired':
       return {
         title: 'Signed out',

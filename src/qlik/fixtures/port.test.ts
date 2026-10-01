@@ -119,3 +119,30 @@ describe('createFixtureAnswersPort', () => {
     expect(detail.interactions).toContainEqual(interaction);
   });
 });
+
+describe('createFixtureAnswersPort — Analytics Apps', () => {
+  it('lists Analytics Apps most recently updated first, paged', async () => {
+    const port = createFixtureAnswersPort();
+
+    const first = await port.listAnalyticsApps({ limit: 3 });
+
+    expect(first.items).toHaveLength(3);
+    expect(first.next).toBeDefined();
+    const times = first.items.map((app) => Date.parse(app.updatedAt));
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
+
+  it('reaches every fixture app by following the cursor, without repeats', async () => {
+    const port = createFixtureAnswersPort();
+    const ids: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await port.listAnalyticsApps({ limit: 4, cursor });
+      ids.push(...page.items.map((app) => app.id));
+      cursor = page.next;
+    } while (cursor);
+
+    expect(ids.length).toBeGreaterThan(4);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});

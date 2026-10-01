@@ -23,6 +23,15 @@ describe('errorMessageFor', () => {
     expect(result.message.toLowerCase()).toContain('administrator');
   });
 
+  it('gives AccessDenied a non-retryable message that names Analytics Apps and who to contact, not Answers', () => {
+    const result = errorMessageFor({ kind: 'AccessDenied' });
+
+    expect(result.canRetry).toBe(false);
+    expect(result.message.toLowerCase()).toContain('administrator');
+    expect(result.message.toLowerCase()).not.toContain('answers');
+    expect(result.message.toLowerCase()).not.toContain('assistant');
+  });
+
   it('gives AssistantNotFound a non-retryable message naming who to contact', () => {
     const result = errorMessageFor({ kind: 'AssistantNotFound' });
 

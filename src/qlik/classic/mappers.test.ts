@@ -1,4 +1,4 @@
-import { toAnswer, toCitations, toInteraction, toThread } from './mappers';
+import { toAnalyticsApp, toAnswer, toCitations, toInteraction, toThread } from './mappers';
 
 // Wire shapes below are copied verbatim (ids replaced with fixture placeholders)
 // from docs/poc-tickets/fixtures/01-verify-assistants-api/, captured against the real tenant.
@@ -158,5 +158,27 @@ describe('toCitations — chunks that arrive without their text', () => {
     ] as Parameters<typeof toCitations>[0]);
 
     expect(result[0].excerpts).toEqual([]);
+  });
+});
+
+describe('toAnalyticsApp', () => {
+  // Shape from the published Items API (qlik.dev/apis/rest/items), sanitised. Not yet captured from
+  // the real tenant — ticket 18 had no sign-in to capture one with.
+  const wire = {
+    id: 'item-id-1',
+    name: 'Sales overview',
+    resourceType: 'app',
+    resourceId: 'app-id-1',
+    ownerId: 'owner-1',
+    createdAt: '2026-09-01T08:00:00Z',
+    updatedAt: '2026-09-30T08:00:00Z',
+  };
+
+  it('uses the resourceId as the Analytics App identifier, never the Items record id', () => {
+    expect(toAnalyticsApp(wire).id).toBe('app-id-1');
+  });
+
+  it('keeps only the name and the update time the list shows', () => {
+    expect(toAnalyticsApp(wire)).toEqual({ id: 'app-id-1', name: 'Sales overview', updatedAt: '2026-09-30T08:00:00Z' });
   });
 });

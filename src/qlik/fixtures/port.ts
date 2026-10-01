@@ -1,7 +1,13 @@
 import type { AppError } from '@/domain';
 
 import type { AnswersPort } from '../port';
-import { fixtureAnswerFor, fixtureInteractionsByThreadId, fixtureStarters, fixtureThreads } from './data';
+import {
+  fixtureAnalyticsApps,
+  fixtureAnswerFor,
+  fixtureInteractionsByThreadId,
+  fixtureStarters,
+  fixtureThreads,
+} from './data';
 import { paginate } from './pagination';
 
 let nextThreadId = 1;
@@ -102,6 +108,10 @@ export function createFixtureAnswersPort(): AnswersPort {
 
     async listStarters() {
       return fixtureStarters;
+    },
+
+    async listAnalyticsApps(opts) {
+      return paginate(fixtureAnalyticsApps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
   };
 }

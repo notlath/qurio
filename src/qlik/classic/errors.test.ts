@@ -60,3 +60,19 @@ describe('classifyFetchFailure — abort shapes', () => {
     expect(classifyFetchFailure(abortError)).toBeNull();
   });
 });
+
+describe('toDomainError for tenant-level resources', () => {
+  it('maps 403 to AccessDenied — the Qlik User may not list this resource; it says nothing about Answers', () => {
+    expect(toDomainError(fakeResponse(403), 'tenant')).toEqual({ kind: 'AccessDenied' });
+  });
+
+  it('maps 404 to ServiceUnavailable — there is no misconfigured Assistant to blame', () => {
+    expect(toDomainError(fakeResponse(404), 'tenant')).toEqual({ kind: 'ServiceUnavailable' });
+  });
+
+  it('shares 401, 429 and 5xx with Assistant requests', () => {
+    expect(toDomainError(fakeResponse(401), 'tenant')).toEqual({ kind: 'SessionExpired' });
+    expect(toDomainError(fakeResponse(429), 'tenant')).toEqual({ kind: 'RateLimited', retryAfterMs: 60_000 });
+    expect(toDomainError(fakeResponse(503), 'tenant')).toEqual({ kind: 'ServiceUnavailable' });
+  });
+});

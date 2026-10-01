@@ -37,6 +37,7 @@ describe('resolveAnswersPort', () => {
     await expect(port.ask('thread-1', 'What changed?', { onDelta: () => {} })).rejects.toEqual({
       kind: 'ConfigMissing',
     });
+    await expect(port.listAnalyticsApps()).rejects.toEqual({ kind: 'ConfigMissing' });
   });
 
   it('keeps the fixture port on web, which has no Qlik transport at all (ADR-0005)', async () => {

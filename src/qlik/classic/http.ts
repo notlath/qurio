@@ -26,9 +26,21 @@ export type HttpDeps<R extends HttpResponse = HttpResponse> = {
 /** Qlik's list envelope — `links.next.href` is a whole URL, not a bare cursor (ticket-01 fixture 04). */
 export type QlikList<T> = { data: T[]; links?: { next?: { href?: string } } };
 
-export function assistantUrl(config: TenantConfig, path: string): string {
-  if (path.startsWith('https://')) return path;
-  return `https://${config.tenantHost}/api/v1/assistants/${config.assistantId}${path}`;
+/**
+ * Resolves what a caller asked for to a URL on the configured Tenant: an `/api/` path is
+ * tenant-level, any other relative path belongs to the Assistant, and an absolute URL (Qlik's
+ * `links.next.href`) is accepted only if it stays on the Tenant. Every request carries a bearer
+ * token, so a href pointing anywhere else must never be followed. A plain prefix check, because
+ * parsing a URL for its host would need a URL implementation this runtime does not guarantee.
+ */
+export function qlikUrl(config: TenantConfig, path: string): string {
+  const tenantOrigin = `https://${config.tenantHost}`;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path)) {
+    if (path.startsWith(`${tenantOrigin}/`)) return path;
+    throw { kind: 'ServiceUnavailable' } satisfies AppError;
+  }
+  if (path.startsWith('/api/')) return `${tenantOrigin}${path}`;
+  return `${tenantOrigin}/api/v1/assistants/${config.assistantId}${path}`;
 }
 
 export function authHeaders(token: string): Record<string, string> {
@@ -51,12 +63,16 @@ export async function qlikFetch<R extends HttpResponse>(
   path: string,
   init: HttpInit = {},
 ): Promise<R> {
+  // Resolved before the token is fetched: an off-tenant URL must not even cost a token refresh.
+  const url = qlikUrl(config, path);
+  const scope = url.startsWith(`https://${config.tenantHost}/api/v1/assistants/`) ? 'assistant' : 'tenant';
+
   const token = await deps.getToken();
   if (!token) throw { kind: 'SessionExpired' } satisfies AppError;
 
   let response: R;
   try {
-    response = await deps.fetch(assistantUrl(config, path), {
+    response = await deps.fetch(url, {
       method: init.method,
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       headers: { ...authHeaders(token), ...init.headers },
@@ -68,7 +84,7 @@ export async function qlikFetch<R extends HttpResponse>(
     throw domainError;
   }
 
-  if (!response.ok) throw toDomainError(response);
+  if (!response.ok) throw toDomainError(response, scope);
   return response;
 }
 

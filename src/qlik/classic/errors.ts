@@ -9,7 +9,20 @@ export type MinimalResponse = {
 // human-readable detail string mentioning "20 per 60s". Default to that window when no header exists.
 const DEFAULT_RATE_LIMIT_RETRY_MS = 60_000;
 
-export function toDomainError(response: MinimalResponse): AppError {
+/**
+ * Which Qlik resource a request addressed. The same status means different things: a 404 on an
+ * Assistant is a wrong assistantId, a 403 is a missing Answers licence — neither says anything about
+ * Items, so tenant-level requests get their own reading of 403 and 404.
+ */
+export type ErrorScope = 'assistant' | 'tenant';
+
+export function toDomainError(response: MinimalResponse, scope: ErrorScope = 'assistant'): AppError {
+  if (scope === 'tenant') {
+    // No observed Items statuses yet: 403 is the documented "not permitted" and 404 is not expected
+    // from a list, so it reads as a service problem rather than a misconfigured Assistant.
+    if (response.status === 403) return { kind: 'AccessDenied' };
+    if (response.status === 404) return { kind: 'ServiceUnavailable' };
+  }
   switch (response.status) {
     case 401:
       return { kind: 'SessionExpired' };

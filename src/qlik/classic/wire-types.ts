@@ -7,6 +7,15 @@ export type QlikThread = {
   updatedAt: string;
 };
 
+/** An Items record for an app, per the published Items API (not yet captured from the real tenant). */
+export type QlikItem = {
+  id: string;
+  name: string;
+  resourceType: string;
+  resourceId: string;
+  updatedAt: string;
+};
+
 export type QlikChunk = {
   chunkId: string;
   // Declared by the published schema, but GET .../interactions omits it against the real tenant —

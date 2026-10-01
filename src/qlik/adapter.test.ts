@@ -238,3 +238,105 @@ describe('createAnswersPort', () => {
     await expect(portWith(fetch).listStarters()).resolves.toEqual([{ id: 'starter-1', prompt: 'What changed?' }]);
   });
 });
+
+describe('listAnalyticsApps', () => {
+  const TENANT = 'https://acme.eu.qlikcloud.com';
+  // Items shape from the published API (qlik.dev/apis/rest/items), sanitised and not yet captured live.
+  const wireItem = (n: number) => ({
+    id: `item-${n}`,
+    name: `App ${n}`,
+    resourceType: 'app',
+    resourceId: `app-${n}`,
+    updatedAt: `2026-09-${String(30 - n).padStart(2, '0')}T08:00:00Z`,
+  });
+
+  it('asks Items for apps, most recently updated first, as the signed-in user', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireItem(1)] }));
+
+    await portWith(fetch).listAnalyticsApps();
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${TENANT}/api/v1/items?resourceType=app&sort=-updatedAt&limit=50`,
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer access-1' }),
+      }),
+    );
+  });
+
+  it('does not filter by space, favourite or search term', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await portWith(fetch).listAnalyticsApps();
+
+    const url: string = fetch.mock.calls[0][0];
+    expect(url).not.toMatch(/spaceId|collectionId|name=|query=/);
+  });
+
+  it('maps each item to a domain Analytics App keyed by resourceId', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireItem(1), wireItem(2)] }));
+
+    const page = await portWith(fetch).listAnalyticsApps();
+
+    expect(page.items).toEqual([
+      { id: 'app-1', name: 'App 1', updatedAt: '2026-09-29T08:00:00Z' },
+      { id: 'app-2', name: 'App 2', updatedAt: '2026-09-28T08:00:00Z' },
+    ]);
+    expect(page.next).toBeUndefined();
+  });
+
+  it('reaches every page by following Qlik own next href, keeping the order across pages', async () => {
+    const next = `${TENANT}/api/v1/items?resourceType=app&sort=-updatedAt&limit=50&next=cursor-2`;
+    const fetch = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: [wireItem(1)], links: { next: { href: next } } }))
+      .mockResolvedValueOnce(jsonResponse({ data: [wireItem(2)] }));
+    const port = portWith(fetch);
+
+    const first = await port.listAnalyticsApps();
+    const second = await port.listAnalyticsApps({ cursor: first.next });
+
+    expect(first.next).toBe(next);
+    expect(fetch).toHaveBeenLastCalledWith(next, expect.anything());
+    expect([...first.items, ...second.items].map((app) => app.id)).toEqual(['app-1', 'app-2']);
+    expect(second.next).toBeUndefined();
+  });
+
+  it('never sends the bearer token to a next href outside the tenant', async () => {
+    const fetch = jest.fn();
+
+    await expect(
+      portWith(fetch).listAnalyticsApps({ cursor: 'https://evil.example.com/api/v1/items?next=x' }),
+    ).rejects.toEqual({ kind: 'ServiceUnavailable' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty page for a user with no apps, not an error', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await expect(portWith(fetch).listAnalyticsApps()).resolves.toEqual({ items: [], next: undefined });
+  });
+
+  it('reports denied access as AccessDenied, never as a missing Answers entitlement', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, 403));
+
+    await expect(portWith(fetch).listAnalyticsApps()).rejects.toEqual({ kind: 'AccessDenied' });
+  });
+
+  it('reports an expired session, rate limiting and an outage like every other call', async () => {
+    await expect(portWith(jest.fn().mockResolvedValue(jsonResponse({}, 401))).listAnalyticsApps()).rejects.toEqual({
+      kind: 'SessionExpired',
+    });
+    await expect(portWith(jest.fn().mockResolvedValue(jsonResponse({}, 429))).listAnalyticsApps()).rejects.toMatchObject({
+      kind: 'RateLimited',
+    });
+    await expect(portWith(jest.fn().mockResolvedValue(jsonResponse({}, 503))).listAnalyticsApps()).rejects.toEqual({
+      kind: 'ServiceUnavailable',
+    });
+  });
+
+  it('reports a network failure as Offline', async () => {
+    const fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    await expect(portWith(fetch).listAnalyticsApps()).rejects.toEqual({ kind: 'Offline' });
+  });
+});

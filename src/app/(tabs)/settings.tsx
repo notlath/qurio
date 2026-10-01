@@ -22,6 +22,8 @@ import { useReloadAnswersPort } from '@/qlik/context';
 
 function SignInSection({ config }: { config: TenantConfig }) {
   const { signIn, signOut, ready } = useQlikAuth(config);
+  // A new port discards whatever the previous session's screens were holding in memory.
+  const reloadPort = useReloadAnswersPort();
   const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +35,11 @@ function SignInSection({ config }: { config: TenantConfig }) {
       if (signedIn) {
         await signOut();
         setSignedIn(false);
+        reloadPort();
       } else {
         const tokens = await signIn();
         setSignedIn(!!tokens);
+        if (tokens) reloadPort();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');

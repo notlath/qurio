@@ -1,4 +1,4 @@
-import { assistantUrl, qlikFetch, qlikJson, type HttpResponse } from './http';
+import { qlikFetch, qlikJson, qlikUrl, type HttpResponse } from './http';
 
 const config = { tenantHost: 'acme.eu.qlikcloud.com', clientId: 'client-1', assistantId: 'assistant-1' };
 
@@ -15,17 +15,32 @@ function deps(fetch: jest.Mock, token: string | null = 'access-1') {
   return { fetch, getToken: async () => token };
 }
 
-describe('assistantUrl', () => {
+describe('qlikUrl', () => {
   it('roots a relative path at the configured tenant and assistant', () => {
-    expect(assistantUrl(config, '/threads')).toBe(
+    expect(qlikUrl(config, '/threads')).toBe(
       'https://acme.eu.qlikcloud.com/api/v1/assistants/assistant-1/threads',
     );
   });
 
-  it('passes an absolute url through — Qlik returns whole hrefs in links.next, not bare cursors', () => {
+  it('roots an /api/ path at the tenant, not the assistant — Items live outside the Assistant', () => {
+    expect(qlikUrl(config, '/api/v1/items?resourceType=app')).toBe(
+      'https://acme.eu.qlikcloud.com/api/v1/items?resourceType=app',
+    );
+  });
+
+  it('passes an absolute url on the configured tenant through — Qlik returns whole hrefs in links.next, not bare cursors', () => {
     const href = 'https://acme.eu.qlikcloud.com/api/v1/assistants/assistant-1/threads?next=abc';
 
-    expect(assistantUrl(config, href)).toBe(href);
+    expect(qlikUrl(config, href)).toBe(href);
+  });
+
+  it.each([
+    ['another host', 'https://evil.example.com/api/v1/items?next=abc'],
+    ['a look-alike prefix', 'https://acme.eu.qlikcloud.com.evil.example.com/api/v1/items'],
+    ['credentials in the authority', 'https://acme.eu.qlikcloud.com@evil.example.com/api/v1/items'],
+    ['plain http', 'http://acme.eu.qlikcloud.com/api/v1/items'],
+  ])('refuses an absolute url on %s, so the bearer token cannot be sent off the tenant', (_label, href) => {
+    expect(() => qlikUrl(config, href)).toThrow(expect.objectContaining({ kind: 'ServiceUnavailable' }));
   });
 });
 
@@ -93,5 +108,40 @@ describe('qlikJson', () => {
       expect.any(String),
       expect.objectContaining({ method: 'POST', body: '{"name":"New thread"}' }),
     );
+  });
+});
+
+describe('qlikFetch off-tenant protection', () => {
+  it('does not call the network, nor spend a token, for an off-tenant url', async () => {
+    const fetch = jest.fn();
+    const getToken = jest.fn(async () => 'access-1');
+
+    await expect(
+      qlikFetch({ fetch, getToken }, config, 'https://evil.example.com/api/v1/items?next=abc'),
+    ).rejects.toEqual({ kind: 'ServiceUnavailable' });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(getToken).not.toHaveBeenCalled();
+  });
+});
+
+describe('qlikFetch error scope', () => {
+  it('maps a tenant-level 403 to AccessDenied, not to missing Answers entitlement', async () => {
+    const fetch = jest.fn().mockResolvedValue(response(403));
+
+    await expect(qlikFetch(deps(fetch), config, '/api/v1/items')).rejects.toEqual({ kind: 'AccessDenied' });
+  });
+
+  it('keeps the Assistant 403 as NotEntitled', async () => {
+    const fetch = jest.fn().mockResolvedValue(response(403));
+
+    await expect(qlikFetch(deps(fetch), config, '/threads')).rejects.toEqual({ kind: 'NotEntitled' });
+  });
+
+  it('scopes a followed absolute next link by what it points at', async () => {
+    const fetch = jest.fn().mockResolvedValue(response(403));
+    const nextItems = 'https://acme.eu.qlikcloud.com/api/v1/items?next=abc';
+
+    await expect(qlikFetch(deps(fetch), config, nextItems)).rejects.toEqual({ kind: 'AccessDenied' });
   });
 });

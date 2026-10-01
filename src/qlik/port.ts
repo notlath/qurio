@@ -1,4 +1,4 @@
-import type { Feedback, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
+import type { AnalyticsApp, Feedback, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
 
 export type Capabilities = {
   streaming: boolean;
@@ -23,4 +23,8 @@ export interface AnswersPort {
   submitFeedback(threadId: string, interactionId: string, f: Feedback): Promise<void>;
 
   listStarters(): Promise<Starter[]>;
+
+  // Every Analytics App the signed-in Qlik User can see, most recently updated first. `cursor` is the
+  // `next` of the previous page; callers never build one.
+  listAnalyticsApps(opts?: { limit?: number; cursor?: string }): Promise<{ items: AnalyticsApp[]; next?: string }>;
 }

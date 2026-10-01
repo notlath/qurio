@@ -1,8 +1,12 @@
-import type { Answer, Citation, Interaction, Thread } from '@/domain';
-import type { QlikInteraction, QlikSource, QlikThread } from './wire-types';
+import type { AnalyticsApp, Answer, Citation, Interaction, Thread } from '@/domain';
+import type { QlikInteraction, QlikItem, QlikSource, QlikThread } from './wire-types';
 
 export function toThread(wire: QlikThread): Thread {
   return { id: wire.id, name: wire.name, createdAt: wire.createdAt, updatedAt: wire.updatedAt };
+}
+
+export function toAnalyticsApp(wire: QlikItem): AnalyticsApp {
+  return { id: wire.resourceId, name: wire.name, updatedAt: wire.updatedAt };
 }
 
 const FILE_NAME_PREFIX = /^File name: .*\n/;

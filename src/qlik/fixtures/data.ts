@@ -1,4 +1,4 @@
-import type { Interaction, Starter, Thread } from '@/domain';
+import type { AnalyticsApp, Interaction, Starter, Thread } from '@/domain';
 
 // Names/dates for threads beyond the first two — enough to demo "scrolling loads older pages"
 // against real pagination (src/qlik/fixtures/pagination.ts), not just a list that fits on screen.
@@ -36,6 +36,25 @@ export const fixtureThreads: Thread[] = [
     return { id: `thread-${i + 3}`, name, createdAt: updatedAt, updatedAt };
   }),
 ];
+
+const analyticsAppNames = [
+  'Sales overview',
+  'Customer retention',
+  'Supply chain monitor',
+  'Finance close tracker',
+  'HR headcount',
+  'Marketing campaigns',
+  'Support ticket trends',
+  'Inventory forecast',
+  'Regional performance',
+];
+
+// Newest first, as the real list is ordered — enough to span several pages.
+export const fixtureAnalyticsApps: AnalyticsApp[] = analyticsAppNames.map((name, i) => ({
+  id: `fixture-app-${i + 1}`,
+  name,
+  updatedAt: new Date(Date.parse('2026-09-30T08:00:00Z') - i * 3 * 24 * 60 * 60 * 1000).toISOString(),
+}));
 
 export const fixtureInteractionsByThreadId: Record<string, Interaction[]> = {
   'thread-1': [
