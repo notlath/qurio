@@ -4,6 +4,7 @@ import { Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppPressable, PrimaryButton } from '@/components/pressable';
+import { SignInSection } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
@@ -17,83 +18,7 @@ import {
 } from '@/config';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
-import { expireAccessTokenNow } from '@/auth/access-token';
-import { useQlikAuth } from '@/auth/session';
 import { useReloadAnswersPort } from '@/qlik/context';
-
-/** Device validation only (ticket 19): rendered in internal builds, never in a release. */
-function ExpireTokenButton() {
-  const [marked, setMarked] = useState(false);
-
-  return (
-    <>
-      <AppPressable
-        accessibilityLabel="Expire the access token now"
-        onPress={async () => {
-          await expireAccessTokenNow();
-          setMarked(true);
-        }}>
-        <ThemedText type="link" themeColor="primary">
-          Expire token now (test)
-        </ThemedText>
-      </AppPressable>
-      {marked && (
-        <ThemedText type="small" themeColor="textSecondary">
-          Token marked expired — the next Qlik request refreshes it.
-        </ThemedText>
-      )}
-    </>
-  );
-}
-
-function SignInSection({ config }: { config: TenantConfig }) {
-  const { signIn, signOut, ready } = useQlikAuth(config);
-  // A new port discards whatever the previous session's screens were holding in memory.
-  const reloadPort = useReloadAnswersPort();
-  const [signedIn, setSignedIn] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handlePress() {
-    setError(null);
-    setBusy(true);
-    try {
-      if (signedIn) {
-        await signOut();
-        setSignedIn(false);
-        reloadPort();
-      } else {
-        const tokens = await signIn();
-        setSignedIn(!!tokens);
-        if (tokens) reloadPort();
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <ThemedView type="background" style={styles.signIn}>
-      <ThemedText type="smallBold">Sign-in</ThemedText>
-      <ThemedText themeColor="textSecondary">{signedIn ? 'Signed in' : 'Not signed in'}</ThemedText>
-      {error && (
-        <ThemedText type="small" themeColor="danger">
-          {error}
-        </ThemedText>
-      )}
-      <PrimaryButton
-        label={signedIn ? 'Sign out' : 'Sign in'}
-        busy={busy}
-        disabled={!ready}
-        onPress={handlePress}
-        style={styles.saveButton}
-      />
-      {IS_INTERNAL_BUILD && <ExpireTokenButton />}
-    </ThemedView>
-  );
-}
 
 function TenantConfigForm() {
   const theme = useTheme();
@@ -294,7 +219,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, padding: Spacing.four, gap: Spacing.three },
   intro: { gap: Spacing.one, paddingBottom: Spacing.one },
   form: { gap: Spacing.three, padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card },
-  signIn: { gap: Spacing.two, paddingTop: Spacing.one },
   field: { gap: Spacing.one },
   input: {
     fontSize: 16,

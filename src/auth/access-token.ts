@@ -78,6 +78,15 @@ async function refresh(config: TenantConfig): Promise<string | null> {
   return adoptTokens(tokens);
 }
 
+/**
+ * Whether this device holds a session: a token in memory, or a stored refresh token that can mint
+ * one (a restarted app has only the latter). It says nothing about whether the refresh token is
+ * still accepted — only that a sign-in is not needed up front.
+ */
+export async function hasSession(): Promise<boolean> {
+  return accessToken !== null || (await loadRefreshToken()) !== null;
+}
+
 /** The current in-memory token without refreshing — only for revocation on sign-out. */
 export const peekAccessToken = (): string | null => accessToken;
 
