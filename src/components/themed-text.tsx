@@ -14,6 +14,8 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
   return (
     <Text
+      // Display sizes are headings to VoiceOver/TalkBack too, so rotor and heading navigation find them.
+      accessibilityRole={type === 'title' || type === 'subtitle' ? 'header' : undefined}
       style={[
         { color },
         type === 'default' && styles.default,

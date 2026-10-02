@@ -5,7 +5,7 @@ import type { TenantConfig } from '@/config';
 import type { AppError, Interaction, Starter } from '@/domain';
 
 import { classifyFetchFailure } from './classic/errors';
-import { qlikFetch, qlikJson, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
+import { qlikFetch, qlikJson, qlikUrl, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
 import { toAnalyticsApp, toAnswer, toInteraction, toThread } from './classic/mappers';
 import { consumeStream, type StreamReader } from './classic/stream-session';
 import type { QlikInteraction, QlikItem, QlikSource, QlikThread } from './classic/wire-types';
@@ -133,6 +133,17 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
         `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}`;
       const { data, links } = await json<QlikList<QlikItem>>(path);
       return { items: data.map(toAnalyticsApp), next: links?.next?.href };
+    },
+
+    async thumbnailImage(appId) {
+      // [POC] Endpoint from the published Apps API (qlik.dev/apis/rest/apps), not yet captured live.
+      // Built through qlikUrl, so the bearer token can only ever be sent to the Tenant itself.
+      const token = await deps.getToken();
+      if (!token) return null;
+      return {
+        uri: qlikUrl(config, `/api/v1/apps/${encodeURIComponent(appId)}/media/thumbnail`),
+        headers: { Authorization: `Bearer ${token}` },
+      };
     },
 
     async listStarters() {

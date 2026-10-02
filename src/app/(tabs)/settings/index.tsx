@@ -1,15 +1,15 @@
 import { Link } from 'expo-router';
 import { Children, Fragment, useEffect, useState, type ReactNode } from 'react';
-import { Platform, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { expireAccessTokenNow } from '@/auth/access-token';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { usePrivacyLock } from '@/components/lock-gate';
+import { NativeSwitch } from '@/components/native-switch';
 import { SignInSection } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Elevation, Radius, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import {
   IS_INTERNAL_BUILD,
   loadDevConfig,
@@ -34,7 +34,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <ThemedText type="caption" themeColor="textSecondary" accessibilityRole="header" style={styles.sectionTitle}>
         {title.toUpperCase()}
       </ThemedText>
-      <ThemedView type="backgroundElement" style={[styles.group, { borderColor: theme.border }, Elevation.card]}>
+      <ThemedView type="backgroundElement" style={[styles.group, Shape.continuous, { borderColor: theme.border }]}>
         {rows.map((row, i) => (
           <Fragment key={i}>
             {i > 0 && <View style={[styles.divider, { backgroundColor: theme.border }]} />}
@@ -87,7 +87,6 @@ function AccountSection({ resolved }: { resolved: TenantConfig | null | undefine
 }
 
 function PrivacyLockRow() {
-  const theme = useTheme();
   const privacyLock = usePrivacyLock();
   return (
     <View>
@@ -95,17 +94,16 @@ function PrivacyLockRow() {
         title="Privacy lock"
         detail="Ask for your device passcode when you open or return to the app."
         accessory={
-          <Switch
+          <NativeSwitch
             accessibilityLabel="Privacy lock"
             value={privacyLock.enabled}
             disabled={privacyLock.saving}
             onValueChange={privacyLock.setEnabled}
-            trackColor={{ false: theme.borderStrong, true: theme.primary }}
           />
         }
       />
       {privacyLock.saveError && (
-        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite" style={styles.rowMessage}>
+        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite" selectable style={styles.rowMessage}>
           {privacyLock.saveError}
         </ThemedText>
       )}
@@ -115,7 +113,6 @@ function PrivacyLockRow() {
 
 /** Internal builds only (the caller gates it): lets a tester take screenshots, e.g. for a review. Off by default. */
 function ScreenshotRow() {
-  const theme = useTheme();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,17 +136,16 @@ function ScreenshotRow() {
         title="Allow screenshots"
         detail="Remembered on this device. Release builds always block capture."
         accessory={
-          <Switch
+          <NativeSwitch
             accessibilityLabel="Allow screenshots"
             value={!!allowed}
             disabled={allowed === null}
             onValueChange={change}
-            trackColor={{ false: theme.borderStrong, true: theme.primary }}
           />
         }
       />
       {error && (
-        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite" style={styles.rowMessage}>
+        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite" selectable style={styles.rowMessage}>
           {error}
         </ThemedText>
       )}
@@ -240,7 +236,7 @@ function TenantConfigForm({ onSaved }: { onSaved: (active: TenantConfig | null) 
     }
   }
 
-  const inputStyle = [styles.input, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }];
+  const inputStyle = [styles.input, Shape.continuous, { borderColor: theme.borderStrong, color: theme.text, backgroundColor: theme.background }];
 
   return (
     <View style={styles.form}>
@@ -256,7 +252,7 @@ function TenantConfigForm({ onSaved }: { onSaved: (active: TenantConfig | null) 
           onChangeText={edit(setTenantHost)}
         />
         {fieldError?.field === 'tenantHost' && (
-          <ThemedText type="small" themeColor="danger">
+          <ThemedText type="small" themeColor="danger" selectable>
             {fieldError.message}
           </ThemedText>
         )}
@@ -290,7 +286,7 @@ function TenantConfigForm({ onSaved }: { onSaved: (active: TenantConfig | null) 
       </View>
 
       {fieldError?.field === 'form' && (
-        <ThemedText type="small" themeColor="danger">
+        <ThemedText type="small" themeColor="danger" selectable>
           {fieldError.message}
         </ThemedText>
       )}
@@ -334,43 +330,38 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.intro}>
-          <ThemedText type="title">Settings</ThemedText>
-        </View>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.content, ContentColumn]}
+      keyboardShouldPersistTaps="handled">
+      <AccountSection resolved={resolved} />
 
-        <AccountSection resolved={resolved} />
+      {native && (
+        <Section title="Security">
+          <PrivacyLockRow />
+        </Section>
+      )}
 
-        {native && (
-          <Section title="Security">
-            <PrivacyLockRow />
-          </Section>
-        )}
-
-        {IS_INTERNAL_BUILD && (
-          <Section title="Developer">
-            <WorkspaceConnection resolved={resolved} onSaved={setResolved} />
-            {native && <ScreenshotRow />}
-            {native && <ExpireTokenRow />}
-            {native && (
-              <Link href="/agentic-spike" asChild>
-                <AppPressable accessibilityLabel="Open agentic assistant spike">
-                  <Row title="Agentic spike" accessory={<RowAction label="Open" />} />
-                </AppPressable>
-              </Link>
-            )}
-          </Section>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+      {IS_INTERNAL_BUILD && (
+        <Section title="Developer">
+          <WorkspaceConnection resolved={resolved} onSaved={setResolved} />
+          {native && <ScreenshotRow />}
+          {native && <ExpireTokenRow />}
+          {native && (
+            <Link href="/agentic-spike" asChild>
+              <AppPressable accessibilityLabel="Open agentic assistant spike">
+                <Row title="Agentic spike" accessory={<RowAction label="Open" />} />
+              </AppPressable>
+            </Link>
+          )}
+        </Section>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { flexGrow: 1, padding: Spacing.four, gap: Spacing.four },
-  intro: { gap: Spacing.one },
+  content: { flexGrow: 1, paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.five, gap: Spacing.four },
   section: { gap: Spacing.two },
   // Inset to line up with the row text inside the group, not the group's edge.
   sectionTitle: { paddingHorizontal: Spacing.three },

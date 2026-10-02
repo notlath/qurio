@@ -88,14 +88,23 @@ export const Duration = {
   medium: 260,
 } as const;
 
-/** Light mode needs real surface separation; dark mode separates with borders instead. */
+/**
+ * Shape lock: actions (buttons, chips, the composer) are pills; cards and grouped lists use
+ * `Radius.card`; inputs use `Radius.control`; inline blocks (code, icon tiles) use `Radius.small`.
+ * Every rounded surface also takes `Shape.continuous` so its corners read as squircles on iOS.
+ */
+export const Shape = { continuous: { borderCurve: 'continuous' } } as const;
+
+/**
+ * One elevation, for surfaces that float above content (the composer). Lists and cards sit flat
+ * on the background and separate with a hairline — stacking shadows on every row reads as noise.
+ */
 export const Elevation = {
-  card: Platform.select({
-    ios: { shadowColor: '#0B1F14', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-    android: { elevation: 2 },
-    default: {},
-  }),
+  floating: { boxShadow: '0 2px 12px rgba(11, 31, 20, 0.08)' },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+/** Centres a list's content column at `MaxContentWidth` on tablets and the web preview. */
+export const ContentColumn = { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' } as const;

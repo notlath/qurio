@@ -31,7 +31,7 @@ export default function AnalyticsAppScreen() {
       <Stack.Screen options={{ title: name ?? 'Analytics App' }} />
       {config === undefined ? null : config === null ? (
         <ThemedView>
-          <ThemedText themeColor="textSecondary">{errorMessageFor({ kind: 'ConfigMissing' }).message}</ThemedText>
+          <ThemedText themeColor="textSecondary" selectable>{errorMessageFor({ kind: 'ConfigMissing' }).message}</ThemedText>
         </ThemedView>
       ) : (
         <QlikEmbedHost config={config} surface="classic/app" resourceId={id} />

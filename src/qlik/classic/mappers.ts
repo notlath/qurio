@@ -6,7 +6,7 @@ export function toThread(wire: QlikThread): Thread {
 }
 
 export function toAnalyticsApp(wire: QlikItem): AnalyticsApp {
-  return { id: wire.resourceId, name: wire.name, updatedAt: wire.updatedAt };
+  return { id: wire.resourceId, name: wire.name, updatedAt: wire.updatedAt, hasThumbnail: !!wire.thumbnailId };
 }
 
 const FILE_NAME_PREFIX = /^File name: .*\n/;

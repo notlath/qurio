@@ -32,6 +32,7 @@ function createUnconfiguredPort(): AnswersPort {
     submitFeedback: fail,
     listStarters: fail,
     listAnalyticsApps: fail,
+    thumbnailImage: async () => null,
   };
 }
 

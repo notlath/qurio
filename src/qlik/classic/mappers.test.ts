@@ -178,7 +178,17 @@ describe('toAnalyticsApp', () => {
     expect(toAnalyticsApp(wire).id).toBe('app-id-1');
   });
 
-  it('keeps only the name and the update time the list shows', () => {
-    expect(toAnalyticsApp(wire)).toEqual({ id: 'app-id-1', name: 'Sales overview', updatedAt: '2026-09-30T08:00:00Z' });
+  it('keeps only the name, the update time and whether a thumbnail exists', () => {
+    expect(toAnalyticsApp(wire)).toEqual({
+      id: 'app-id-1',
+      name: 'Sales overview',
+      updatedAt: '2026-09-30T08:00:00Z',
+      hasThumbnail: false,
+    });
+  });
+
+  it('reports a thumbnail only when Items carries a non-empty thumbnailId', () => {
+    expect(toAnalyticsApp({ ...wire, thumbnailId: 'thumb-1' }).hasThumbnail).toBe(true);
+    expect(toAnalyticsApp({ ...wire, thumbnailId: '' }).hasThumbnail).toBe(false);
   });
 });

@@ -1,10 +1,11 @@
 import { Link } from 'expo-router';
 import type { ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAgenticAvailability } from './use-agentic-target';
 
@@ -21,14 +22,20 @@ export function AgenticEntry(): ReactElement | null {
         // Flattened: `Link asChild` throws in development if its child's style is an array.
         style={StyleSheet.flatten([
           styles.agenticEntry,
+          ContentColumn,
+          Shape.continuous,
           { borderColor: theme.border, backgroundColor: theme.backgroundElement },
         ])}>
-        <ThemedText type="smallBold" themeColor="primary">
-          Open the Agentic Assistant
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Ask about your analytics apps and knowledge bases.
-        </ThemedText>
+        <View style={[styles.tile, Shape.continuous, { backgroundColor: theme.backgroundSelected }]}>
+          <Icon ios="wand.and.stars" android="auto_awesome" color="primary" />
+        </View>
+        <View style={styles.text}>
+          <ThemedText type="smallBold">Open the Agentic Assistant</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Ask about your analytics apps and knowledge bases.
+          </ThemedText>
+        </View>
+        <Icon ios="chevron.right" android="chevron_right" size={14} color="textSecondary" />
       </AppPressable>
     </Link>
   );
@@ -36,11 +43,15 @@ export function AgenticEntry(): ReactElement | null {
 
 const styles = StyleSheet.create({
   agenticEntry: {
-    gap: Spacing.one,
-    margin: Spacing.four,
-    marginBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    marginTop: Spacing.two,
+    marginHorizontal: Spacing.three,
     padding: Spacing.three,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.card,
   },
+  tile: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.small },
+  text: { flex: 1, gap: Spacing.half },
 });

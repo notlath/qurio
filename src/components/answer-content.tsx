@@ -2,16 +2,22 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Radius, Shape, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 import { parseAnswerMarkdown, type AnswerRenderBlock, type InlineSpan } from './answer-markdown';
 
 function Spans({ spans }: { spans: InlineSpan[] }) {
   return (
-    <ThemedText>
+    <ThemedText selectable>
       {spans.map((span, index) =>
         span.href ? (
-          <ThemedText key={index} type="linkPrimary" onPress={() => Linking.openURL(span.href!)}>
+          <ThemedText
+            key={index}
+            type="linkPrimary"
+            accessibilityRole="link"
+            style={styles.link}
+            onPress={() => Linking.openURL(span.href!)}>
             {span.text}
           </ThemedText>
         ) : (
@@ -39,28 +45,30 @@ export function AnswerContent({ markdown }: { markdown: string }) {
   const numberedIndices = numberedIndicesFor(blocks);
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       {blocks.map((block, index) => (
         <Block key={index} block={block} numberedIndex={numberedIndices[index]} />
       ))}
-    </ThemedView>
+    </View>
   );
 }
 
 function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedIndex: number }) {
+  const theme = useTheme();
+
   switch (block.kind) {
     case 'paragraph':
       return <Spans spans={block.spans} />;
     case 'heading':
       return (
-        <ThemedText style={HEADING_LEVEL_STYLE[block.level]}>
+        <ThemedText accessibilityRole="header" style={HEADING_LEVEL_STYLE[block.level]}>
           <Spans spans={block.spans} />
         </ThemedText>
       );
     case 'numberedListItem':
       return (
         <View style={styles.listItem}>
-          <ThemedText>{numberedIndex}.</ThemedText>
+          <ThemedText style={styles.marker}>{numberedIndex}.</ThemedText>
           <View style={styles.listItemContent}>
             <Spans spans={block.spans} />
           </View>
@@ -69,7 +77,7 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
     case 'bulletListItem':
       return (
         <View style={styles.listItem}>
-          <ThemedText>{'•'}</ThemedText>
+          <ThemedText style={styles.marker}>{'•'}</ThemedText>
           <View style={styles.listItemContent}>
             <Spans spans={block.spans} />
           </View>
@@ -78,43 +86,57 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
     case 'table':
       return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScroll}>
-          <View style={styles.table}>
-          {block.rows.map((row, rowIndex) => (
-            <View key={rowIndex} style={styles.tableRow}>
-              {row.map((cell, cellIndex) => (
-                <View key={cellIndex} style={styles.tableCell}>
-                  <Spans spans={cell} />
-                </View>
-              ))}
-            </View>
-          ))}
+          <View style={[styles.table, Shape.continuous, { borderColor: theme.border }]}>
+            {block.rows.map((row, rowIndex) => (
+              <View
+                key={rowIndex}
+                style={[
+                  styles.tableRow,
+                  rowIndex > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
+                  // The parser emits the header row first; it gets the tinted band.
+                  rowIndex === 0 && { backgroundColor: theme.backgroundSelected },
+                ]}>
+                {row.map((cell, cellIndex) => (
+                  <View key={cellIndex} style={styles.tableCell}>
+                    <Spans spans={cell} />
+                  </View>
+                ))}
+              </View>
+            ))}
           </View>
         </ScrollView>
       );
     case 'code':
       return (
-        <ThemedView type="backgroundElement" style={styles.codeBlock}>
-          <ThemedText type="code">{block.text}</ThemedText>
+        <ThemedView type="backgroundElement" style={[styles.codeBlock, Shape.continuous, { borderColor: theme.border }]}>
+          <ThemedText type="code" selectable>
+            {block.text}
+          </ThemedText>
         </ThemedView>
       );
   }
 }
 
+// Weight is the font family, not `fontWeight`: Android renders a custom family's `fontWeight: 700`
+// as Regular, so bold spans and headings in answers silently lost their emphasis there.
 const styles = StyleSheet.create({
   container: { gap: Spacing.two },
-  bold: { fontWeight: '700' },
+  bold: { fontFamily: Fonts.bold },
   italic: { fontStyle: 'italic' },
-  listItem: { flexDirection: 'row', gap: Spacing.one },
+  link: { textDecorationLine: 'underline' },
+  listItem: { flexDirection: 'row', gap: Spacing.two },
+  marker: { minWidth: Spacing.three, fontFamily: Fonts.semibold },
   listItemContent: { flex: 1 },
-  table: { gap: Spacing.half },
+  table: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small, overflow: 'hidden' },
   tableScroll: { minWidth: '100%' },
-  tableRow: { flexDirection: 'row', gap: Spacing.two },
-  tableCell: { flex: 1 },
-  codeBlock: { padding: Spacing.two, borderRadius: Spacing.one },
+  tableRow: { flexDirection: 'row' },
+  // A floor on cell width: `flex: 1` alone squeezed wide tables into one-word columns.
+  tableCell: { flex: 1, minWidth: 120, paddingHorizontal: Spacing.two, paddingVertical: Spacing.two },
+  codeBlock: { padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small },
 });
 
 const HEADING_LEVEL_STYLE = {
-  1: { fontSize: 20, fontWeight: '700' as const },
-  2: { fontSize: 18, fontWeight: '700' as const },
-  3: { fontSize: 16, fontWeight: '700' as const },
+  1: { fontFamily: Fonts.bold, fontSize: 20, lineHeight: 28 },
+  2: { fontFamily: Fonts.bold, fontSize: 18, lineHeight: 26 },
+  3: { fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24 },
 };

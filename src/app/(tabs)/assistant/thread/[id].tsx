@@ -1,14 +1,13 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
-import { Composer, PendingAnswer } from '@/components/composer';
+import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { InteractionRow } from '@/components/interaction-row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
-import type { ThreadDetail } from '@/domain';
+import { ContentColumn, Spacing } from '@/constants/theme';
+import type { AppError, ThreadDetail } from '@/domain';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAnswersPort } from '@/qlik/context';
 
@@ -32,51 +31,77 @@ function ThreadConversation({ detail }: { detail: ThreadDetail }) {
   } = useThreadConversation(detail.id, detail.interactions);
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.select({ ios: 'padding', default: undefined })}>
+    <View style={styles.flex}>
       <Stack.Screen options={{ title: detail.name }} />
-      <SafeAreaView style={styles.flex} edges={['bottom']}>
-        <FlatList
-          style={styles.flex}
-          contentContainerStyle={styles.listContent}
-          data={interactions}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <InteractionRow interaction={item} />}
-          keyboardDismissMode="interactive"
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <ThemedText type="small" themeColor="textSecondary">
-                No messages in this thread yet.
-              </ThemedText>
-            </View>
-          }
-          ListFooterComponent={
-            asking ? (
-              <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
-            ) : error && erroredAt ? (
-              <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
-            ) : null
-          }
-        />
-        <Composer
-          question={question}
-          setQuestion={setQuestion}
-          asking={asking}
-          onAsk={() => ask()}
-          onStop={stop}
-        />
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      <FlatList
+        style={styles.flex}
+        contentContainerStyle={[styles.listContent, ContentColumn]}
+        data={interactions}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <InteractionRow interaction={item} />}
+        keyboardDismissMode="interactive"
+        renderScrollComponent={(props) => <ChatScrollView {...props} />}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <ThemedText type="small" themeColor="textSecondary">
+              No messages in this thread yet.
+            </ThemedText>
+          </View>
+        }
+        ListFooterComponent={
+          asking ? (
+            <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
+          ) : error && erroredAt ? (
+            <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
+          ) : null
+        }
+      />
+      <Composer
+        question={question}
+        setQuestion={setQuestion}
+        asking={asking}
+        onAsk={() => ask()}
+        onStop={stop}
+      />
+    </View>
   );
+}
+
+function isAppError(value: unknown): value is AppError {
+  return typeof value === 'object' && value !== null && 'kind' in value;
 }
 
 export default function ThreadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const port = useAnswersPort();
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
+  // A failed load used to leave the spinner up forever, with no way out but Back.
+  const [failure, setFailure] = useState<{ error: AppError; at: number } | null>(null);
 
-  useEffect(() => {
-    port.getThread(id).then(setDetail);
+  const load = useCallback(() => {
+    port.getThread(id).then(setDetail, (e) =>
+      setFailure({ error: isAppError(e) ? e : { kind: 'ServiceUnavailable' }, at: Date.now() }),
+    );
   }, [port, id]);
+
+  useEffect(load, [load]);
+
+  if (failure) {
+    return (
+      <View style={styles.failureState}>
+        <ErrorState
+          error={failure.error}
+          erroredAt={failure.at}
+          onRetry={() => {
+            setFailure(null);
+            load();
+          }}
+          // Dismissing leaves nothing to show here, so it leaves the screen.
+          onDismiss={() => router.back()}
+        />
+      </View>
+    );
+  }
 
   if (!detail) {
     return (
@@ -92,6 +117,7 @@ export default function ThreadDetailScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { flexGrow: 1, padding: Spacing.four, gap: Spacing.four },
+  failureState: { flex: 1, justifyContent: 'center', padding: Spacing.three },
+  listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.four },
 });

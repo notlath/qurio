@@ -14,6 +14,7 @@ export type QlikItem = {
   resourceType: string;
   resourceId: string;
   updatedAt: string;
+  thumbnailId?: string; // "" when the app has no thumbnail (qlik.dev/apis/rest/items)
 };
 
 export type QlikChunk = {

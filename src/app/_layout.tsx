@@ -10,15 +10,19 @@ import * as ScreenCapture from 'expo-screen-capture';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { LockGate } from '@/components/lock-gate';
 import { applyScreenCapture } from '@/config/screen-capture';
+import { Colors } from '@/constants/theme';
+import { useStackScreenOptions } from '@/hooks/use-stack-options';
 import { AnswersPortProvider } from '@/qlik/context';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const screenOptions = useStackScreenOptions();
   // Loaded at runtime rather than embedded by the expo-font config plugin: the plugin needs a
   // native rebuild, which would strand every dev client already installed. See docs/dev-build-runbook.md.
   const [fontsLoaded, fontError] = useFonts({
@@ -47,16 +51,41 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnswersPortProvider>
-        <LockGate>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="agentic-spike" options={{ title: 'Agentic spike' }} />
-            <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
-          </Stack>
-        </LockGate>
-      </AnswersPortProvider>
-    </ThemeProvider>
+    // iOS only: Android already lifts the chat above the keyboard natively (NativeTabs'
+    // tabBarRespectsIMEInsets); letting the library take the IME insets too would double the offset.
+    <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
+      <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
+        <AnswersPortProvider>
+          <LockGate>
+            <Stack screenOptions={screenOptions}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="agentic-spike" options={{ title: 'Agentic spike' }} />
+              <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
+            </Stack>
+          </LockGate>
+        </AnswersPortProvider>
+      </ThemeProvider>
+    </KeyboardProvider>
   );
+}
+
+/**
+ * The navigator paints every screen's background, tab bar and header from this theme — left at
+ * React Navigation's defaults, screens sat on #F2F2F2 / #000 instead of the brand surfaces.
+ */
+function navigationTheme(scheme: 'light' | 'dark') {
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const colors = Colors[scheme];
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.background,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.danger,
+    },
+  };
 }

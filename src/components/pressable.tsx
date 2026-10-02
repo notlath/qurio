@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -66,6 +67,35 @@ export function PrimaryButton({
 }
 
 /**
+ * An icon-only action: a circular tap target at the platform minimum. The icon is decorative, so
+ * `accessibilityLabel` is required — it is the only name a screen reader has for the control.
+ */
+export function IconButton({
+  icon,
+  accessibilityLabel,
+  variant = 'plain',
+  style,
+  ...rest
+}: Omit<AppPressableProps, 'children'> & {
+  icon: ReactElement;
+  accessibilityLabel: string;
+  variant?: 'plain' | 'filled' | 'tinted';
+}) {
+  const theme = useTheme();
+  const backgroundColor =
+    variant === 'filled' ? theme.primary : variant === 'tinted' ? theme.backgroundSelected : 'transparent';
+
+  return (
+    <AppPressable
+      accessibilityLabel={accessibilityLabel}
+      style={[styles.iconButton, { backgroundColor }, style as ViewStyle]}
+      {...rest}>
+      {icon}
+    </AppPressable>
+  );
+}
+
+/**
  * A selectable pill. `selected` is exposed to assistive tech as well as drawn — the original
  * feedback chips signalled selection with colour alone, which a screen reader never sees.
  */
@@ -108,7 +138,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    borderRadius: Radius.control,
+    borderRadius: Radius.pill,
+  },
+  iconButton: {
+    alignItems: 'center',
+    width: TouchTarget,
+    height: TouchTarget,
+    borderRadius: Radius.pill,
   },
   chip: {
     alignItems: 'center',

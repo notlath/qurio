@@ -278,8 +278,8 @@ describe('listAnalyticsApps', () => {
     const page = await portWith(fetch).listAnalyticsApps();
 
     expect(page.items).toEqual([
-      { id: 'app-1', name: 'App 1', updatedAt: '2026-09-29T08:00:00Z' },
-      { id: 'app-2', name: 'App 2', updatedAt: '2026-09-28T08:00:00Z' },
+      { id: 'app-1', name: 'App 1', updatedAt: '2026-09-29T08:00:00Z', hasThumbnail: false },
+      { id: 'app-2', name: 'App 2', updatedAt: '2026-09-28T08:00:00Z', hasThumbnail: false },
     ]);
     expect(page.next).toBeUndefined();
   });
@@ -338,5 +338,28 @@ describe('listAnalyticsApps', () => {
     const fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
 
     await expect(portWith(fetch).listAnalyticsApps()).rejects.toEqual({ kind: 'Offline' });
+  });
+});
+
+describe('thumbnailImage', () => {
+  it('addresses the app media endpoint on the Tenant, with the current bearer token', async () => {
+    const image = await portWith(jest.fn()).thumbnailImage('app-1');
+
+    expect(image).toEqual({
+      uri: 'https://acme.eu.qlikcloud.com/api/v1/apps/app-1/media/thumbnail',
+      headers: { Authorization: 'Bearer access-1' },
+    });
+  });
+
+  it('cannot be steered off the app media path by the app id', async () => {
+    const image = await portWith(jest.fn()).thumbnailImage('../../users/me');
+
+    expect(image?.uri).toBe('https://acme.eu.qlikcloud.com/api/v1/apps/..%2F..%2Fusers%2Fme/media/thumbnail');
+  });
+
+  it('has no image to offer without a session', async () => {
+    const port = createAnswersPort(config, { fetch: jest.fn(), getToken: async () => null });
+
+    expect(await port.thumbnailImage('app-1')).toBeNull();
   });
 });

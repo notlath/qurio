@@ -1,14 +1,15 @@
 import { Link } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
-import { AppPressable } from '@/components/pressable';
+import { Icon } from '@/components/icon';
+import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Elevation, Radius, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { AppError, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useAnswersPort } from '@/qlik/context';
@@ -32,7 +33,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
   return (
     <ThemedView
       type="backgroundElement"
-      style={[styles.row, { borderColor: theme.border }, Elevation.card]}>
+      style={[styles.row, Shape.continuous, { borderColor: theme.border }]}>
       <Link href={{ pathname: '/assistant/thread/[id]', params: { id: thread.id } }} asChild>
         <AppPressable
           accessibilityLabel={`Open ${thread.name}`}
@@ -46,14 +47,11 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
           </ThemedText>
         </AppPressable>
       </Link>
-      <AppPressable
+      <IconButton
         onPress={confirmDelete}
         accessibilityLabel={`Delete ${thread.name}`}
-        style={styles.deleteAction}>
-        <ThemedText type="link" themeColor="danger">
-          Delete
-        </ThemedText>
-      </AppPressable>
+        icon={<Icon ios="trash" android="delete" size={18} color="textSecondary" />}
+      />
     </ThemedView>
   );
 }
@@ -112,67 +110,74 @@ export default function HistoryScreen() {
       await port.deleteThread(id);
     } catch {
       setThreads(previous);
+      // The row reappearing on its own read as a glitch; say why it came back.
+      Alert.alert('Could not delete conversation', 'Check your connection and try again.');
     }
   }
 
-  const header = (
-    <View style={styles.intro}>
-      <ThemedText type="subtitle">Conversations</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Return to an answer, source, or earlier line of thinking.
-      </ThemedText>
-    </View>
+  return (
+    <FlatList
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.listContent, ContentColumn]}
+      data={initialLoad || error ? [] : threads}
+      keyExtractor={(item) => item.id}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      renderItem={({ item }) => <ThreadRow thread={item} onDelete={handleDelete} />}
+      ListEmptyComponent={
+        initialLoad ? (
+          <View accessible accessibilityLabel="Loading conversations" style={styles.skeletons}>
+            {[0, 1, 2, 3].map((i) => (
+              <ThreadRowSkeleton key={i} />
+            ))}
+          </View>
+        ) : error ? (
+          <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={() => setError(null)} />
+        ) : (
+          <EmptyState
+            icon={<Icon ios="bubble.left.and.bubble.right" android="forum" size={28} color="primary" />}
+            title="No conversations yet"
+            message="Ask the Assistant a question and the conversation will be saved here."
+          />
+        )
+      }
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : null}
+    />
   );
+}
 
-  if (initialLoad || error || threads.length === 0) {
-    return (
-      <SafeAreaView style={styles.flex} edges={['bottom']}>
-        <View style={styles.centeredContent}>
-          {header}
-          {initialLoad ? (
-            <ActivityIndicator accessibilityLabel="Loading conversations" />
-          ) : error ? (
-            <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={() => setError(null)} />
-          ) : (
-            <ThemedText type="small" themeColor="textSecondary">
-              No conversations yet. Ask a question to start one.
-            </ThemedText>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
+/** Placeholder rows in the final row's shape, so the list does not reflow when threads arrive. */
+function ThreadRowSkeleton() {
+  const theme = useTheme();
 
   return (
-    <SafeAreaView style={styles.flex} edges={['bottom']}>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={threads}
-        keyExtractor={(item) => item.id}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListHeaderComponent={header}
-        renderItem={({ item }) => <ThreadRow thread={item} onDelete={handleDelete} />}
-        ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : null}
-      />
-    </SafeAreaView>
+    <View
+      style={[
+        styles.row,
+        styles.skeletonRow,
+        Shape.continuous,
+        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+      ]}>
+      <View style={[styles.skeletonLine, { width: '70%', backgroundColor: theme.backgroundSelected }]} />
+      <View style={[styles.skeletonLine, { width: '20%', backgroundColor: theme.backgroundSelected }]} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  listContent: { padding: Spacing.four, gap: Spacing.two },
-  centeredContent: { flex: 1, padding: Spacing.four, gap: Spacing.four },
-  intro: { gap: Spacing.one, paddingBottom: Spacing.two },
+  listContent: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.four, gap: Spacing.two },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.three,
+    gap: Spacing.two,
+    paddingLeft: Spacing.three,
+    paddingRight: Spacing.one,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.card,
   },
   rowText: { flex: 1, gap: Spacing.half, paddingVertical: Spacing.three },
-  deleteAction: { paddingLeft: Spacing.two },
+  skeletons: { gap: Spacing.two },
+  skeletonRow: { flexDirection: 'column', alignItems: 'flex-start', gap: Spacing.two, paddingVertical: Spacing.three },
+  skeletonLine: { height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.four },
 });

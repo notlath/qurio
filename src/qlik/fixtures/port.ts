@@ -113,5 +113,9 @@ export function createFixtureAnswersPort(): AnswersPort {
     async listAnalyticsApps(opts) {
       return paginate(fixtureAnalyticsApps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
+
+    async thumbnailImage() {
+      return null; // fixture apps have no thumbnails, so the generated cover is what renders
+    },
   };
 }

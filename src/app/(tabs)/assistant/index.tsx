@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, View } from 'react-native';
 
-import { Composer, PendingAnswer } from '@/components/composer';
+import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
+import { Icon } from '@/components/icon';
 import { InteractionRow } from '@/components/interaction-row';
 import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { Starter, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
@@ -22,8 +22,12 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
     <AppPressable
       onPress={() => onPress(starter.prompt)}
       accessibilityLabel={`Ask: ${starter.prompt}`}
-      style={[styles.starterRow, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-      <ThemedText type="small">{starter.prompt}</ThemedText>
+      style={[styles.starterRow, Shape.continuous, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+      <Icon ios="text.bubble" android="chat_bubble" size={18} color="primary" />
+      <ThemedText type="small" style={styles.starterText}>
+        {starter.prompt}
+      </ThemedText>
+      <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />
     </AppPressable>
   );
 }
@@ -64,68 +68,67 @@ export default function NewThreadScreen() {
   }, [port]);
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.select({ ios: 'padding', default: undefined })}>
-      <SafeAreaView style={styles.flex} edges={['bottom']}>
-        <AgenticEntry />
-        <FlatList
-          style={styles.flex}
-          contentContainerStyle={styles.listContent}
-          data={interactions}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <InteractionRow interaction={item} />}
-          keyboardDismissMode="interactive"
-          ListEmptyComponent={
-            asking ? null : (
-              <View style={styles.emptyState}>
-                <View style={styles.kicker}>
-                  <ThemedView type="primary" style={styles.kickerMark} />
-                  <ThemedText type="caption" themeColor="primary">
-                    QLIK ANSWERS
-                  </ThemedText>
-                </View>
-                <ThemedText type="title" style={styles.welcomeTitle}>
-                  Find the signal in your work.
+    <View style={styles.flex}>
+      <AgenticEntry />
+      <FlatList
+        style={styles.flex}
+        contentContainerStyle={[styles.listContent, ContentColumn]}
+        data={interactions}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <InteractionRow interaction={item} />}
+        keyboardDismissMode="interactive"
+        renderScrollComponent={(props) => <ChatScrollView {...props} />}
+        ListEmptyComponent={
+          asking ? null : (
+            <View style={styles.emptyState}>
+              <View style={styles.kicker}>
+                <ThemedView type="primary" style={styles.kickerMark} />
+                <ThemedText type="caption" themeColor="primary">
+                  QURIO
                 </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.welcomeCopy}>
-                  Ask a clear question. Answers stay grounded in your organization&rsquo;s knowledge.
-                </ThemedText>
-                {starters.length > 0 && (
-                  <View style={styles.startersSection}>
-                    <ThemedText type="caption" themeColor="textSecondary">
-                      START WITH A PROMPT
-                    </ThemedText>
-                    {starters.map((starter) => (
-                      <StarterRow key={starter.id} starter={starter} onPress={ask} />
-                    ))}
-                  </View>
-                )}
               </View>
-            )
-          }
-          ListFooterComponent={
-            asking ? (
-              <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
-            ) : error && erroredAt ? (
-              <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
-            ) : null
-          }
-        />
+              <ThemedText type="title" style={styles.welcomeTitle}>
+                Find the signal in your work.
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.welcomeCopy}>
+                Ask a clear question. Answers stay grounded in your organization&rsquo;s knowledge.
+              </ThemedText>
+              {starters.length > 0 && (
+                <View style={styles.startersSection}>
+                  <ThemedText type="caption" themeColor="textSecondary">
+                    START WITH A PROMPT
+                  </ThemedText>
+                  {starters.map((starter) => (
+                    <StarterRow key={starter.id} starter={starter} onPress={ask} />
+                  ))}
+                </View>
+              )}
+            </View>
+          )
+        }
+        ListFooterComponent={
+          asking ? (
+            <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
+          ) : error && erroredAt ? (
+            <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
+          ) : null
+        }
+      />
 
-        <Composer
-          question={question}
-          setQuestion={setQuestion}
-          asking={asking}
-          onAsk={() => ask()}
-          onStop={stop}
-        />
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      <Composer
+        question={question}
+        setQuestion={setQuestion}
+        asking={asking}
+        onAsk={() => ask()}
+        onStop={stop}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  listContent: { flexGrow: 1, padding: Spacing.four, gap: Spacing.four },
+  listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
   kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
@@ -133,9 +136,13 @@ const styles = StyleSheet.create({
   welcomeCopy: { maxWidth: 340 },
   startersSection: { gap: Spacing.two, marginTop: Spacing.three },
   starterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.control,
+    borderRadius: Radius.card,
   },
+  starterText: { flex: 1 },
 });

@@ -69,7 +69,7 @@ export function SignInSection({ config }: { config: TenantConfig }) {
         )}
       </View>
       {error && (
-        <ThemedText type="small" themeColor="danger">
+        <ThemedText type="small" themeColor="danger" selectable>
           {error}
         </ThemedText>
       )}

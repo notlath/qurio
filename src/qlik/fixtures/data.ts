@@ -54,6 +54,7 @@ export const fixtureAnalyticsApps: AnalyticsApp[] = analyticsAppNames.map((name,
   id: `fixture-app-${i + 1}`,
   name,
   updatedAt: new Date(Date.parse('2026-09-30T08:00:00Z') - i * 3 * 24 * 60 * 60 * 1000).toISOString(),
+  hasThumbnail: false,
 }));
 
 export const fixtureInteractionsByThreadId: Record<string, Interaction[]> = {

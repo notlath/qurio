@@ -27,4 +27,10 @@ export interface AnswersPort {
   // Every Analytics App the signed-in Qlik User can see, most recently updated first. `cursor` is the
   // `next` of the previous page; callers never build one.
   listAnalyticsApps(opts?: { limit?: number; cursor?: string }): Promise<{ items: AnalyticsApp[]; next?: string }>;
+
+  // An image request for an app's thumbnail, ready for an image view — resolved per use so it always
+  // carries a current token. Null when there is no session to send. Only asked for `hasThumbnail` apps.
+  thumbnailImage(appId: string): Promise<ThumbnailImage | null>;
 }
+
+export type ThumbnailImage = { uri: string; headers: Record<string, string> };
