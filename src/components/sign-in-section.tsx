@@ -1,40 +1,15 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { expireAccessTokenNow, hasSession } from '@/auth/access-token';
+import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IS_INTERNAL_BUILD, type TenantConfig } from '@/config';
+import { type TenantConfig } from '@/config';
 import { Spacing } from '@/constants/theme';
 import { useReloadAnswersPort } from '@/qlik/context';
 
-/** Device validation only (ticket 19): rendered in internal builds, never in a release. */
-function ExpireTokenButton() {
-  const [marked, setMarked] = useState(false);
-
-  return (
-    <>
-      <AppPressable
-        accessibilityLabel="Expire the access token now"
-        onPress={async () => {
-          await expireAccessTokenNow();
-          setMarked(true);
-        }}>
-        <ThemedText type="link" themeColor="primary">
-          Expire token now (test)
-        </ThemedText>
-      </AppPressable>
-      {marked && (
-        <ThemedText type="small" themeColor="textSecondary">
-          Token marked expired — the next Qlik request refreshes it.
-        </ThemedText>
-      )}
-    </>
-  );
-}
-
+/** One settings row: session state on the left, the one action that changes it on the right. */
 export function SignInSection({ config }: { config: TenantConfig }) {
   const { signIn, signOut, ready } = useQlikAuth(config);
   // A new port discards whatever the previous session's screens were holding in memory.
@@ -74,27 +49,37 @@ export function SignInSection({ config }: { config: TenantConfig }) {
   }
 
   return (
-    <ThemedView type="background" style={styles.signIn}>
-      <ThemedText type="smallBold">Sign-in</ThemedText>
-      <ThemedText themeColor="textSecondary">{signedIn ? 'Signed in' : 'Not signed in'}</ThemedText>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <View style={styles.status}>
+          <ThemedText>{signedIn ? 'Signed in' : 'Not signed in'}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {config.tenantHost}
+          </ThemedText>
+        </View>
+        {signedIn ? (
+          // Signing out is the secondary path once signed in, so it is a text action, not the filled button.
+          <AppPressable accessibilityLabel="Sign out" disabled={!ready || busy} onPress={handlePress}>
+            <ThemedText type="linkPrimary" themeColor="danger">
+              Sign out
+            </ThemedText>
+          </AppPressable>
+        ) : (
+          <PrimaryButton label="Sign in" busy={busy} disabled={!ready} onPress={handlePress} style={styles.signIn} />
+        )}
+      </View>
       {error && (
         <ThemedText type="small" themeColor="danger">
           {error}
         </ThemedText>
       )}
-      <PrimaryButton
-        label={signedIn ? 'Sign out' : 'Sign in'}
-        busy={busy}
-        disabled={!ready}
-        onPress={handlePress}
-        style={styles.saveButton}
-      />
-      {IS_INTERNAL_BUILD && <ExpireTokenButton />}
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  signIn: { gap: Spacing.two, paddingTop: Spacing.one },
-  saveButton: { marginTop: Spacing.two },
+  container: { gap: Spacing.two, padding: Spacing.three },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  status: { flex: 1, gap: Spacing.half },
+  signIn: { paddingVertical: Spacing.two },
 });
