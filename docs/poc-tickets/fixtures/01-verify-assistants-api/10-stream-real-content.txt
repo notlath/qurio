@@ -1,0 +1,33 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/stream
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"input":{"prompt":"Summarize the main lesson of chapter 1","promptType":"thread","includeText":true}}
+
+HTTP/1.1 200 OK
+Content-Type: text/event-stream; charset=utf-8
+Transfer-Encoding: chunked
+Qlik-Api-Version: 2026-05
+
+--- real response was 6179 bytes / 91 concatenated JSON objects (`}{` with zero delimiter, confirmed
+by parsing at brace-depth outside strings). Reconstructed below with placeholder text — same object
+count, order and shape, real prose replaced (source is a copyrighted book). ---
+
+{"output": "L"}{"output": "orem ipsum"}{"output": "dolor sit amet, consectetur"}{"output": " adipiscing"}{"output": " elit"}{"output": " sed do eiusmod"}{"output": " tempor incididunt"}
+... (80 more `{"output": "..."}` fragments, each ~15-70 bytes, mostly a handful of words) ...
+{"output": " et dolore magna aliqua."}{"title": "{sanitised — a short, question-specific title}"}{"generated_from_placeholder": "Generated from {documentName}"}{"links_placeholder": "Link to help articles"}{"sources": [{"knowledgebaseId": "{knowledgeBaseId}", "datasourceId": "{datasourceId}", "documentId": "{documentId}", "source": "{documentName}", "chunks": [{"chunkId": "{chunkId1}", "text": "File name: {documentName}\n{sanitised paragraph}"}, {"chunkId": "{chunkId2}", "text": "File name: {documentName}\n{sanitised paragraph}"}, {"chunkId": "{chunkId3}", "text": "{sanitised paragraph, no File name prefix}"}]}]}
+--- stream ends here: connection closes, no terminator, no [DONE], no completion/error event ---
+
+OBSERVATIONS (from the real, unsanitised capture — counts and ordering are exact, content is not):
+- 91 top-level JSON objects total, concatenated with zero delimiter — same framing as the
+  empty-KB sample in fixture 05, just at real scale instead of a 2-object degenerate case.
+- Objects 0-86: all `{"output": "..."}`, each roughly 15-70 bytes / a handful of words — this is
+  real token/phrase-level LLM streaming, not sentence- or paragraph-level chunking. Ticket 07's
+  parser needs to handle high-frequency small fragments, not a few large ones.
+- Objects 87-89, in this exact order, every time: `title`, then `generated_from_placeholder`, then
+  `links_placeholder` — all populated with real (non-null) content in this run. Contrast fixture 09
+  (`invoke`, different question), where the same three fields were `null`.
+- Object 90 (last): `sources`, exactly once, containing one `source` with 3 chunks. Resolves the
+  `[ASSUMED]` note at technical-proposal.md:103 with a real multi-fragment sample: sources arrives
+  strictly last, after every output fragment and after all three metadata fields.
+- Zero trailing bytes after the final `}` — the connection just closes.

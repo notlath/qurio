@@ -1,0 +1,11 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/invoke
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"foo":"bar"}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"errors":[{"code":"AE-2","status_code":400,"title":"Incorrect request","detail":"'prompt' is expected in request body"}]}

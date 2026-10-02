@@ -1,0 +1,11 @@
+POST /api/v1/assistants/{assistantId}/threads
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"name":"POC Ticket 01 verification"}
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"id":"{threadId}","ownerId":"{ownerId}","name":"POC Ticket 01 verification","createdAt":"2026-09-02T00:28:33Z","updatedAt":"2026-09-02T00:28:33Z","hasFeedback":false,"favorite":false,"useUserPreferredLanguage":false,"summaryStats":{"likes":0,"dislikes":0,"interactions":0,"reviews":0,"unanswered":0,"inaccurate":0,"irrelevant":0,"repetitive":0,"unhelpful":0,"other":0}}
