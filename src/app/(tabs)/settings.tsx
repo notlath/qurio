@@ -17,8 +17,34 @@ import {
 } from '@/config';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
+import { expireAccessTokenNow } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
 import { useReloadAnswersPort } from '@/qlik/context';
+
+/** Device validation only (ticket 19): rendered in internal builds, never in a release. */
+function ExpireTokenButton() {
+  const [marked, setMarked] = useState(false);
+
+  return (
+    <>
+      <AppPressable
+        accessibilityLabel="Expire the access token now"
+        onPress={async () => {
+          await expireAccessTokenNow();
+          setMarked(true);
+        }}>
+        <ThemedText type="link" themeColor="primary">
+          Expire token now (test)
+        </ThemedText>
+      </AppPressable>
+      {marked && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Token marked expired — the next Qlik request refreshes it.
+        </ThemedText>
+      )}
+    </>
+  );
+}
 
 function SignInSection({ config }: { config: TenantConfig }) {
   const { signIn, signOut, ready } = useQlikAuth(config);
@@ -64,6 +90,7 @@ function SignInSection({ config }: { config: TenantConfig }) {
         onPress={handlePress}
         style={styles.saveButton}
       />
+      {IS_INTERNAL_BUILD && <ExpireTokenButton />}
     </ThemedView>
   );
 }
@@ -77,6 +104,7 @@ function TenantConfigForm() {
   const [agenticAssistantId, setAgenticAssistantId] = useState('');
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
   const [resolved, setResolved] = useState<TenantConfig | null>(null);
 
   useEffect(() => {
@@ -89,8 +117,15 @@ function TenantConfigForm() {
     resolveCurrentTenantConfig().then(setResolved);
   }, []);
 
+  // Editing any field makes the "Saved" line stale.
+  const edit = (set: (value: string) => void) => (value: string) => {
+    setSaved(null);
+    set(value);
+  };
+
   async function handleSave() {
     setFieldError(null);
+    setSaved(null);
     if (!tenantHost.trim() || !clientId.trim() || !assistantId.trim()) {
       setFieldError({ field: 'form', message: 'All three fields are required.' });
       return;
@@ -109,7 +144,10 @@ function TenantConfigForm() {
         // Optional: a blank field clears it, since a save replaces the whole dev entry.
         agenticAssistantId: agenticAssistantId.trim() || undefined,
       });
-      setResolved(await resolveCurrentTenantConfig());
+      const active = await resolveCurrentTenantConfig();
+      setResolved(active);
+      // Says what the Assistant tab will now do, which a bare "Saved" would not.
+      setSaved(`Saved. Agentic Assistant: ${active?.agenticAssistantId ? 'on' : 'off'}.`);
       reloadPort(); // the port was built from the old config — without this the save needs an app restart
     } finally {
       setSaving(false);
@@ -134,7 +172,7 @@ function TenantConfigForm() {
           autoCapitalize="none"
           autoCorrect={false}
           value={tenantHost}
-          onChangeText={setTenantHost}
+          onChangeText={edit(setTenantHost)}
         />
         {fieldError?.field === 'tenantHost' && (
           <ThemedText type="small" themeColor="text">
@@ -150,7 +188,7 @@ function TenantConfigForm() {
           autoCapitalize="none"
           autoCorrect={false}
           value={clientId}
-          onChangeText={setClientId}
+          onChangeText={edit(setClientId)}
         />
       </ThemedView>
 
@@ -161,7 +199,7 @@ function TenantConfigForm() {
           autoCapitalize="none"
           autoCorrect={false}
           value={assistantId}
-          onChangeText={setAssistantId}
+          onChangeText={edit(setAssistantId)}
         />
       </ThemedView>
 
@@ -172,13 +210,18 @@ function TenantConfigForm() {
           autoCapitalize="none"
           autoCorrect={false}
           value={agenticAssistantId}
-          onChangeText={setAgenticAssistantId}
+          onChangeText={edit(setAgenticAssistantId)}
         />
       </ThemedView>
 
       {fieldError?.field === 'form' && <ThemedText type="small">{fieldError.message}</ThemedText>}
 
       <PrimaryButton label="Validate & Save" busy={saving} onPress={handleSave} style={styles.saveButton} />
+      {saved && (
+        <ThemedText type="small" themeColor="primary" accessibilityLiveRegion="polite">
+          {saved}
+        </ThemedText>
+      )}
 
       {resolved &&
         (Platform.OS === 'web' ? (

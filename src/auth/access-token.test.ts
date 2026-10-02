@@ -1,6 +1,12 @@
 import * as AuthSession from 'expo-auth-session';
 
-import { forgetAccessToken, getAccessToken, getAccessTokenWithExpiry, adoptTokens } from './access-token';
+import {
+  adoptTokens,
+  expireAccessTokenNow,
+  forgetAccessToken,
+  getAccessToken,
+  getAccessTokenWithExpiry,
+} from './access-token';
 import { loadExpiresAtMs, loadRefreshToken, saveExpiresAtMs, saveRefreshToken } from './tokens';
 
 jest.mock('expo-auth-session', () => ({
@@ -108,5 +114,20 @@ describe('getAccessTokenWithExpiry', () => {
     refreshAsync.mockResolvedValue({ accessToken: 'access-2', rawResponse: {} } as unknown as AuthSession.TokenResponse);
 
     await expect(getAccessTokenWithExpiry(config)).resolves.toBeNull();
+  });
+});
+
+describe('expireAccessTokenNow', () => {
+  it('makes the next call refresh with the refresh token, as a real expiry would', async () => {
+    await adoptTokens(tokenResponse('access-1', farFuture));
+    (loadRefreshToken as jest.Mock).mockResolvedValue('refresh-1');
+    refreshAsync.mockResolvedValue(tokenResponse('access-2', farFuture));
+
+    await expireAccessTokenNow();
+    const [stored] = (saveExpiresAtMs as jest.Mock).mock.calls.at(-1)!;
+    (loadExpiresAtMs as jest.Mock).mockResolvedValue(stored);
+
+    await expect(getAccessToken(config)).resolves.toBe('access-2');
+    expect(refreshAsync).toHaveBeenCalledTimes(1);
   });
 });

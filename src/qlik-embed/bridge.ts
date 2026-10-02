@@ -3,6 +3,16 @@ import { jsLiteral } from './escape';
 /** Why an embedded session cannot continue. Each maps to native guidance — never a login inside the WebView. */
 export type HostFailure = 'token-unavailable' | 'navigation' | 'load-error';
 
+/**
+ * Why the page wants a token: the runtime asked directly, an API call needs a bearer, or the
+ * runtime's /oauth/token exchange. Asserted by the page, so it only labels the trace — it never
+ * decides what the app does.
+ */
+const TOKEN_PURPOSES = ['runtime', 'api', 'exchange'] as const;
+export type TokenPurpose = (typeof TOKEN_PURPOSES)[number];
+
+const isTokenPurpose = (value: unknown): value is TokenPurpose => TOKEN_PURPOSES.some((p) => p === value);
+
 export type TokenSource = () => Promise<{ token: string; expiresAtMs: number } | null>;
 
 export type TokenReply =
@@ -17,8 +27,19 @@ export function isOwnPage(url: string, tenantOrigin: string): boolean {
   return url.startsWith('about:') || url.startsWith('data:') || url === tenantOrigin || url === `${tenantOrigin}/`;
 }
 
-/** The request id, or `null` for anything that is not a well-formed token request for this session. */
-export function parseTokenRequest(raw: string, session: string): number | null {
+/** Drops the query string and fragment (a login URL's query carries OAuth state) and reduces a data: URL, which is the whole page, to its scheme. */
+export function safeUrl(url: string): string {
+  if (url.startsWith('data:')) return 'data:';
+  return url.split(/[?#]/)[0];
+}
+
+/** Platform error text can embed the URL that failed — scrub any URL in it the same way. */
+export function safeText(text: string): string {
+  return text.replace(/(?:https?|data):[^\s'"<>]*/g, safeUrl);
+}
+
+/** The request, or `null` for anything that is not a well-formed token request for this session. */
+export function parseTokenRequest(raw: string, session: string): { id: number; purpose: TokenPurpose } | null {
   let message: unknown;
   try {
     message = JSON.parse(raw);
@@ -26,9 +47,10 @@ export function parseTokenRequest(raw: string, session: string): number | null {
     return null;
   }
   if (typeof message !== 'object' || message === null) return null;
-  const { v, session: claimed, type, id } = message as Record<string, unknown>;
+  const { v, session: claimed, type, id, purpose } = message as Record<string, unknown>;
   if (v !== 1 || type !== 'token-request' || claimed !== session) return null;
-  return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 ? id : null;
+  if (!isTokenPurpose(purpose)) return null;
+  return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 ? { id, purpose } : null;
 }
 
 /**

@@ -60,6 +60,16 @@ export async function getAccessTokenWithExpiry(
   return expiresAtMs === null ? null : { token, expiresAtMs };
 }
 
+/**
+ * Device validation only (ticket 19): marks the stored expiry as already reached, so the next
+ * `getAccessToken` refreshes with the real refresh token exactly as a genuine expiry would —
+ * the access token's real lifetime is hours, too long to wait out. Refuses to run outside `__DEV__`.
+ */
+export async function expireAccessTokenNow(): Promise<void> {
+  if (!__DEV__) throw new Error('expireAccessTokenNow is for internal builds only');
+  await saveExpiresAtMs(Date.now());
+}
+
 async function refresh(config: TenantConfig): Promise<string | null> {
   const refreshToken = await loadRefreshToken();
   if (!refreshToken) return null;

@@ -1,4 +1,3 @@
-import { Link } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +12,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import type { Starter, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
-import { useAgenticAvailability } from '@/qlik-embed/use-agentic-target';
+import { AgenticEntry } from '@/qlik-embed/agentic-entry';
 import { useAnswersPort } from '@/qlik/context';
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
@@ -26,28 +25,6 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
       style={[styles.starterRow, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
       <ThemedText type="small">{starter.prompt}</ThemedText>
     </AppPressable>
-  );
-}
-
-/** Shown only where an Agentic Assistant is configured; classic chat below stays the working surface meanwhile. */
-function AgenticEntry() {
-  const theme = useTheme();
-  const availability = useAgenticAvailability();
-  if (availability.status !== 'ready') return null;
-
-  return (
-    <Link href="/assistant/agentic" asChild>
-      <AppPressable
-        accessibilityLabel="Open the Agentic Assistant"
-        style={[styles.agenticEntry, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-        <ThemedText type="smallBold" themeColor="primary">
-          Open the Agentic Assistant
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Ask about your analytics apps and knowledge bases.
-        </ThemedText>
-      </AppPressable>
-    </Link>
   );
 }
 
@@ -154,14 +131,6 @@ const styles = StyleSheet.create({
   kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
   welcomeTitle: { maxWidth: 340 },
   welcomeCopy: { maxWidth: 340 },
-  agenticEntry: {
-    gap: Spacing.one,
-    margin: Spacing.four,
-    marginBottom: 0,
-    padding: Spacing.three,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.card,
-  },
   startersSection: { gap: Spacing.two, marginTop: Spacing.three },
   starterRow: {
     paddingHorizontal: Spacing.three,

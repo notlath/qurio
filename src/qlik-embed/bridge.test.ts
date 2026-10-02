@@ -1,17 +1,24 @@
-import { answerTokenRequest, guidanceFor, isOwnPage, parseTokenRequest, replyScript } from './bridge';
+import { answerTokenRequest, guidanceFor, isOwnPage, parseTokenRequest, replyScript, safeText, safeUrl } from './bridge';
 
 const ORIGIN = 'https://acme.sg.qlikcloud.com';
-const request = (over: object = {}) => JSON.stringify({ v: 1, session: 's1', type: 'token-request', id: 1, ...over });
+const request = (over: object = {}) =>
+  JSON.stringify({ v: 1, session: 's1', type: 'token-request', id: 1, purpose: 'api', ...over });
 
 describe('parseTokenRequest', () => {
-  it('accepts a well-formed request for this session', () => {
-    expect(parseTokenRequest(request({ id: 7 }), 's1')).toBe(7);
+  it('accepts a well-formed request for this session, with what the token is for', () => {
+    expect(parseTokenRequest(request({ id: 7, purpose: 'exchange' }), 's1')).toEqual({ id: 7, purpose: 'exchange' });
+  });
+
+  it.each(['runtime', 'api', 'exchange'])('accepts the %s purpose', (purpose) => {
+    expect(parseTokenRequest(request({ purpose }), 's1')).toEqual({ id: 1, purpose });
   });
 
   it.each([
     ['another session', request({ session: 's0' })],
     ['an unknown version', request({ v: 2 })],
     ['another message type', request({ type: 'log' })],
+    ['an unknown purpose', request({ purpose: 'login' })],
+    ['no purpose', request({ purpose: undefined })],
     ['a non-numeric id', request({ id: '1' })],
     ['a zero id', request({ id: 0 })],
     ['a fractional id', request({ id: 1.5 })],
@@ -77,5 +84,33 @@ describe('guidanceFor', () => {
     for (const failure of ['token-unavailable', 'navigation', 'load-error'] as const) {
       expect(guidanceFor(failure).message.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('safeUrl', () => {
+  it('keeps origin and path only — a login URL query string carries OAuth state', () => {
+    expect(safeUrl('https://acme.sg.qlikcloud.com/login?state=abc&code=xyz#frag')).toBe(
+      'https://acme.sg.qlikcloud.com/login',
+    );
+  });
+
+  it('leaves a URL with no query or fragment alone', () => {
+    expect(safeUrl('https://acme.sg.qlikcloud.com/')).toBe('https://acme.sg.qlikcloud.com/');
+  });
+
+  it('cuts a data: document down to its scheme, never echoing the page', () => {
+    expect(safeUrl('data:text/html,<html>secret</html>')).toBe('data:');
+  });
+});
+
+describe('safeText', () => {
+  it('scrubs query strings out of any URL inside a platform error message', () => {
+    expect(safeText('The URL https://acme.sg.qlikcloud.com/login?state=abc&code=xyz is not supported')).toBe(
+      'The URL https://acme.sg.qlikcloud.com/login is not supported',
+    );
+  });
+
+  it('leaves a message with no URL alone', () => {
+    expect(safeText('net::ERR_INTERNET_DISCONNECTED')).toBe('net::ERR_INTERNET_DISCONNECTED');
   });
 });

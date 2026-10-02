@@ -16,9 +16,12 @@ import {
   isOwnPage,
   parseTokenRequest,
   replyScript,
+  safeText,
+  safeUrl,
   type HostFailure,
 } from './bridge';
 import { embedPageHtml, tenantOriginOf } from './page';
+import { hostTrace } from './trace';
 import type { QlikEmbedHostProps } from './types';
 
 /**
@@ -60,23 +63,36 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
   );
 
   function fail(reason: HostFailure) {
+    hostTrace(`session failure: ${reason}`);
     active.current = false;
     setFailure(reason);
   }
 
   function allowNavigation(request: ShouldStartLoadRequest): boolean {
     if (!request.isTopFrame || isOwnPage(request.url, page.tenantOrigin)) return true;
+    hostTrace(`blocked navigation → ${safeUrl(request.url)}`);
     fail('navigation');
     return false;
   }
 
   async function onMessage(event: WebViewMessageEvent) {
-    if (!active.current || !isOwnPage(event.nativeEvent.url, page.tenantOrigin)) return;
-    const id = parseTokenRequest(event.nativeEvent.data, session);
-    if (id === null) return;
+    if (!active.current) return;
+    // Dropped messages are traced too: if a platform reports a different page URL, every token
+    // request would otherwise vanish without a trace.
+    if (!isOwnPage(event.nativeEvent.url, page.tenantOrigin)) {
+      hostTrace(`ignored message from ${safeUrl(event.nativeEvent.url)}`);
+      return;
+    }
+    const request = parseTokenRequest(event.nativeEvent.data, session);
+    if (request === null) {
+      hostTrace('ignored malformed or foreign-session message');
+      return;
+    }
+    const { id, purpose } = request;
 
     const reply = await answerTokenRequest(id, session, () => getAccessTokenWithExpiry(config));
     if (!active.current) return;
+    hostTrace(`token request ${id} (${purpose}) → ${reply.ok ? `granted, expires in ${reply.expiresIn}s` : 'refused'}`);
     webView.current?.injectJavaScript(replyScript(reply));
     if (!reply.ok) fail('token-unavailable');
   }
@@ -111,8 +127,13 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
       source={{ html: page.html, baseUrl: page.tenantOrigin }}
       onShouldStartLoadWithRequest={allowNavigation}
       onMessage={onMessage}
-      onError={() => fail('load-error')}
+      onNavigationStateChange={(state) => hostTrace(`nav ${safeUrl(state.url)}`)}
+      onError={(e) => {
+        hostTrace(`load error: ${safeText(e.nativeEvent.description)}`);
+        fail('load-error');
+      }}
       onHttpError={(e) => {
+        hostTrace(`http ${e.nativeEvent.statusCode} ${safeUrl(e.nativeEvent.url)}`);
         // Only the page itself: the runtime's own calls may 4xx without ending the session.
         if (isOwnPage(e.nativeEvent.url, page.tenantOrigin)) fail('load-error');
       }}

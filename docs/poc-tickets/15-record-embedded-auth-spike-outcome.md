@@ -4,7 +4,7 @@
 
 **Blocked by:** Device verification of the selected path on iOS and a physical Android device (the auth decision is made; it does not gate ticket 19's code). A second WebView sign-in would require explicit team-lead approval and is not part of path (a).
 
-**Status:** in-progress — team lead chose path (a), the native-token workaround, on 2026-10-02 for the PoC; decision recorded in [ADR-0009](../adr/0009-native-lists-over-rest-qlik-content-via-qlik-embed.md). iOS and physical-device verification still open and carried by ticket 19
+**Status:** in-progress — team lead chose path (a), the native-token workaround, on 2026-10-02 for the PoC; decision recorded in [ADR-0009](../adr/0009-native-lists-over-rest-qlik-content-via-qlik-embed.md). iOS and physical-device verification still open and carried by ticket 19 (Android-first on a physical phone; iOS waits for an Xcode machine)
 
 Only the **Agentic Assistant** outcome gates tickets 19, 21, 22, 23 and 24. The **Analytics App** (`classic/app`) outcome is recorded here as unproven and gates only ticket 20. Tickets 16, 17 and 18 (configuration field, tab shell, native Analytics App list) are needed under every variant and do not wait on this ticket.
 

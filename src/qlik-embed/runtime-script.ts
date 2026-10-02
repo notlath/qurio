@@ -17,7 +17,7 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
   var pending = {};
   var seq = 0;
 
-  function requestToken() {
+  function requestToken(purpose) {
     return new Promise(function (resolve, reject) {
       var id = ++seq;
       var timer = setTimeout(function () {
@@ -25,7 +25,7 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
         reject(new Error('token-timeout'));
       }, REPLY_TIMEOUT_MS);
       pending[id] = { resolve: resolve, reject: reject, timer: timer };
-      window.ReactNativeWebView.postMessage(JSON.stringify({ v: 1, session: SESSION, type: 'token-request', id: id }));
+      window.ReactNativeWebView.postMessage(JSON.stringify({ v: 1, session: SESSION, type: 'token-request', id: id, purpose: purpose }));
     });
   }
 
@@ -45,7 +45,7 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
   });
 
   window.getAccessToken = function () {
-    return requestToken().then(function (r) { return r.token; });
+    return requestToken('runtime').then(function (r) { return r.token; });
   };
 
   function jsonResponse(status, body) {
@@ -67,7 +67,7 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
     // The runtime's token exchange: the tenant rejects its browser Origin (OAUTH-29), so answer
     // it ourselves with the app's current token and that token's real remaining lifetime.
     if (target.pathname === '/oauth/token' && method === 'POST') {
-      return requestToken().then(
+      return requestToken('exchange').then(
         function (r) {
           return jsonResponse(200, {
             access_token: r.token,
@@ -87,7 +87,7 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
     var present = existing && (existing.get ? existing.get('authorization') : existing.Authorization || existing.authorization);
     if (present) return originalFetch(input, init);
 
-    return requestToken().then(function (r) {
+    return requestToken('api').then(function (r) {
       var headers = new Headers(existing || {});
       headers.set('Authorization', 'Bearer ' + r.token);
       return originalFetch(input, Object.assign({}, init, { headers: headers }));

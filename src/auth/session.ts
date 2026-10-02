@@ -2,7 +2,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as Device from 'expo-device';
 import { useCallback } from 'react';
 
-import type { TenantConfig } from '@/config';
+import { IS_INTERNAL_BUILD, type TenantConfig } from '@/config';
 import { adoptTokens, forgetAccessToken, getAccessToken, peekAccessToken } from './access-token';
 import { discoveryFor, redirectUri, SCOPES } from './oauth';
 import { clearTokens, loadRefreshToken } from './tokens';
@@ -47,6 +47,8 @@ export function useQlikAuth(config: TenantConfig) {
     );
 
     await adoptTokens(tokens);
+    // Device-validation evidence for ticket 19's scope check: what the tenant actually granted.
+    if (IS_INTERNAL_BUILD) console.warn(`[auth] requested scope: ${SCOPES.join(' ')}; granted: ${tokens.scope ?? '(not reported)'}`);
     return tokens;
   }, [config.clientId, discovery, promptAsync, request]);
 

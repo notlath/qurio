@@ -69,6 +69,22 @@ describe('runtime script', () => {
     expect(page.sent.every((m) => m.session === SESSION && m.v === 1)).toBe(true);
   });
 
+  it('says what each token request is for: the runtime asking, an API call, or the exchange', async () => {
+    const page = loadPage();
+
+    const asked = page.win.getAccessToken();
+    page.answerNext(granted);
+    await asked;
+    const api = page.win.fetch(`${ORIGIN}/api/v1/assistants`);
+    page.answerNext(granted);
+    await api;
+    const exchange = page.win.fetch(`${ORIGIN}/oauth/token`, { method: 'POST' });
+    page.answerNext(granted);
+    await exchange;
+
+    expect(page.sent.map((m) => m.purpose)).toEqual(['runtime', 'api', 'exchange']);
+  });
+
   it('adds the bearer to same-origin calls', async () => {
     const page = loadPage();
 
