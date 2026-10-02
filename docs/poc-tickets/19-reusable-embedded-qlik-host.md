@@ -25,4 +25,32 @@
 
 **Decide during:** Whether the page asks the app for a token on every call (through `postMessage`) or the app pushes renewals into a long-lived page; mid-session expiry UX; whether unsent input can survive re-authentication in memory. Do not promise input restoration the Qlik-owned surface cannot provide.
 
+## Evidence — Android emulator (Pixel 9, Android Studio), 2026-10-02
+
+Not device evidence: this criterion set requires physical iOS and Android devices, and iOS has not been run. Observations from the internal-build trace and the screen; tenant identifiers and chat content are deliberately omitted.
+
+- **Scope:** requested `user_default offline_access`, granted `offline_access user_default` (sign-in and re-sign-in). No scope added.
+- **Token pull and expiry:** `expires in` started near 21600s (about 6 hours) and counted down on the real clock; it is read from the token, not hard-coded. Request ids ran 1..N within a session, so the page did not reload.
+- **Runtime exchange:** requests labelled `(exchange)` appeared about two minutes after load and were answered with a fresh token; no failure followed. A session of roughly 33 minutes with several questions stayed signed in.
+- **Refresh:** after "Expire token now (test)", `expires in` jumped back up and the next question answered, both in the same page and after a reload. This covers the app-side refresh only, not Qlik's server-side expiry or revocation.
+- **Offline at load:** found a blank screen forever (no WebView error fires when only Qlik's script fails to download); fixed with a page `load-failed` report and a 20-second startup watchdog. Re-run: "could not load" with Try again, and Try again loaded once the network returned.
+- **Offline mid-session:** Qlik's own chat showed interrupted/could-not-answer messages; the same chat answered after the network returned. The host cannot see these.
+- **Sign-out with the Agentic Assistant open:** the next token request (`runtime`) was refused, then `session failure: token-unavailable` and the native "Please sign in again" screen; no login page, no `nav` or `blocked navigation` lines. Reopening while signed out gave the same; signing in again restored it.
+- **Not proven:** how Qlik's page reacts to a server-side rejected token, and so whether Android's navigation hook catches a login redirect (the host refused before Qlik saw a bad token); iOS; physical devices; real expiry past 6 hours; Settings screenshot block (an emulator capture is not evidence).
+- **Seen once, not reproduced:** Qlik's chat showed "Failed stream" when the Expire button was pressed mid-answer; two later attempts (tab switch mid-stream, Expire mid-stream) answered normally.
+
+## Evidence — physical Android phone, 2026-10-02 (model and Android version not yet recorded)
+
+Partial: iOS has not been run and the real-expiry test is pending. Trace lines only; tenant identifiers and chat content omitted.
+
+- **Load and requests (D1):** sign-in granted `offline_access user_default`; token requests `runtime`, `api` and two `exchange` lines were all granted within the first minutes, with no `session failure`. Whether Knowledge Base and Analytics App answers rendered Citations was not reported.
+- **Long session (D2):** about 30 minutes (`expires in` 21542s to 19731s) with 19 token requests, 15 of them `exchange`, all granted; the chat was still answering at the end. This is the runtime's exchange surviving a 20+ minute session on a physical device.
+- **Resume after backgrounding (D3):** after 10+ minutes away, the first question showed Qlik's "We could not process your question … Reason: Failed stream call"; asking again answered after a wait. No refused request or session failure was traced, so it is not a token refusal. Pattern so far: Qlik's "Failed stream" family also appeared once after Expire-mid-answer (not reproduced) and when offline. Hypothesis, not established: the runtime's stream connection goes stale while the app is backgrounded. Metro's own link may also drop while backgrounded, so the log across the gap is incomplete.
+- **Forced refresh (D4):** `expires in` went from 21577s to 21600s on the next `exchange` request, i.e. a new token with the real expiry. App-side refresh only.
+- **Sign-out with the Agentic Assistant open (D5):** `token request … (runtime) → refused`, `session failure: token-unavailable`, and the "Please sign in again" screen.
+- **Offline at load (D6):** behaved as expected (could not load, Try again). Details not reported.
+- **Screenshot block (D7):** the app blocked screenshots on the physical phone. For taking review screenshots, internal builds now have an \"Allow screenshots\" switch in Settings (off by default, remembered on the device, ignored by release builds), replacing a temporary local code edit.
+- **After restart (D8):** no Agentic Assistant conversation visible outside the embed.
+- **Still open:** real expiry past ~6 hours (D9), iOS, server-side revocation, a second Qlik User.
+
 References: [ADR-0001](../adr/0001-per-user-native-oauth-no-backend.md), [ADR-0005](../adr/0005-native-only-qlik-integration.md), [ADR-0007](../adr/0007-no-answer-content-on-device.md), [WebView reference](https://github.com/react-native-webview/react-native-webview/blob/v13.16.1/docs/Reference.md), [qlik-embed parameters](https://qlik.dev/embed/qlik-embed/parameters/).
