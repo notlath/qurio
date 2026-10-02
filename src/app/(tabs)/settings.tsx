@@ -17,6 +17,7 @@ import {
   validateTenantHost,
   type TenantConfig,
 } from '@/config';
+import { loadAllowScreenshots, setAllowScreenshots } from '@/config/screen-capture';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useReloadAnswersPort } from '@/qlik/context';
@@ -161,6 +162,50 @@ function TenantConfigForm() {
   );
 }
 
+/** Internal builds only (the caller gates it): lets a tester take screenshots, e.g. for a review. Off by default. */
+function ScreenshotSwitch() {
+  const theme = useTheme();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadAllowScreenshots().then(setAllowed);
+  }, []);
+
+  async function change(next: boolean) {
+    setError(null);
+    try {
+      await setAllowScreenshots(next);
+      setAllowed(next);
+    } catch {
+      setError('Could not change screenshot protection.');
+    }
+  }
+
+  return (
+    <ThemedView type="backgroundElement" style={[styles.form, { borderColor: theme.border }]}>
+      <ThemedView type="backgroundElement" style={styles.privacyRow}>
+        <ThemedText type="subtitle">Allow screenshots</ThemedText>
+        <Switch
+          accessibilityLabel="Allow screenshots"
+          value={!!allowed}
+          disabled={allowed === null}
+          onValueChange={change}
+          trackColor={{ false: theme.borderStrong, true: theme.primary }}
+        />
+      </ThemedView>
+      <ThemedText type="small" themeColor="textSecondary">
+        Screenshots and screen recording are blocked unless you turn this on. Internal builds only: the choice is remembered on this device, and release builds ignore it.
+      </ThemedText>
+      {error && (
+        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite">
+          {error}
+        </ThemedText>
+      )}
+    </ThemedView>
+  );
+}
+
 /**
  * Release builds have no development form, but a Qlik User still has to sign in against the
  * Tenant that MDM configured. Without a resolved configuration there is nothing to sign in to.
@@ -218,6 +263,7 @@ export default function SettingsScreen() {
             )}
           </ThemedView>
         )}
+        {IS_INTERNAL_BUILD && Platform.OS !== 'web' && <ScreenshotSwitch />}
         {IS_INTERNAL_BUILD ? (
           <>
             <TenantConfigForm />

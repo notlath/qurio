@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
+import { applyScreenCapture } from '@/config/screen-capture';
 import { AnswersPortProvider } from '@/qlik/context';
 
 SplashScreen.preventAutoHideAsync();
@@ -35,12 +36,11 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    // expo-screen-capture has no web implementation — calling it throws (ERR_UNAVAILABLE) rather
-    // than no-op, confirmed live. Version-gated on iOS: 11+ for recording, 13+ for screenshots.
-    if (Platform.OS === 'web') return;
-    ScreenCapture.preventScreenCaptureAsync();
+    // Protected unless an internal build's Settings switch says otherwise (src/config/screen-capture.ts).
+    // Version-gated on iOS: 11+ for recording, 13+ for screenshots.
+    applyScreenCapture();
     return () => {
-      ScreenCapture.allowScreenCaptureAsync();
+      if (Platform.OS !== 'web') ScreenCapture.allowScreenCaptureAsync();
     };
   }, []);
 
