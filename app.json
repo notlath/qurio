@@ -46,11 +46,20 @@
         }
       ],
       "expo-secure-store",
-      "./plugins/withManagedConfigRestrictions"
+      "./plugins/withManagedConfigRestrictions",
+      "expo-font",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "81a6b341-abcb-41f7-92dd-f28114525ef0"
+      }
     }
   }
 }
