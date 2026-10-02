@@ -66,7 +66,8 @@ Source of truth is `.gitignore:1`. Do not commit ignored artifacts.
 | Editor           | `.idea/`, `.vscode/*` (allowlist: `settings.json`, `tasks.json`, `launch.json`, `extensions.json`) | Local IDE state; shared settings are allowlisted                                          |
 | Cache            | `*.tsbuildinfo`, `.eslintcache`, `.parcel-cache/`, `.turbo/`, `graphify-out/`, `.opencode/`        | Incremental build caches                                                                  |
 | Coverage         | `coverage/`, `.nyc_output/`                                                                        | Test reporting output                                                                     |
-| Agent tooling    | `.agents/`, `agent/`, `.claude/skills/`, `.claude/settings.local.json`, `.serena/`, `.scratch/`    | Installed skill packages and MCP tool state; `skills-lock.json` is the committed manifest |
+| Agent tooling    | `.agents/`, `agent/`, `.claude/`, `.codex/`, `.cursor/`, `.serena/`, `.scratch/`                     | Per-developer agent config, skills and MCP state; `skills-lock.json` is the committed manifest |
+| Foreign lockfiles | `bun.lock`, `bun.lockb`, `yarn.lock`, `pnpm-lock.yaml`                                            | npm is the package manager; only `package-lock.json` is committed                         |
 
 - Keep `.env.example` (if present) committed as a template; never commit real `.env` files.
 - If a generated directory must be committed for an ejected workflow, remove its entry from `.gitignore` explicitly and document why.

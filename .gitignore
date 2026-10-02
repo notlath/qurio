@@ -73,10 +73,17 @@ coverage/
 graphify-out/
 .opencode/
 
-# ── Agent Tooling (installed skills; manifest is skills-lock.json) ─
+# ── Agent Tooling (local per developer; skill manifest is skills-lock.json) ─
 .agents/
 agent/
-.claude/skills/
-.claude/settings.local.json
+.claude/
+.codex/
+.cursor/
 .serena/
 .scratch/
+
+# ── Foreign Lockfiles (npm is the package manager; package-lock.json is committed) ─
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml

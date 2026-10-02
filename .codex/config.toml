@@ -1,5 +1,0 @@
-[mcp_servers.firecrawl]
-url = "https://mcp.firecrawl.dev/v2/mcp"
-
-[mcp_servers.firecrawl.http_headers]
-Authorization = "Bearer fc-a6fa78f66e604fb9b33af760412ab4d8"
