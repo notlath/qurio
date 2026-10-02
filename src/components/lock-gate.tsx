@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet } from 'react-native';
 
 import { PrimaryButton } from '@/components/pressable';
@@ -11,6 +12,22 @@ import { resolveCurrentTenantConfig } from '@/config';
 
 // Used only when MDM hasn't set TenantConfig.biometricTimeoutMs — the config always wins.
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+const PRIVACY_LOCK_KEY = 'qlik.privacyLockEnabled';
+
+type PrivacyLock = {
+  enabled: boolean;
+  saving: boolean;
+  saveError: string | null;
+  setEnabled(enabled: boolean): Promise<void>;
+};
+
+const PrivacyLockContext = createContext<PrivacyLock | null>(null);
+
+export function usePrivacyLock(): PrivacyLock {
+  const context = useContext(PrivacyLockContext);
+  if (!context) throw new Error('usePrivacyLock must be used inside LockGate.');
+  return context;
+}
 
 /**
  * Cold start and backgrounded-past-timeout both lock the UI (ticket 12). Failing or dismissing
@@ -21,11 +38,42 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
  * the web build as development-only, not the real security boundary.
  */
 export function LockGate({ children }: { children: ReactNode }) {
+  const [enabled, setEnabled] = useState(true);
+  const [loaded, setLoaded] = useState(Platform.OS === 'web');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [locked, setLocked] = useState(() => Platform.OS !== 'web' && shouldBeLocked({ kind: 'cold-start' }));
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timeoutMsRef = useRef(DEFAULT_TIMEOUT_MS);
   const backgroundedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    AsyncStorage.getItem(PRIVACY_LOCK_KEY).then(
+      (value) => {
+        setEnabled(value !== 'false');
+        setLoaded(true);
+      },
+      () => setLoaded(true), // Keep the lock enabled when the preference cannot be read.
+    );
+  }, []);
+
+  async function saveEnabled(value: boolean): Promise<void> {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await AsyncStorage.setItem(PRIVACY_LOCK_KEY, String(value));
+      backgroundedAtRef.current = null;
+      setLocked(false); // Changing the setting applies to the next entry, not the open Settings screen.
+      setEnabled(value);
+    } catch {
+      setSaveError('Could not save privacy lock. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   useEffect(() => {
     resolveCurrentTenantConfig().then((config) => {
@@ -34,7 +82,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || !enabled) return;
     const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
       if (next === 'background' || next === 'inactive') {
         backgroundedAtRef.current = Date.now();
@@ -50,7 +98,7 @@ export function LockGate({ children }: { children: ReactNode }) {
       }
     });
     return () => subscription.remove();
-  }, []);
+  }, [enabled]);
 
   async function handleUnlock() {
     setError(null);
@@ -64,7 +112,15 @@ export function LockGate({ children }: { children: ReactNode }) {
     }
   }
 
-  if (!locked) return <>{children}</>;
+  // Resolve the saved preference before showing either the lock screen or workspace content.
+  if (!loaded) return null;
+  if (!enabled || !locked) {
+    return (
+      <PrivacyLockContext value={{ enabled, saving, saveError, setEnabled: saveEnabled }}>
+        {children}
+      </PrivacyLockContext>
+    );
+  }
 
   return (
     <ThemedView style={styles.overlay}>

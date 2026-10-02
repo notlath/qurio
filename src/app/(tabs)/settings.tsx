@@ -1,9 +1,10 @@
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Switch, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppPressable, PrimaryButton } from '@/components/pressable';
+import { usePrivacyLock } from '@/components/lock-gate';
 import { SignInSection } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -186,6 +187,8 @@ function ManagedSettings() {
 }
 
 export default function SettingsScreen() {
+  const theme = useTheme();
+  const privacyLock = usePrivacyLock();
   return (
     <SafeAreaView style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -193,6 +196,28 @@ export default function SettingsScreen() {
           <ThemedText type="title">Settings</ThemedText>
           <ThemedText themeColor="textSecondary">Connect this build to your Qlik tenant.</ThemedText>
         </ThemedView>
+        {Platform.OS !== 'web' && (
+          <ThemedView type="backgroundElement" style={[styles.form, { borderColor: theme.border }]}>
+            <ThemedView type="backgroundElement" style={styles.privacyRow}>
+              <ThemedText type="subtitle">Privacy lock</ThemedText>
+              <Switch
+                accessibilityLabel="Privacy lock"
+                value={privacyLock.enabled}
+                disabled={privacyLock.saving}
+                onValueChange={privacyLock.setEnabled}
+                trackColor={{ false: theme.borderStrong, true: theme.primary }}
+              />
+            </ThemedView>
+            <ThemedText type="small" themeColor="textSecondary">
+              Require your device credential when opening the app or returning after the lock timeout.
+            </ThemedText>
+            {privacyLock.saveError && (
+              <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite">
+                {privacyLock.saveError}
+              </ThemedText>
+            )}
+          </ThemedView>
+        )}
         {IS_INTERNAL_BUILD ? (
           <>
             <TenantConfigForm />
@@ -220,6 +245,7 @@ const styles = StyleSheet.create({
   intro: { gap: Spacing.one, paddingBottom: Spacing.one },
   form: { gap: Spacing.three, padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card },
   field: { gap: Spacing.one },
+  privacyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   input: {
     fontSize: 16,
     borderWidth: StyleSheet.hairlineWidth,
