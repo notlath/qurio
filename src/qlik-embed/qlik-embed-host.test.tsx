@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import { QlikEmbedHost } from './qlik-embed-host';
@@ -14,17 +14,16 @@ jest.mock('@/auth/access-token', () => ({
 // The real WebView is native; this stand-in exposes the props the host drives.
 const mockWebView: { props: any; mounts: number } = { props: null, mounts: 0 };
 jest.mock('react-native-webview', () => {
-  const React = require('react');
-  return {
-    WebView: React.forwardRef((props: any, ref: any) => {
-      React.useImperativeHandle(ref, () => ({ injectJavaScript: jest.fn() }));
-      React.useEffect(() => {
-        mockWebView.mounts += 1;
-      }, []);
-      mockWebView.props = props;
-      return null;
-    }),
-  };
+  const { forwardRef, useEffect, useImperativeHandle } = jest.requireActual('react');
+  const WebView = forwardRef(function WebViewStub(props: any, ref: any) {
+    useImperativeHandle(ref, () => ({ injectJavaScript: jest.fn() }));
+    useEffect(() => {
+      mockWebView.mounts += 1;
+    }, []);
+    mockWebView.props = props;
+    return null;
+  });
+  return { WebView };
 });
 
 const ORIGIN = 'https://acme.sg.qlikcloud.com';
