@@ -31,6 +31,26 @@ describe('embedPageHtml', () => {
   });
 });
 
+describe('a Qlik script that cannot download (offline)', () => {
+  const decode = (attr: string) =>
+    attr.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+  it('tells the app, in this session, instead of failing silently', () => {
+    const handler = decode(/onerror="([^"]*)"/.exec(embedPageHtml(input))![1]);
+    const posted: string[] = [];
+
+    new Function('window', handler)({ ReactNativeWebView: { postMessage: (m: string) => posted.push(m) } });
+
+    expect(posted.map((m) => JSON.parse(m))).toEqual([{ v: 1, session: 'session-1', type: 'load-failed' }]);
+  });
+
+  it('keeps a hostile session id inside the handler', () => {
+    const html = embedPageHtml({ ...input, session: `"></script><script>alert(1)</script>` });
+
+    expect(html.match(/<script/g)).toHaveLength(2);
+  });
+});
+
 describe('escaping', () => {
   it('jsLiteral cannot close a script block or inject a line separator', () => {
     const out = jsLiteral(`</script>${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)}`);

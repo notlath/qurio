@@ -1,4 +1,4 @@
-import { quotedAttr } from './escape';
+import { jsLiteral, quotedAttr } from './escape';
 import { runtimeScript } from './runtime-script';
 
 /** What the host can embed. `classic/app` joins this once ticket 20 proves it. */
@@ -24,6 +24,9 @@ export function embedPageHtml({ tenantHost, clientId, surface, resourceId, sessi
 <script>${runtimeScript({ session, tenantOrigin })}</script>
 <script crossorigin="anonymous" type="application/javascript"
   src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components@1/dist/index.min.js"
+  onerror=${quotedAttr(
+    `window.ReactNativeWebView.postMessage(JSON.stringify({v:1,session:${jsLiteral(session)},type:'load-failed'}))`,
+  )}
   data-host=${quotedAttr(tenantOrigin)}
   data-client-id=${quotedAttr(clientId)}
   data-get-access-token="getAccessToken"></script>

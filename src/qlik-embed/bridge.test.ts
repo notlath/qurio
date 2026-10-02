@@ -1,16 +1,26 @@
-import { answerTokenRequest, guidanceFor, isOwnPage, parseTokenRequest, replyScript, safeText, safeUrl } from './bridge';
+import { answerTokenRequest, guidanceFor, isOwnPage, parseHostMessage, replyScript, safeText, safeUrl } from './bridge';
 
 const ORIGIN = 'https://acme.sg.qlikcloud.com';
 const request = (over: object = {}) =>
   JSON.stringify({ v: 1, session: 's1', type: 'token-request', id: 1, purpose: 'api', ...over });
 
-describe('parseTokenRequest', () => {
+describe('parseHostMessage', () => {
+  it('accepts the page reporting that the Qlik script failed to load', () => {
+    expect(parseHostMessage(request({ type: 'load-failed', id: undefined, purpose: undefined }), 's1')).toEqual({
+      kind: 'load-failed',
+    });
+  });
+
+  it('ignores a load-failed report from another session', () => {
+    expect(parseHostMessage(request({ type: 'load-failed', session: 's0' }), 's1')).toBeNull();
+  });
+
   it('accepts a well-formed request for this session, with what the token is for', () => {
-    expect(parseTokenRequest(request({ id: 7, purpose: 'exchange' }), 's1')).toEqual({ id: 7, purpose: 'exchange' });
+    expect(parseHostMessage(request({ id: 7, purpose: 'exchange' }), 's1')).toEqual({ kind: 'token-request', id: 7, purpose: 'exchange' });
   });
 
   it.each(['runtime', 'api', 'exchange'])('accepts the %s purpose', (purpose) => {
-    expect(parseTokenRequest(request({ purpose }), 's1')).toEqual({ id: 1, purpose });
+    expect(parseHostMessage(request({ purpose }), 's1')).toEqual({ kind: 'token-request', id: 1, purpose });
   });
 
   it.each([
@@ -26,7 +36,7 @@ describe('parseTokenRequest', () => {
     ['a non-object', '"hi"'],
     ['null', 'null'],
   ])('rejects %s', (_label, raw) => {
-    expect(parseTokenRequest(raw, 's1')).toBeNull();
+    expect(parseHostMessage(raw, 's1')).toBeNull();
   });
 });
 

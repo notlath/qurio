@@ -14,7 +14,7 @@ import {
   answerTokenRequest,
   guidanceFor,
   isOwnPage,
-  parseTokenRequest,
+  parseHostMessage,
   replyScript,
   safeText,
   safeUrl,
@@ -23,6 +23,9 @@ import {
 import { embedPageHtml, tenantOriginOf } from './page';
 import { hostTrace } from './trace';
 import type { QlikEmbedHostProps } from './types';
+
+/** A healthy embed asks for its first token within seconds; silence this long means it never started. */
+const STARTUP_TIMEOUT_MS = 20_000;
 
 /**
  * Hosts a Qlik-owned embed in a WebView, signed in with the app's own token (ADR-0009). Any
@@ -62,6 +65,19 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
     [],
   );
 
+  // The inline page loads even with no internet, but Qlik's script then cannot download — which
+  // no WebView error reports. So an embed that never asks for a token is a failed load.
+  const started = useRef(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (started.current || !active.current) return;
+      hostTrace('no token request within the startup window');
+      active.current = false;
+      setFailure('load-error');
+    }, STARTUP_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   function fail(reason: HostFailure) {
     hostTrace(`session failure: ${reason}`);
     active.current = false;
@@ -83,12 +99,18 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
       hostTrace(`ignored message from ${safeUrl(event.nativeEvent.url)}`);
       return;
     }
-    const request = parseTokenRequest(event.nativeEvent.data, session);
-    if (request === null) {
+    const message = parseHostMessage(event.nativeEvent.data, session);
+    if (message === null) {
       hostTrace('ignored malformed or foreign-session message');
       return;
     }
-    const { id, purpose } = request;
+    if (message.kind === 'load-failed') {
+      hostTrace('the page reports the Qlik script failed to load');
+      fail('load-error');
+      return;
+    }
+    started.current = true;
+    const { id, purpose } = message;
 
     const reply = await answerTokenRequest(id, session, () => getAccessTokenWithExpiry(config));
     if (!active.current) return;

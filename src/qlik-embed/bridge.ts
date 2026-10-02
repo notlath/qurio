@@ -38,8 +38,11 @@ export function safeText(text: string): string {
   return text.replace(/(?:https?|data):[^\s'"<>]*/g, safeUrl);
 }
 
-/** The request, or `null` for anything that is not a well-formed token request for this session. */
-export function parseTokenRequest(raw: string, session: string): { id: number; purpose: TokenPurpose } | null {
+/** What the page may tell the app: it wants a token, or the Qlik script never loaded. */
+export type HostMessage = { kind: 'token-request'; id: number; purpose: TokenPurpose } | { kind: 'load-failed' };
+
+/** The message, or `null` for anything that is not a well-formed message for this session. */
+export function parseHostMessage(raw: string, session: string): HostMessage | null {
   let message: unknown;
   try {
     message = JSON.parse(raw);
@@ -48,9 +51,10 @@ export function parseTokenRequest(raw: string, session: string): { id: number; p
   }
   if (typeof message !== 'object' || message === null) return null;
   const { v, session: claimed, type, id, purpose } = message as Record<string, unknown>;
-  if (v !== 1 || type !== 'token-request' || claimed !== session) return null;
-  if (!isTokenPurpose(purpose)) return null;
-  return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 ? { id, purpose } : null;
+  if (v !== 1 || claimed !== session) return null;
+  if (type === 'load-failed') return { kind: 'load-failed' };
+  if (type !== 'token-request' || !isTokenPurpose(purpose)) return null;
+  return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 ? { kind: 'token-request', id, purpose } : null;
 }
 
 /**
