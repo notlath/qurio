@@ -1,0 +1,15 @@
+POST /api/v1/assistants/{assistantId}/threads/{threadId}/actions/invoke
+Authorization: Bearer {apiKey}
+Content-Type: application/json
+
+{"input":{"prompt":"What changed in the Q3 policy?","promptType":"thread","includeText":true}}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"question":"What changed in the Q3 policy?","output":"I'm sorry, I don't have any information to answer that question, but I could help with something else.","sources":[],"title":null,"generated_from_placeholder":null,"links_placeholder":null}
+
+NOTE: no `id` field anywhere in this response — invoke never returns an interaction id.
+NOTE: `title`, `generated_from_placeholder`, `links_placeholder` are not declared by the published
+schema (technical-proposal.md:89 documents only `{ output, sources[], question }`).

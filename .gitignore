@@ -1,0 +1,85 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Expo + TypeScript + React Native (SDK 57) — https://docs.expo.dev/versions/v57.0.0/
+
+# ── Dependencies ──────────────────────────────────────────────────
+node_modules/
+.pnp/
+.pnp.js
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+*.log
+
+# ── Expo & Build Output ───────────────────────────────────────────
+.expo/
+.expo-shared/
+expo-env.d.ts
+dist/
+web-build/
+.metro-health-check*
+
+# ── Generated Native Projects (managed workflow) ──────────────────
+/android
+/ios
+.kotlin/
+.cxx/
+build/
+.gradle/
+
+# ── Secrets & Environment ─────────────────────────────────────────
+.env
+.env*.local
+.env.local
+*.pem
+*.p12
+*.p8
+*.key
+*.jks
+*.mobileprovision
+*.orig.*
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Editor & IDE ──────────────────────────────────────────────────
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+.vscode/
+
+# ── TypeScript Cache ──────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Testing & Coverage ────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Tooling Cache ─────────────────────────────────────────────────
+.eslintcache
+.parcel-cache/
+.turbo/
+graphify-out/
+.opencode/
+
+# ── Agent Tooling (local per developer; skill manifest is skills-lock.json) ─
+.agents/
+agent/
+.claude/
+.codex/
+.cursor/
+.serena/
+.scratch/
+
+# ── Foreign Lockfiles (npm is the package manager; package-lock.json is committed) ─
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml

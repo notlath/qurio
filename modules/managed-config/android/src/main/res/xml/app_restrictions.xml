@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Read by RestrictionsManager (ticket 14) and by an MDM console to build its push-config UI.
+  Keys and titles are the only administrator-facing strings; hardcoding English is acceptable
+  for this POC (technical-proposal.md §12 scope).
+-->
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="tenantHost"
+        android:title="Qlik tenant hostname"
+        android:description="@string/managed_config_tenant_host_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="clientId"
+        android:title="Qlik Native OAuth client ID"
+        android:description="@string/managed_config_client_id_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="assistantId"
+        android:title="Qlik Assistant ID"
+        android:description="@string/managed_config_assistant_id_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="agenticAssistantId"
+        android:title="Qlik Agentic Assistant ID"
+        android:description="@string/managed_config_agentic_assistant_id_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="biometricTimeoutMs"
+        android:title="Biometric re-lock timeout (ms)"
+        android:description="@string/managed_config_biometric_timeout_description"
+        android:restrictionType="integer" />
+</restrictions>

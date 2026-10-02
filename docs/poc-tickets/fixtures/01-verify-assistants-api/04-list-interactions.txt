@@ -1,0 +1,11 @@
+GET /api/v1/assistants/{assistantId}/threads/{threadId}/interactions?sort=-CREATED
+Authorization: Bearer {apiKey}
+Accept: application/json
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Qlik-Api-Version: 2026-05
+
+{"data":[{"id":"{interactionId}","request":"What changed in the Q3 policy?","response":"I'm sorry, I don't have any information to answer that question, but I could help with something else.","createdAt":"2026-09-02T00:28:45Z","updatedAt":"2026-09-02T00:28:45Z","sources":[],"ownerId":"{ownerId}","threadId":"{threadId}"}],"meta":{},"links":{"self":{"href":"https://{tenantHost}/api/v1/assistants/{assistantId}/threads/{threadId}/interactions?sort=-CREATED"}}}
+
+NOTE: this is how the interaction id is recovered after invoke — invoke itself never returns one.
