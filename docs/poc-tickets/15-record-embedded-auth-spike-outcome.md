@@ -2,9 +2,9 @@
 
 **What to build:** An evidence-backed decision on how native iOS and Android builds open Qlik content, recorded in a new ADR titled “Native lists over REST, Qlik content via qlik-embed”. Resolve ADR-0002 and update ADR-0005 against the auth path actually demonstrated.
 
-**Blocked by:** A team-lead decision between the auth options below; device verification of the selected path on iOS and a physical Android device. A second WebView sign-in also requires explicit team-lead approval.
+**Blocked by:** Device verification of the selected path on iOS and a physical Android device (the auth decision is made; it does not gate ticket 19's code). A second WebView sign-in would require explicit team-lead approval and is not part of path (a).
 
-**Status:** blocked
+**Status:** in-progress — team lead chose path (a), the native-token workaround, on 2026-10-02 for the PoC; decision recorded in [ADR-0009](../adr/0009-native-lists-over-rest-qlik-content-via-qlik-embed.md). iOS and physical-device verification still open and carried by ticket 19
 
 Only the **Agentic Assistant** outcome gates tickets 19, 21, 22, 23 and 24. The **Analytics App** (`classic/app`) outcome is recorded here as unproven and gates only ticket 20. Tickets 16, 17 and 18 (configuration field, tab shell, native Analytics App list) are needed under every variant and do not wait on this ticket.
 
@@ -38,14 +38,14 @@ These are observations. Interpretations are marked as hypotheses. Everything cam
 
 ## Acceptance criteria
 
-- [ ] The ADR records the run matrix above with actual settings, platform, package versions, callback calls, HTTP failures and navigation observations, and keeps observations separate from hypotheses: a callback invocation alone does not prove token acceptance, and a working session does not prove iOS behaviour
-- [ ] The team lead chooses and the ADR records one Agentic Assistant path: (a) the demonstrated native-token workaround, (b) Qlik's own web pages in the WebView with a second sign-in, or (c) a SPA OAuth client or system browser, which reverses ADR-0005 and the Customer's veto and needs its own decision
-- [ ] If (a): the ADR states that it depends on behaviour of a tenant-downloaded runtime with no Qlik contract, lists the three parts (tenant page origin, bearer on same-origin calls except `/oauth/`, locally answered token exchange), and inlines the prototype's decision-bearing lines, marked as coming from a prototype. It also records the security consequence: our access token is held in page JavaScript for the session
+- [x] The ADR records the run matrix above with actual settings, platform, package versions, callback calls, HTTP failures and navigation observations, and keeps observations separate from hypotheses: a callback invocation alone does not prove token acceptance, and a working session does not prove iOS behaviour
+- [x] The team lead chooses and the ADR records one Agentic Assistant path: (a) the demonstrated native-token workaround, (b) Qlik's own web pages in the WebView with a second sign-in, or (c) a SPA OAuth client or system browser, which reverses ADR-0005 and the Customer's veto and needs its own decision
+- [x] If (a): the ADR states that it depends on behaviour of a tenant-downloaded runtime with no Qlik contract, lists the three parts (tenant page origin, bearer on same-origin calls except `/oauth/`, locally answered token exchange), and inlines the prototype's decision-bearing lines, marked as coming from a prototype. It also records the security consequence: our access token is held in page JavaScript for the session
 - [ ] If (b): demonstrate the Agentic Assistant, obtain and record the team-lead approval for the second sign-in, and specify permitted login/content navigation, cookie lifetime and cookie clearing on sign-out. Resolve the cookie/storage policy against ADR-0007 (caching off, no Answer content persisted) and record any ADR edit explicitly; if it cannot be satisfied, keep downstream tickets blocked
 - [ ] Verify the selected path on a physical Android device and on iOS, including whether it asks for a second sign-in; do not treat the emulator result as iOS evidence
-- [ ] Record the Analytics App surface as **unproven**, with the failure modes above. State that it does not gate the Assistant, and that opening an Analytics App is revisited through ticket 20 after the Assistant ships
-- [ ] The new ADR captures native Analytics App lists over published Items REST, Qlik-owned embedded content, online-only operation, Apps · Assistant · Settings navigation, optional `agenticAssistantId`, the staged native classic-chat retirement and the selected auth path. Mark ADR-0002 superseded and link its replacement; leave ADR-0008 superseded and the unpublished API abandoned
-- [ ] Make a substantive ADR-0005 edit explaining native WebView use versus the fixtures-only web target and the Customer's SPA-client veto. Neither a SPA client nor a system browser is implicitly authorised
+- [x] Record the Analytics App surface as **unproven**, with the failure modes above. State that it does not gate the Assistant, and that opening an Analytics App is revisited through ticket 20 after the Assistant ships
+- [x] The new ADR captures native Analytics App lists over published Items REST, Qlik-owned embedded content, online-only operation, Apps · Assistant · Settings navigation, optional `agenticAssistantId`, the staged native classic-chat retirement and the selected auth path. Mark ADR-0002 superseded and link its replacement; leave ADR-0008 superseded and the unpublished API abandoned
+- [x] Make a substantive ADR-0005 edit explaining native WebView use versus the fixtures-only web target and the Customer's SPA-client veto. Neither a SPA client nor a system browser is implicitly authorised
 - [x] The handoff owner confirmed on 2026-10-01 that the previously exposed personal Qlik API key was revoked
 - [ ] Evidence, tickets and fixtures contain no tokens, keys, sensitive query parameters, tenant identifiers or Customer content
 - [ ] This ticket does **not** delete `src/app/agentic-spike.tsx` or its header link in `src/app/_layout.tsx`. The spike stays as a working reference until ticket 19 has merged; ticket 19 deletes it. The spike's local edits are uncommitted as of this writing and must be committed or otherwise preserved before then. A trailing-newline-only ADR change is not an architectural decision

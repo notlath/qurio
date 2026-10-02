@@ -46,6 +46,20 @@ export async function getAccessToken(config: TenantConfig): Promise<string | nul
   return refreshing;
 }
 
+/**
+ * A fresh token together with its actual expiry, for a consumer that must tell someone else how
+ * long the token lives. `null` when there is no valid token, or no evidence of when it expires —
+ * an unknown expiry is never reported as a made-up lifetime.
+ */
+export async function getAccessTokenWithExpiry(
+  config: TenantConfig,
+): Promise<{ token: string; expiresAtMs: number } | null> {
+  const token = await getAccessToken(config);
+  if (!token) return null;
+  const expiresAtMs = await loadExpiresAtMs();
+  return expiresAtMs === null ? null : { token, expiresAtMs };
+}
+
 async function refresh(config: TenantConfig): Promise<string | null> {
   const refreshToken = await loadRefreshToken();
   if (!refreshToken) return null;

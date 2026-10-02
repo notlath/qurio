@@ -4,12 +4,14 @@
 
 **Blocked by:** Tickets [15](15-record-embedded-auth-spike-outcome.md), [16](16-agentic-assistant-tenant-configuration.md), [17](17-apps-assistant-settings-tabs.md), [19](19-reusable-embedded-qlik-host.md) and [24](24-harden-embedded-host-navigation-storage-signout.md); Tenant-side agentic prerequisites from research §10.
 
-**Status:** blocked
+**Status:** in-progress — Agentic Assistant mounted as an additional, guarded entry in the Assistant tab so it can be device-validated; nothing is replaced or hidden yet, and ticket 24's hardening is not done
 
-- [ ] The normal embed path uses `ui="ai/agentic-assistant"` and `assistant-id` from resolved `agenticAssistantId`; it never substitutes the classic `assistantId`
+**Progress 2026-10-02.** `assistant/agentic` opens the shared host (ticket 19) with `agenticTargetFor(config)`, which uses only `agenticAssistantId` and never the classic `assistantId`. The Assistant screen shows an "Open the Agentic Assistant" entry only when that id is configured on native; the route itself redirects to classic chat on direct entry when it is not (and on web). Classic chat, History and Thread are untouched. Still to do: device validation (walkthroughs, 20-minute session past the token exchange, Thread/history behaviour, error signals, Singapore limits), ticket 24's rules, then hiding the tab when the id is missing and replacing the entry — which waits for validation and keeps classic reachable until ticket 22.
+
+- [x] The normal embed path uses `ui="ai/agentic-assistant"` and `assistant-id` from resolved `agenticAssistantId`; it never substitutes the classic `assistantId`
 - [ ] If ticket 15 accepted Qlik web pages, use its proven Agentic Assistant URL through the same host rather than reintroducing an unproven embed-auth path
 - [ ] The final Assistant tab is absent when `agenticAssistantId` is missing; direct native entry is guarded too. Apps and Settings remain usable
-- [ ] Replacing the tab entry follows ticket 17's transition plan so the working native classic surface is retained until the embedded Agentic Assistant is validated; do not delete tickets 06–11's implementation here
+- [x] Replacing the tab entry follows ticket 17's transition plan so the working native classic surface is retained until the embedded Agentic Assistant is validated; do not delete tickets 06–11's implementation here
 - [ ] With cross-region inference opt-in, Answers Entitlement, Agentic AI permissions and the selected auth prerequisites in place, a Qlik User can ask about an Analytics App and a Knowledge Base and see Qlik-rendered Answers and Citations
 - [ ] Verify the embedded Thread/history behaviour needed after native History retires. Do not present classic REST Threads as Agentic Assistant Threads or build against the abandoned `cloud-assistants` contract
 - [ ] Missing access/entitlement, invalid Assistant configuration, unavailable service, offline and session expiry are demonstrable with actionable guidance where the runtime exposes enough information; record observed signals instead of assuming HTTP statuses

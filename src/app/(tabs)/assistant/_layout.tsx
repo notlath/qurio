@@ -21,6 +21,7 @@ export default function AssistantLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: 'Assistant', headerRight: HistoryLink }} />
+      <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant' }} />
       <Stack.Screen name="history" options={{ title: 'History' }} />
       <Stack.Screen name="thread/[id]" options={{ title: 'Thread' }} />
     </Stack>

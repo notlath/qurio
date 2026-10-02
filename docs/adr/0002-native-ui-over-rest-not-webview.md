@@ -1,6 +1,8 @@
 ---
-status: proposed
+status: superseded
 ---
+
+> **Superseded 2026-10-02 by [ADR-0009](0009-native-lists-over-rest-qlik-content-via-qlik-embed.md).** The device spike showed `qlik-embed` can run in a native WebView with our token, so Qlik content is embedded while lists stay native. Kept below as the original reasoning.
 
 # Native React Native UI over Qlik REST, not an embedded Qlik web UI
 

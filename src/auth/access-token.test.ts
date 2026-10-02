@@ -1,6 +1,6 @@
 import * as AuthSession from 'expo-auth-session';
 
-import { forgetAccessToken, getAccessToken, adoptTokens } from './access-token';
+import { forgetAccessToken, getAccessToken, getAccessTokenWithExpiry, adoptTokens } from './access-token';
 import { loadExpiresAtMs, loadRefreshToken, saveExpiresAtMs, saveRefreshToken } from './tokens';
 
 jest.mock('expo-auth-session', () => ({
@@ -82,5 +82,31 @@ describe('getAccessToken', () => {
   it('returns null — not a stale token — when there is no refresh token to fall back on', async () => {
     await expect(getAccessToken(config)).resolves.toBeNull();
     expect(refreshAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('getAccessTokenWithExpiry', () => {
+  it('returns the token with the expiry the token authority recorded for it', async () => {
+    (loadRefreshToken as jest.Mock).mockResolvedValue('refresh-1');
+    refreshAsync.mockResolvedValue(tokenResponse('access-2', farFuture));
+    (loadExpiresAtMs as jest.Mock).mockResolvedValue(Date.parse(farFuture));
+
+    await expect(getAccessTokenWithExpiry(config)).resolves.toEqual({
+      token: 'access-2',
+      expiresAtMs: Date.parse(farFuture),
+    });
+  });
+
+  it('is null when there is no way back to a valid token', async () => {
+    await expect(getAccessTokenWithExpiry(config)).resolves.toBeNull();
+  });
+
+  it('is null rather than a guess when the expiry is unknown', async () => {
+    await adoptTokens(tokenResponse('access-1', farFuture));
+    (loadExpiresAtMs as jest.Mock).mockResolvedValue(null);
+    (loadRefreshToken as jest.Mock).mockResolvedValue('refresh-1');
+    refreshAsync.mockResolvedValue({ accessToken: 'access-2', rawResponse: {} } as unknown as AuthSession.TokenResponse);
+
+    await expect(getAccessTokenWithExpiry(config)).resolves.toBeNull();
   });
 });
