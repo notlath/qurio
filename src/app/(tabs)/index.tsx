@@ -1,11 +1,12 @@
+import { Link } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/error-state';
+import { AppPressable } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Elevation, Radius, Spacing } from '@/constants/theme';
 import type { AnalyticsApp, AppError } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,20 +24,25 @@ type AppsState = { port: AnswersPort; apps: AnalyticsApp[]; next?: string; error
 function AppRow({ app }: { app: AnalyticsApp }) {
   const theme = useTheme();
 
-  // Not interactive yet: opening an Analytics App depends on ticket 20, which is unproven.
+  // PoC: opening an Analytics App is ticket 20, not yet hardened.
   return (
-    <ThemedView
-      type="backgroundElement"
-      accessible
-      accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
-      style={[styles.row, { borderColor: theme.border }, Elevation.card]}>
-      <ThemedText type="smallBold" numberOfLines={2}>
-        {app.name}
-      </ThemedText>
-      <ThemedText type="caption" themeColor="textSecondary">
-        {formatRelativeTime(app.updatedAt)}
-      </ThemedText>
-    </ThemedView>
+    <Link href={{ pathname: '/apps/[id]', params: { id: app.id, name: app.name } }} asChild>
+      <AppPressable
+        accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
+        // Flattened: `Link asChild` throws in development if its child's style is an array.
+        style={StyleSheet.flatten([
+          styles.row,
+          { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+          Elevation.card,
+        ])}>
+        <ThemedText type="smallBold" numberOfLines={2}>
+          {app.name}
+        </ThemedText>
+        <ThemedText type="caption" themeColor="textSecondary">
+          {formatRelativeTime(app.updatedAt)}
+        </ThemedText>
+      </AppPressable>
+    </Link>
   );
 }
 

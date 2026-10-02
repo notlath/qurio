@@ -19,6 +19,13 @@ describe('embedPageHtml', () => {
     expect(html).toContain('<qlik-embed ui="ai/agentic-assistant" assistant-id="assistant-1">');
   });
 
+  it('addresses an Analytics App by app-id, with no sheet-id', () => {
+    const html = embedPageHtml({ ...input, surface: 'classic/app', resourceId: 'app-1' });
+
+    expect(html).toContain('<qlik-embed ui="classic/app" app-id="app-1">');
+    expect(html).not.toContain('sheet-id');
+  });
+
   it('does not set an auth type — the spike worked with it unset', () => {
     expect(embedPageHtml(input)).not.toContain('data-auth-type');
   });

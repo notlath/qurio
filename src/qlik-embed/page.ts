@@ -1,10 +1,10 @@
 import { jsLiteral, quotedAttr } from './escape';
 import { runtimeScript } from './runtime-script';
 
-/** What the host can embed. `classic/app` joins this once ticket 20 proves it. */
-export type EmbedSurface = 'ai/agentic-assistant';
+/** What the host can embed. `classic/app` is a PoC (ticket 20): opens on a device, not yet hardened. */
+export type EmbedSurface = 'ai/agentic-assistant' | 'classic/app';
 
-const ID_ATTRIBUTE: Record<EmbedSurface, string> = { 'ai/agentic-assistant': 'assistant-id' };
+const ID_ATTRIBUTE: Record<EmbedSurface, string> = { 'ai/agentic-assistant': 'assistant-id', 'classic/app': 'app-id' };
 
 export type EmbedPageInput = {
   tenantHost: string;
