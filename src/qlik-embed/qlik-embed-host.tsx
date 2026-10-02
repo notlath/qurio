@@ -12,6 +12,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import {
   answerTokenRequest,
+  exchangeForWebSocketToken,
   guidanceFor,
   isOwnPage,
   parseHostMessage,
@@ -112,7 +113,13 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
     started.current = true;
     const { id, purpose } = message;
 
-    const reply = await answerTokenRequest(id, session, () => getAccessTokenWithExpiry(config));
+    let reply = await answerTokenRequest(id, session, () => getAccessTokenWithExpiry(config));
+    if (reply.ok && purpose === 'websocket') {
+      // Falls back to the plain token on refusal (the behaviour before), so the trace shows why.
+      const minted = await exchangeForWebSocketToken(config, reply.token);
+      hostTrace(`websocket token exchange → ${minted.ok ? `minted, expires in ${minted.expiresIn}s` : minted.reason}`);
+      if (minted.ok) reply = { ...reply, token: minted.token, expiresIn: minted.expiresIn };
+    }
     if (!active.current) return;
     hostTrace(`token request ${id} (${purpose}) → ${reply.ok ? `granted, expires in ${reply.expiresIn}s` : 'refused'}`);
     webView.current?.injectJavaScript(replyScript(reply));

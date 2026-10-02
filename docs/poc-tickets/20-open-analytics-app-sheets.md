@@ -4,7 +4,7 @@
 
 **Blocked by:** Tickets [15](15-record-embedded-auth-spike-outcome.md), [18](18-native-analytics-app-list.md), [19](19-reusable-embedded-qlik-host.md) and [24](24-harden-embedded-host-navigation-storage-signout.md), **and** a decision to reopen this surface after the Agentic Assistant (ticket [21](21-embedded-agentic-assistant-tab.md)) has shipped and passed device acceptance.
 
-**Status:** blocked — **unproven**. Decide after the Assistant ships; do not start earlier.
+**Status:** in-progress (PoC) — the engine connection is explained and an Analytics App displays on a development build (2026-10-02; see the [ADR-0009 addendum](../adr/0009-native-lists-over-rest-qlik-content-via-qlik-embed.md#addendum--analytics-app-engine-connection-ticket-20-probe-2026-10-02)). Hardening and the remaining criteria are not started.
 
 ## Why it is unproven
 
@@ -16,7 +16,7 @@ The spike (recorded in ticket 15, Android emulator, 2026-10-02) could not open a
 
 ## Acceptance criteria
 
-- [ ] Before any implementation, a short probe establishes why the engine connection closes (for example, which URL and parameters the connection uses and what the server returns) and whether a native-token path or the ticket 15 fallback can open an Analytics App at all. Record the result in an ADR or an addendum to ticket 15's decision record
+- [x] Before any implementation, a short probe establishes why the engine connection closes (for example, which URL and parameters the connection uses and what the server returns) and whether a native-token path or the ticket 15 fallback can open an Analytics App at all. Record the result in an ADR or an addendum to ticket 15's decision record
 - [ ] If an Analytics App cannot be opened by any approved path, record the blocker, keep the Apps list non-interactive (ticket 18) and revisit the native Sheet-list decision separately. That is a larger QIX-engine decision and is not an automatic fallback
 - [ ] Selecting a list row passes its Analytics App `resourceId` to the host; the normal embed path uses `ui="classic/app"` and `app-id`, with no `sheet-id`, unless the probe shows another setting works
 - [ ] Qlik's overview lists Sheets and lets the Qlik User open them on a phone. No native Sheet-list REST endpoint is invented and no QIX WebSocket integration is added by this ticket

@@ -1,14 +1,15 @@
 import { jsLiteral } from './escape';
+import { tenantOriginOf } from './page';
 
 /** Why an embedded session cannot continue. Each maps to native guidance — never a login inside the WebView. */
 export type HostFailure = 'token-unavailable' | 'navigation' | 'load-error';
 
 /**
- * Why the page wants a token: the runtime asked directly, an API call needs a bearer, or the
- * runtime's /oauth/token exchange. Asserted by the page, so it only labels the trace — it never
- * decides what the app does.
+ * Why the page wants a token: the runtime asked directly, an API call needs a bearer, the
+ * runtime's /oauth/token exchange, or that exchange for the engine WebSocket. Asserted by the
+ * page; `websocket` only makes the app ask the tenant for a narrower token, never a broader one.
  */
-const TOKEN_PURPOSES = ['runtime', 'api', 'exchange'] as const;
+const TOKEN_PURPOSES = ['runtime', 'api', 'exchange', 'websocket'] as const;
 export type TokenPurpose = (typeof TOKEN_PURPOSES)[number];
 
 const isTokenPurpose = (value: unknown): value is TokenPurpose => TOKEN_PURPOSES.some((p) => p === value);
@@ -75,6 +76,41 @@ export async function answerTokenRequest(
     return { session, id, ok: true, token: current.token, expiresIn };
   } catch {
     return { session, id, ok: false };
+  }
+}
+
+/**
+ * The engine WebSocket (an Analytics App) accepts only a temporary token minted for it by the
+ * tenant's token exchange, which is what @qlik/api does in a browser. The page cannot make that
+ * call — the tenant rejects its Origin (OAUTH-29) — but a native request carries no Origin.
+ * PoC for ticket 20, shown to open an Analytics App on a device. The failure reason carries no token.
+ */
+export async function exchangeForWebSocketToken(
+  config: { tenantHost: string; clientId: string },
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ ok: true; token: string; expiresIn: number } | { ok: false; reason: string }> {
+  const origin = tenantOriginOf(config.tenantHost);
+  try {
+    const response = await fetchImpl(`${origin}/oauth/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        subject_token: accessToken,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        purpose: 'websocket',
+        redirect_uri: `${origin}/`,
+        client_id: config.clientId,
+      }),
+    });
+    const body = await response.json().catch(() => null);
+    if (response.ok && typeof body?.access_token === 'string') {
+      return { ok: true, token: body.access_token, expiresIn: typeof body.expires_in === 'number' ? body.expires_in : 60 };
+    }
+    return { ok: false, reason: `http ${response.status} ${body?.errors?.[0]?.code ?? ''}`.trim() };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? safeText(e.message) : 'network error' };
   }
 }
 

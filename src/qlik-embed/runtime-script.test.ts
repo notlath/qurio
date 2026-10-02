@@ -148,6 +148,19 @@ describe('runtime script', () => {
     });
   });
 
+  it('labels the engine WebSocket exchange, which needs a token minted for it, not the access token', async () => {
+    const page = loadPage();
+
+    const exchange = page.win.fetch(`${ORIGIN}/oauth/token`, {
+      method: 'POST',
+      body: JSON.stringify({ purpose: 'websocket', subject_token: 'whatever' }),
+    });
+    page.answerNext({ ok: true, token: 'ws-token', expiresIn: 60 });
+
+    expect(page.sent[0].purpose).toBe('websocket');
+    expect((await exchange).json().access_token).toBe('ws-token');
+  });
+
   it('fails the exchange, rather than inventing a token, when the app cannot supply one', async () => {
     const page = loadPage();
 

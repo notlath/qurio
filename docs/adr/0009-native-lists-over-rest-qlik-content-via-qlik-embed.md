@@ -53,6 +53,24 @@ Hypotheses, not established: the token endpoint rejects browser-style requests c
 
 **Fallback.** If the iOS or physical-device check fails, or the runtime proves too unstable, option (b), Qlik's own web pages in the WebView with a second sign-in, is the fallback. It needs separate team-lead approval and a cookie policy resolved against ADR-0007. Option (c), a SPA client or system browser, and any backend remain separate decisions: a backend reverses ADR-0001.
 
+## Addendum — Analytics App engine connection (ticket 20 probe, 2026-10-02)
+
+The `classic/app` failure ("Unable to connect to the Qlik Sense engine", error 1006 in the spike) is explained and worked around for the PoC.
+
+Observed against the tenant from a Node probe (API key standing in for the user's token):
+
+| Engine WebSocket `wss://<tenant>/app/<appId>` | Result |
+| --- | --- |
+| no credentials (what the WebView sent) | HTTP 401 |
+| `?accessToken=<plain access token>` | HTTP 401 |
+| `Authorization: Bearer` header (impossible from a browser WebSocket) | `OnConnected` |
+
+Read from `@qlik/api` 2.19 (the runtime's auth layer): in a browser the OAuth module opens the engine WebSocket with `?accessToken=` set to a **temporary token** from `POST /oauth/token` with `grant_type` token-exchange and `purpose: "websocket"`. Part 3 above answered *every* exchange locally with the plain access token, so the engine refused it.
+
+**Fourth part.** The page now forwards a `purpose: "websocket"` exchange to the app, which makes the real exchange natively (no `Origin` header, so no OAUTH-29) and hands the minted token back. Other exchanges are still answered locally; a refused native exchange falls back to that and traces the Qlik error code. On a development build the tenant minted the token (`expires in 90s`, two exchanges per open) and the Analytics App displayed.
+
+This confirms the earlier hypothesis that the token endpoint rejects the browser `Origin`, not the native client: the same exchange succeeds without it. Still open: iOS, reconnects after the 90-second token lapses (idle, backgrounding), sign-out, and the ticket 20 Sheet-browsing criteria.
+
 ## Also recorded
 
 Navigation is **Apps · Assistant · Settings**. The Agentic Assistant is optional per Tenant (`agenticAssistantId`). Embedded content is online-only. Native classic chat is retired in stages (tickets 21 and 22). ADR-0008 stays superseded and the unpublished `cloud-assistants` API stays abandoned.

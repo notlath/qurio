@@ -7,7 +7,8 @@ import { jsLiteral } from './escape';
  *
  * Tokens are pulled from the app on every use, never cached here, so each call sees the app's
  * current token and expiry. Only `fetch` is wrapped — the runtime's WebSocket or XHR traffic is
- * not covered (ticket 19).
+ * not covered (ticket 19). The engine WebSocket authenticates by a `?accessToken=` the runtime
+ * gets from a `purpose: "websocket"` exchange, so that one exchange is minted natively instead.
  */
 export function runtimeScript({ session, tenantOrigin }: { session: string; tenantOrigin: string }): string {
   return `(function () {
@@ -67,7 +68,10 @@ export function runtimeScript({ session, tenantOrigin }: { session: string; tena
     // The runtime's token exchange: the tenant rejects its browser Origin (OAUTH-29), so answer
     // it ourselves with the app's current token and that token's real remaining lifetime.
     if (target.pathname === '/oauth/token' && method === 'POST') {
-      return requestToken('exchange').then(
+      // The engine WebSocket refuses a plain access token; the app mints the token it needs natively.
+      var exchangePurpose;
+      try { exchangePurpose = JSON.parse(String((init && init.body) || '{}')).purpose; } catch (e) {}
+      return requestToken(exchangePurpose === 'websocket' ? 'websocket' : 'exchange').then(
         function (r) {
           return jsonResponse(200, {
             access_token: r.token,

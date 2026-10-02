@@ -1,4 +1,4 @@
-import { answerTokenRequest, guidanceFor, isOwnPage, parseHostMessage, replyScript, safeText, safeUrl } from './bridge';
+import { answerTokenRequest, exchangeForWebSocketToken, guidanceFor, isOwnPage, parseHostMessage, replyScript, safeText, safeUrl } from './bridge';
 
 const ORIGIN = 'https://acme.sg.qlikcloud.com';
 const request = (over: object = {}) =>
@@ -122,5 +122,39 @@ describe('safeText', () => {
 
   it('leaves a message with no URL alone', () => {
     expect(safeText('net::ERR_INTERNET_DISCONNECTED')).toBe('net::ERR_INTERNET_DISCONNECTED');
+  });
+});
+
+describe('exchangeForWebSocketToken', () => {
+  const config = { tenantHost: 'acme.sg.qlikcloud.com', clientId: 'client-1' };
+  const respond = (status: number, body: object) =>
+    jest.fn(async (..._args: any[]) => ({ ok: status === 200, status, json: async () => body }));
+
+  it('asks the tenant for a token minted for the engine WebSocket, as @qlik/api does in a browser', async () => {
+    const fetchImpl = respond(200, { access_token: 'ws-token', expires_in: 300 });
+
+    const result = await exchangeForWebSocketToken(config, 'access-1', fetchImpl as never);
+
+    expect(result).toEqual({ ok: true, token: 'ws-token', expiresIn: 300 });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe(`${ORIGIN}/oauth/token`);
+    expect(init.headers).not.toHaveProperty('Origin');
+    expect(JSON.parse(init.body)).toEqual({
+      subject_token: 'access-1',
+      subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      purpose: 'websocket',
+      redirect_uri: `${ORIGIN}/`,
+      client_id: 'client-1',
+    });
+  });
+
+  it('reports the status and Qlik error code when the tenant refuses, without the token', async () => {
+    const fetchImpl = respond(401, { errors: [{ code: 'OAUTH-29' }] });
+
+    expect(await exchangeForWebSocketToken(config, 'access-1', fetchImpl as never)).toEqual({
+      ok: false,
+      reason: 'http 401 OAUTH-29',
+    });
   });
 });
