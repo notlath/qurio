@@ -1,4 +1,3 @@
-import { Link } from 'expo-router';
 import { Children, Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -347,13 +346,6 @@ export default function SettingsScreen() {
           <WorkspaceConnection resolved={resolved} onSaved={setResolved} />
           {native && <ScreenshotRow />}
           {native && <ExpireTokenRow />}
-          {native && (
-            <Link href="/agentic-spike" asChild>
-              <AppPressable accessibilityLabel="Open agentic assistant spike">
-                <Row title="Agentic spike" accessory={<RowAction label="Open" />} />
-              </AppPressable>
-            </Link>
-          )}
         </Section>
       )}
     </ScrollView>

@@ -59,7 +59,6 @@ export default function RootLayout() {
           <LockGate>
             <Stack screenOptions={screenOptions}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="agentic-spike" options={{ title: 'Agentic spike' }} />
               <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
             </Stack>
           </LockGate>
