@@ -160,5 +160,5 @@ const styles = StyleSheet.create({
   mark: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.card },
   centered: { textAlign: 'center' },
   copy: { maxWidth: 300 },
-  unlockButton: { alignSelf: 'stretch', maxWidth: 320, width: '100%', marginTop: Spacing.two },
+  unlockButton: { maxWidth: 320, width: '100%', marginTop: Spacing.two },
 });

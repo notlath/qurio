@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { AppState, Switch, Text, type AppStateStatus } from 'react-native';
+import { AppState, StyleSheet, Switch, Text, type AppStateStatus } from 'react-native';
 
 import { LockGate, usePrivacyLock } from './lock-gate';
 
@@ -36,6 +36,19 @@ it('locks by default without exposing workspace content', async () => {
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Your workspace is locked.');
   expect(JSON.stringify(renderer.toJSON())).not.toContain('Workspace content');
+});
+
+it('centres the unlock button instead of overriding the screen alignment', async () => {
+  await renderGate();
+
+  const button = renderer.root.findByProps({ accessibilityLabel: 'Unlock' });
+  const style = StyleSheet.flatten(button.props.style);
+
+  // alignSelf: 'stretch' beats the parent's alignItems: 'center', so once maxWidth caps the
+  // button it sits at the left edge on any screen wider than maxWidth + padding.
+  expect(style.alignSelf).toBeUndefined();
+  expect(style.width).toBe('100%');
+  expect(style.maxWidth).toBeDefined();
 });
 
 it('turns privacy lock back on for the next startup without interrupting Settings', async () => {
