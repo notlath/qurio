@@ -17,9 +17,9 @@
 
 - **Runtime:** Expo ~57.0.18, React 19.2.3, React Native 0.86.3, react-dom 19.2.3
 - **Navigation:** expo-router ~57.0.17 (typedRoutes enabled), react-native-screens, react-native-safe-area-context
-- **UI / Media:** @expo/ui ~57.0.14, expo-image, expo-symbols, expo-glass-effect, expo-system-ui, expo-constants
+- **UI / Media:** @expo/ui ~57.0.14, expo-image, expo-symbols, expo-system-ui, expo-constants
 - **Animation:** react-native-reanimated 4.5.1, react-native-worklets 0.10.1, react-native-gesture-handler ~2.32.0
-- **Other Expo Modules:** expo-font, expo-linking, expo-splash-screen, expo-status-bar, expo-web-browser, expo-device
+- **Other Expo Modules:** expo-font, expo-linking, expo-splash-screen, expo-web-browser, expo-device
 - **Web Support:** react-native-web ~0.21.0
 - **Tooling:** TypeScript ~6.0.3, Expo ESLint (`expo lint`), React Compiler enabled (`experiments.reactCompiler: true`)
 
@@ -43,7 +43,6 @@
 │   ├── constants/      # Theme and app constants
 │   └── global.css
 ├── assets/             # Icons, splash, adaptive icons
-├── scripts/            # Project scripts (reset-project.js)
 ├── app.json            # Expo config (typedRoutes, reactCompiler, splash, icons)
 ├── tsconfig.json       # Extends expo/tsconfig.base, strict mode
 └── package.json
@@ -83,7 +82,6 @@ Source of truth is `.gitignore:1`. Do not commit ignored artifacts.
 | Run on Web             | `npm run web`                    |
 | Lint                   | `npm run lint` / `npx expo lint` |
 | Test                   | `npm test` / `npx jest`          |
-| Reset starter template | `npm run reset-project`          |
 
 Verify commands from `package.json:34` and `app.json:2` before adding new scripts.
 
