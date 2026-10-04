@@ -4,7 +4,7 @@ import type { TenantConfig } from './types';
 
 const STORAGE_KEY = 'qlik.devTenantConfig';
 
-/** Never true in a release build — see docs/dev-build-runbook.md. */
+/** Never true in a release build — see docs/dev-build-runbook.md. Gates developer tooling, not the workspace connection. */
 export const IS_INTERNAL_BUILD = __DEV__;
 
 export async function loadDevConfig(): Promise<Partial<TenantConfig> | undefined> {

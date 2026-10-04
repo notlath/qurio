@@ -12,6 +12,7 @@ import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import {
   IS_INTERNAL_BUILD,
   loadDevConfig,
+  normalizeTenantHost,
   resolveCurrentTenantConfig,
   saveDevConfig,
   validateTenantHost,
@@ -213,13 +214,14 @@ function TenantConfigForm({ onSaved }: { onSaved: (active: TenantConfig | null) 
     }
     setSaving(true);
     try {
-      const preflight = await validateTenantHost(tenantHost.trim());
+      const host = normalizeTenantHost(tenantHost);
+      const preflight = await validateTenantHost(host);
       if (!preflight.ok) {
         setFieldError({ field: preflight.field, message: preflight.message });
         return;
       }
       await saveDevConfig({
-        tenantHost: tenantHost.trim(),
+        tenantHost: host,
         clientId: clientId.trim(),
         assistantId: assistantId.trim(),
         // Optional: a blank field clears it, since a save replaces the whole dev entry.
@@ -341,9 +343,12 @@ export default function SettingsScreen() {
         </Section>
       )}
 
+      <Section title="Workspace">
+        <WorkspaceConnection resolved={resolved} onSaved={setResolved} />
+      </Section>
+
       {IS_INTERNAL_BUILD && (
         <Section title="Developer">
-          <WorkspaceConnection resolved={resolved} onSaved={setResolved} />
           {native && <ScreenshotRow />}
           {native && <ExpireTokenRow />}
         </Section>

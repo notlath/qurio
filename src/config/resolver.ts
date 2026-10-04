@@ -6,6 +6,11 @@ const IDENTIFIER_FIELDS = ['tenantHost', 'clientId', 'assistantId', 'agenticAssi
 /** Whitespace and every Unicode control/format character, anywhere in the value. */
 const NOT_IDENTIFIER = /[\p{C}\s]/gu;
 
+/** A pasted browser URL ("https://acme.eu.qlikcloud.com/") reduced to the bare host the config stores. */
+export function normalizeTenantHost(value: string): string {
+  return value.trim().replace(/^https?:\/\//i, '').replace(/[/?#].*$/, '').toLowerCase();
+}
+
 /**
  * None of these can legitimately contain whitespace or a control character, and both
  * sources are pastes: an MDM payload, or a hand-entered value on the dev screen. A trailing
@@ -20,6 +25,7 @@ function clean(config?: PartialTenantConfig): PartialTenantConfig | undefined {
     const value = cleaned[field];
     if (value) cleaned[field] = value.replace(NOT_IDENTIFIER, '');
   }
+  if (cleaned.tenantHost) cleaned.tenantHost = normalizeTenantHost(cleaned.tenantHost);
   // Optional: nothing left after cleaning means "not configured", never an empty-string id.
   if (!cleaned.agenticAssistantId) delete cleaned.agenticAssistantId;
   return cleaned;

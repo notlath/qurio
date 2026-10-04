@@ -1,4 +1,4 @@
-import { resolveTenantConfig } from './resolver';
+import { normalizeTenantHost, resolveTenantConfig } from './resolver';
 
 const NUL = String.fromCharCode(0);
 const ZERO_WIDTH_SPACE = String.fromCharCode(0x200b);
@@ -103,5 +103,22 @@ describe('resolveTenantConfig', () => {
     const result = resolveTenantConfig({ managed: undefined, dev: { tenantHost: 'dev.eu.qlikcloud.com' } });
 
     expect(result).toBeNull();
+  });
+});
+
+describe('normalizeTenantHost', () => {
+  it.each([
+    ['https://acme.eu.qlikcloud.com/', 'acme.eu.qlikcloud.com'],
+    ['HTTP://Acme.eu.qlikcloud.com', 'acme.eu.qlikcloud.com'],
+    ['https://acme.eu.qlikcloud.com/console/home?x=1', 'acme.eu.qlikcloud.com'],
+    ['acme.eu.qlikcloud.com/', 'acme.eu.qlikcloud.com'],
+  ])('turns the pasted %s into a bare hostname', (pasted, host) => {
+    expect(normalizeTenantHost(pasted)).toBe(host);
+  });
+
+  it('is applied to a pasted URL in the resolved config', () => {
+    const dev = { tenantHost: 'https://dev.eu.qlikcloud.com/', clientId: 'c', assistantId: 'a' };
+
+    expect(resolveTenantConfig({ managed: undefined, dev })?.tenantHost).toBe('dev.eu.qlikcloud.com');
   });
 });
