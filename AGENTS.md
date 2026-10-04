@@ -85,7 +85,7 @@ Source of truth is `.gitignore:1`. Do not commit ignored artifacts.
 
 Verify commands from `package.json:34` and `app.json:2` before adding new scripts.
 
-**Do not run the app in Expo Go.** The project depends on `expo-secure-store`, `expo-screen-capture`, a local Expo module (Android managed config) and a custom URL scheme (`qlikanswers://auth`) — none of which Expo Go can run. Use a development build instead; see [docs/dev-build-runbook.md](docs/dev-build-runbook.md).
+**Expo Go: iOS only.** On iOS, Expo Go runs the full app including sign-in (`npx expo start --go`; Face ID falls back to passcode) — iOS's auth session catches the fixed `qlikanswers://auth` redirect itself (`src/auth/oauth.ts`). On Android, use a development build: Expo Go cannot run the local `managed-config` module or receive the `qlikanswers://` redirect. See [docs/dev-build-runbook.md](docs/dev-build-runbook.md).
 
 ## 6. Engineering Principles
 
