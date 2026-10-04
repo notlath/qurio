@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded
 ---
+
+> **Superseded 2026-10-05 by [ADR-0010](0010-published-oauth-client-tenant-hostname-only.md).** The Qlik User now enters only the tenant hostname. MDM remains an optional override. Kept below as the original reasoning.
 
 # Tenant configuration arrives via MDM managed app configuration
 

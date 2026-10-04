@@ -65,8 +65,12 @@ A finding an Agentic Assistant derives from a Qlik analytics app rather than fro
 A Qlik User's rating of a single Interaction, sent back to the Tenant. Attached to an Interaction, never to a Thread.
 
 **Tenant Configuration**:
-The non-secret values that point the app at one Customer's Tenant — tenant hostname, OAuth client ID, assistant ID. Supplied at deployment time, never compiled in.
-_Avoid_: Settings, environment, tenant info
+The values that point the app at one Customer's Tenant. Only the tenant hostname is needed: the Qlik User enters it, or the Customer's MDM supplies it. The Assistant is found after sign-in, never entered.
+_Avoid_: Settings, environment, tenant info, workspace connection
+
+**Tenant Approval**:
+A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User.
+_Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
 
 **Answer**:
 The content Qlik returns for a single Interaction, in whatever form that takes — prose, structured content, or an Analytics Insight — together with its Citations. It is never stored on the device.
@@ -78,9 +82,6 @@ Answer content derived from a Qlik analytics app rather than from documents, pro
 **Feedback**:
 A Qlik User's rating of a single Interaction. Attached to an Interaction, never to a Thread.
 
-**Tenant Configuration**:
-The non-secret values that point the app at one Customer's Tenant — tenant hostname, OAuth client ID, assistant ID. Supplied at deployment time, never compiled in.
-_Avoid_: Settings, environment, app config
 
 **Starter**:
 A suggested opening question configured on an Assistant, shown before a Thread has any Interactions.
