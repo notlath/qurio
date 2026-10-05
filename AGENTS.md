@@ -183,6 +183,74 @@ These guidelines are working if:
 - Clarifying questions are asked before implementation, not after mistakes.
 - Expo v57 APIs are used correctly per versioned docs.
 
+## 10. Writing Standard: Simplified Technical English (ASD-STE100)
+
+> Source: [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill/blob/master/SKILL.md) (v0.4.0), based on ASD-STE100 Issue 9. This is a clarity discipline inspired by STE, not certified STE compliance. The official ~900-word dictionary is not reproduced here.
+
+Apply STE to English that a reader must parse without a human to resolve ambiguity, and where a misreading has a cost. Do not apply it to creative or marketing copy.
+
+### 10.1 Modes
+
+Pick a mode from the text type before you write or rewrite.
+
+| Mode | Use for | Enforce |
+| --- | --- | --- |
+| **Strict** | Error messages, tool and function descriptions, inter-agent instructions, system prompts, status reports, procedures, safety text | All rules below, including length caps and one-word-one-meaning |
+| **STE-flavored** | READMEs, PR descriptions, commit messages, changelogs, code comments, ADRs, explanatory prose | All structural rules. Treat lexical rules as advisory. |
+
+### 10.2 Structural Rules (apply in both modes)
+
+| Rule | Do | Don't |
+| --- | --- | --- |
+| Active voice | "The agent deletes the file." | "The file is deleted." (unless the actor is unknown or irrelevant) |
+| No phrasal verbs | "Remove the panel." / "Start the job." | "Take off the panel." / "Spin up the job." |
+| One instruction per sentence | "Open the file. Read line 3." | "Open the file and read line 3, then check if it matches." |
+| Sentence length | ≤20 words for instructions, ≤25 words for descriptions | Long compound or subordinate-clause sentences |
+| No semicolons | Split into separate sentences | Any semicolon. (Em dashes are allowed but often signal a sentence to split.) |
+| Noun clusters | ≤3 stacked nouns ("fuel pump valve") | 4+ stacked nouns ("high pressure fuel pump inlet valve assembly") |
+| No ellipsis | Keep subject, verb, and article explicit | "Files not backed up will be lost" (which files?) |
+| Keep modality | "The request **may have** failed." stays as written | Promote a hedge to a fact, or add certainty the source did not state |
+| Paragraph limits | One topic per paragraph, ≤6 sentences | Multi-topic paragraphs |
+| Lists for sequences | Numbered or bulleted list for 3+ steps or conditions | A sequence buried in one prose sentence |
+
+### 10.3 Lexical Rules (enforce in Strict, advisory in STE-flavored)
+
+- **One word, one meaning:** Use one term for one thing or action in a document. Do not rotate "check" / "verify" / "confirm" for the same action.
+- **One part of speech per word:** Prefer "Apply oil to the valve" over "Oil the valve".
+- **Verb, not noun:** Write "Analyze the log", not "Perform an analysis of the log".
+- **Domain terms:** Keep necessary technical terms. Define each one once if it is not common English (see `CONTEXT.md` for the project glossary).
+
+### 10.4 Tenses
+
+Use simple tenses: infinitive, imperative, simple present, simple past, simple future, and past participle as adjective. Avoid present perfect ("we received the report", not "we have received the report").
+
+Exception: keep a compound form when it carries information the simple form cannot. Examples are current relevance ("the job has completed") or a hedge ("may have failed").
+
+### 10.5 Scan Checklist
+
+Scan for these six habits before you finish any text:
+
+1. **Synonym rotation:** one thing has several names ("user", "customer", "client"). Pick one name.
+2. **Hedge stacking:** "it is important to note that this may potentially help to improve". State the claim or delete it.
+3. **Nominalization:** "perform an analysis of", "provides assistance to". Use the verb.
+4. **Marketing adjectives:** seamless, robust, powerful, cutting-edge, effortless, blazing-fast. Delete them, or replace them with a measurement.
+5. **Run-on sentences:** ideas joined by semicolons or em dashes. Write one idea per sentence.
+6. **Soft phrasal verbs:** spin up, reach out, dive into, kick off. Use start, contact, read, begin.
+
+### 10.6 Rewrite Process
+
+1. Pick the mode.
+2. Read the text once for meaning before you change it.
+3. Check each sentence against §10.2–§10.5.
+4. Rewrite each violation and keep the original meaning exactly.
+   - Keep every fact, condition, scope qualifier, number, and safety condition. If a rewrite would lose precision, keep the longer phrasing.
+   - Keep the strength of every hedge. Do not change "could be caused by X" to "X is the cause".
+   - Do not add a fact, cause, frequency, or mechanism that the source did not state.
+5. Output only the rewritten text. If you kept a longer phrasing on purpose, add one line: `Kept as-is: <phrase> — <precision it protects>`. Show a rule table (`Rule violated | Original | Simplified`) only when asked.
+6. If the text already complies, say so. Do not force changes.
+
+Stop when the sentence is unambiguous, not when it is shortest. STE fixes form, not substance. If the text has nothing to say, say so instead of polishing it.
+
 ## Knowledge Graph & Token Optimization
 
 ### Strict Tool Priority
