@@ -6,6 +6,7 @@ type TenantSources = { managed?: PartialTenantConfig; dev?: PartialTenantConfig 
 
 /** MTC's published Native OAuth client in each Qlik Cloud region (ADR-0010). Add a region by adding its client ID. */
 const PUBLISHED_CLIENT_IDS: Record<string, string> = {
+  ap: '01a10a79d20b4352bf7e0596e383407e',
   sg: '01a107a4b62d66ffc82d0ffc7e6b1098',
 };
 /** "<name>.<region>.qlikcloud.com". A custom domain, or a hostname with no region, does not match. */
