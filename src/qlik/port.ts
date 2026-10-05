@@ -1,4 +1,4 @@
-import type { AnalyticsApp, Feedback, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
+import type { AnalyticsApp, Assistant, Feedback, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
 
 export type Capabilities = {
   streaming: boolean;
@@ -23,6 +23,10 @@ export interface AnswersPort {
   submitFeedback(threadId: string, interactionId: string, f: Feedback): Promise<void>;
 
   listStarters(): Promise<Starter[]>;
+
+  // Every Assistant the signed-in Qlik User can see. Works before an Assistant is chosen; every
+  // Assistant-scoped call above fails with AssistantNotChosen until one is.
+  listAssistants(): Promise<Assistant[]>;
 
   // Every Analytics App the signed-in Qlik User can see, most recently updated first. `cursor` is the
   // `next` of the previous page; callers never build one.

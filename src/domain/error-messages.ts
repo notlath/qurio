@@ -12,6 +12,12 @@ export function errorMessageFor(error: AppError): ErrorMessage {
         message: `This app has not been configured for your organization. ${CONTACT_ADMIN}`,
         canRetry: false,
       };
+    case 'AssistantNotChosen':
+      return {
+        title: 'No Assistant chosen',
+        message: 'Choose an Assistant before you ask a question.',
+        canRetry: false,
+      };
     case 'NotEntitled':
       return {
         title: 'No Answers access',

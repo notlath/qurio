@@ -67,17 +67,8 @@ export function resolveTenant(sources: TenantSources): TenantResolution {
   return dev.kind === 'resolved' || managed.kind === 'not-configured' ? dev : managed;
 }
 
-/**
- * The first source that resolves with an assistantId, or null (ConfigMissing). Callers still
- * need an assistantId, so this keeps the old precedence until the Assistant is chosen after
- * sign-in (#3, #4).
- */
+/** The resolved configuration, or null (ConfigMissing) for every kind of failure. */
 export function resolveTenantConfig(sources: TenantSources): TenantConfig | null {
-  for (const source of [sources.managed, sources.dev]) {
-    const resolution = resolveSource(source);
-    if (resolution.kind === 'resolved' && resolution.config.assistantId) {
-      return { ...resolution.config, assistantId: resolution.config.assistantId };
-    }
-  }
-  return null;
+  const resolution = resolveTenant(sources);
+  return resolution.kind === 'resolved' ? resolution.config : null;
 }

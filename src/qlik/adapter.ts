@@ -6,9 +6,9 @@ import type { AppError, Interaction, Starter } from '@/domain';
 
 import { classifyFetchFailure } from './classic/errors';
 import { qlikFetch, qlikJson, qlikUrl, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
-import { toAnalyticsApp, toAnswer, toInteraction, toThread } from './classic/mappers';
+import { toAnalyticsApp, toAnswer, toAssistant, toInteraction, toThread } from './classic/mappers';
 import { consumeStream, type StreamReader } from './classic/stream-session';
-import type { QlikInteraction, QlikItem, QlikSource, QlikThread } from './classic/wire-types';
+import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread } from './classic/wire-types';
 import type { AnswersPort } from './port';
 
 /** An `expo/fetch` response, whose `body` is a real ReadableStream on native. */
@@ -144,6 +144,18 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
         uri: qlikUrl(config, `/api/v1/apps/${encodeURIComponent(appId)}/media/thumbnail`),
         headers: { Authorization: `Bearer ${token}` },
       };
+    },
+
+    async listAssistants() {
+      // Tenant-level, like Items. All pages at once: the choice needs the whole list, and a Tenant has few.
+      const assistants: QlikAssistant[] = [];
+      let path: string | undefined = '/api/v1/assistants?limit=100';
+      while (path) {
+        const { data, links }: QlikList<QlikAssistant> = await json<QlikList<QlikAssistant>>(path);
+        assistants.push(...data);
+        path = links?.next?.href;
+      }
+      return assistants.map(toAssistant);
     },
 
     async listStarters() {

@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { resolveCurrentTenantConfig } from '@/config';
 
+import { createAnswersPort } from './adapter';
 import { resolveAnswersPort } from './context';
 
 jest.mock('@/config', () => ({ resolveCurrentTenantConfig: jest.fn() }));
@@ -27,6 +28,15 @@ describe('resolveAnswersPort', () => {
     await expect(resolveAnswersPort()).resolves.toHaveProperty('capabilities.streaming', true);
   });
 
+  it('builds the real Qlik port from a hostname-only config, before an Assistant is chosen', async () => {
+    onPlatform('ios');
+    const hostnameOnly = { tenantHost: 'acme.sg.qlikcloud.com', clientId: 'c' };
+    resolveConfig.mockResolvedValue(hostnameOnly);
+
+    await expect(resolveAnswersPort()).resolves.toHaveProperty('capabilities.streaming', true);
+    expect(createAnswersPort).toHaveBeenCalledWith(hostnameOnly);
+  });
+
   it('fails every call with ConfigMissing rather than answering from fixtures when nothing is configured', async () => {
     onPlatform('ios');
     resolveConfig.mockResolvedValue(null);
@@ -38,6 +48,7 @@ describe('resolveAnswersPort', () => {
       kind: 'ConfigMissing',
     });
     await expect(port.listAnalyticsApps()).rejects.toEqual({ kind: 'ConfigMissing' });
+    await expect(port.listAssistants()).rejects.toEqual({ kind: 'ConfigMissing' });
   });
 
   it('keeps the fixture port on web, which has no Qlik transport at all (ADR-0005)', async () => {

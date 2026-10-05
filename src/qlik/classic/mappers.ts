@@ -1,5 +1,9 @@
-import type { AnalyticsApp, Answer, Citation, Interaction, Thread } from '@/domain';
-import type { QlikInteraction, QlikItem, QlikSource, QlikThread } from './wire-types';
+import type { AnalyticsApp, Answer, Assistant, Citation, Interaction, Thread } from '@/domain';
+import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread } from './wire-types';
+
+export function toAssistant(wire: QlikAssistant): Assistant {
+  return { id: wire.id, name: wire.name, description: wire.description };
+}
 
 export function toThread(wire: QlikThread): Thread {
   return { id: wire.id, name: wire.name, createdAt: wire.createdAt, updatedAt: wire.updatedAt };

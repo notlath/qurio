@@ -216,16 +216,19 @@ describe('resolveTenantConfig', () => {
     expect(result).toEqual({ tenantHost: 'acme.sg.qlikcloud.com', clientId: SG_CLIENT_ID, assistantId: 'a' });
   });
 
-  it('keeps the old precedence: a managed hostname without an assistant ID does not hide a complete dev config', () => {
+  it('uses a managed hostname without an assistant ID over a complete dev config — MDM decides the Tenant', () => {
     const dev = { tenantHost: 'dev.eu.qlikcloud.com', clientId: 'client-2', assistantId: 'assistant-2' };
 
     const result = resolveTenantConfig({ managed: { tenantHost: 'acme.sg.qlikcloud.com' }, dev });
 
-    expect(result).toEqual(dev);
+    expect(result).toEqual({ tenantHost: 'acme.sg.qlikcloud.com', clientId: SG_CLIENT_ID });
   });
 
-  it('returns null until an assistant ID is known', () => {
-    expect(resolveTenantConfig({ dev: { tenantHost: 'acme.sg.qlikcloud.com' } })).toBeNull();
+  it('resolves a hostname alone — the Assistant is chosen after sign-in', () => {
+    expect(resolveTenantConfig({ dev: { tenantHost: 'acme.sg.qlikcloud.com' } })).toEqual({
+      tenantHost: 'acme.sg.qlikcloud.com',
+      clientId: SG_CLIENT_ID,
+    });
   });
 
   it('returns null when neither source is complete', () => {
