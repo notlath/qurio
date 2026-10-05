@@ -5,6 +5,8 @@ import { resolveCurrentTenantConfig } from '@/config';
 import { createAnswersPort } from './adapter';
 import { resolveAnswersPort } from './context';
 
+jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }));
+
 jest.mock('@/config', () => ({ resolveCurrentTenantConfig: jest.fn() }));
 jest.mock('./adapter', () => ({
   createAnswersPort: jest.fn(() => ({ capabilities: { streaming: true, analyticsInsights: false } })),

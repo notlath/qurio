@@ -2,7 +2,7 @@ import type { AnalyticsApp, Answer, Assistant, Citation, Interaction, Thread } f
 import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread } from './wire-types';
 
 export function toAssistant(wire: QlikAssistant): Assistant {
-  return { id: wire.id, name: wire.name, description: wire.description };
+  return { id: wire.id, name: wire.name, description: wire.description, kind: wire.appIds?.length ? 'agentic' : 'classic' };
 }
 
 export function toThread(wire: QlikThread): Thread {

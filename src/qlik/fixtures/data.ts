@@ -2,8 +2,8 @@ import type { AnalyticsApp, Assistant, Interaction, Starter, Thread } from '@/do
 
 // More than one, so a Tenant with several Assistants is what the web preview shows.
 export const fixtureAssistants: Assistant[] = [
-  { id: 'fixture-assistant-hr', name: 'HR Policies', description: 'Leave, benefits and travel policy questions.' },
-  { id: 'fixture-assistant-sales', name: 'Sales Insights', description: '' },
+  { kind: 'classic', id: 'fixture-assistant-hr', name: 'HR Policies', description: 'Leave, benefits and travel policy questions.' },
+  { kind: 'classic', id: 'fixture-assistant-sales', name: 'Sales Insights', description: '' },
 ];
 
 // Names/dates for threads beyond the first two — enough to demo "scrolling loads older pages"

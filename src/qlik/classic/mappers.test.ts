@@ -1,4 +1,4 @@
-import { toAnalyticsApp, toAnswer, toCitations, toInteraction, toThread } from './mappers';
+import { toAssistant, toAnalyticsApp, toAnswer, toCitations, toInteraction, toThread } from './mappers';
 
 // Wire shapes below are copied verbatim (ids replaced with fixture placeholders)
 // from docs/poc-tickets/fixtures/01-verify-assistants-api/, captured against the real tenant.
@@ -191,4 +191,11 @@ describe('toAnalyticsApp', () => {
     expect(toAnalyticsApp({ ...wire, thumbnailId: 'thumb-1' }).hasThumbnail).toBe(true);
     expect(toAnalyticsApp({ ...wire, thumbnailId: '' }).hasThumbnail).toBe(false);
   });
+});
+
+it.each([undefined, []])('maps Assistants without appIds as classic (%j)', (appIds) => {
+  expect(toAssistant({ id: 'a', name: 'Knowledge', description: '', appIds }).kind).toBe('classic');
+});
+it('maps an Assistant linked to an Analytics App as agentic', () => {
+  expect(toAssistant({ id: 'a', name: 'Analytics', description: '', appIds: ['app-1'] }).kind).toBe('agentic');
 });

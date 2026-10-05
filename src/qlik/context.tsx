@@ -5,6 +5,7 @@ import { resolveCurrentTenantConfig } from '@/config';
 import type { AppError } from '@/domain';
 
 import { createAnswersPort } from './adapter';
+import { AssistantSelectionProvider } from './assistant-selection';
 import { createFixtureAnswersPort } from './fixtures/port';
 import type { AnswersPort } from './port';
 
@@ -71,7 +72,7 @@ export function AnswersPortProvider({ children }: { children: ReactNode }) {
   if (!port) return null;
   return (
     <ReloadAnswersPortContext.Provider value={reload}>
-      <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>
+      <AnswersPortContext.Provider value={port}><AssistantSelectionProvider key={attempt}>{children}</AssistantSelectionProvider></AnswersPortContext.Provider>
     </ReloadAnswersPortContext.Provider>
   );
 }
@@ -85,4 +86,8 @@ export function useAnswersPort(): AnswersPort {
   const port = useContext(AnswersPortContext);
   if (!port) throw new Error('useAnswersPort must be used within an AnswersPortProvider');
   return port;
+}
+
+export function AnswersScope({ port, children }: { port: AnswersPort; children: ReactNode }) {
+  return <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>;
 }

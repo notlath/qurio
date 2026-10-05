@@ -2,6 +2,9 @@ import { Link } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
 
+import { AssistantSwitcher } from '@/components/assistant-switcher';
+import { useAssistantSelection } from '@/qlik/assistant-selection';
+
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -19,6 +22,7 @@ function isAppError(value: unknown): value is AppError {
 }
 
 function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string) => void }) {
+  const { selected } = useAssistantSelection();
   const theme = useTheme();
 
   // Deleting a thread is not undoable and the control sits inside a tappable row — a stray tap
@@ -34,7 +38,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
     <ThemedView
       type="backgroundElement"
       style={[styles.row, Shape.continuous, { borderColor: theme.border }]}>
-      <Link href={{ pathname: '/assistant/thread/[id]', params: { id: thread.id } }} asChild>
+      <Link href={{ pathname: '/assistant/thread/[id]', params: { id: thread.id, assistantId: selected?.id, assistantName: selected?.name } }} asChild>
         <AppPressable
           accessibilityLabel={`Open ${thread.name}`}
           accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
@@ -57,6 +61,11 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
 }
 
 export default function HistoryScreen() {
+  const { selected } = useAssistantSelection();
+  return <View style={{ flex: 1 }}><AssistantSwitcher /><AssistantHistory key={selected?.id ?? 'none'} /></View>;
+}
+
+function AssistantHistory() {
   const port = useAnswersPort();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);

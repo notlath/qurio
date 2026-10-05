@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
+import { AssistantSwitcher } from '@/components/assistant-switcher';
+import { useAssistantSelection } from '@/qlik/assistant-selection';
+
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -33,6 +36,11 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
 }
 
 export default function NewThreadScreen() {
+  const { selected } = useAssistantSelection();
+  return <View style={styles.flex}><AssistantSwitcher /><NewThreadConversation key={selected?.id ?? 'none'} /></View>;
+}
+
+function NewThreadConversation() {
   const port = useAnswersPort();
   const [starters, setStarters] = useState<Starter[]>([]);
   const threadRef = useRef<Promise<Thread> | null>(null);

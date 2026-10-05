@@ -9,6 +9,7 @@ export type QlikThread = {
 
 /** An entry of GET /api/v1/assistants, captured live on mtcteam.ap (2026-10-05). Only the mapped fields. */
 export type QlikAssistant = {
+  appIds?: string[];
   id: string;
   name: string;
   description: string; // "" when unset

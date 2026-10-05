@@ -360,8 +360,8 @@ describe('listAssistants', () => {
       .mockResolvedValue(jsonResponse({ data: [wireAssistant(1, 'Pricing questions'), wireAssistant(2)] }));
 
     await expect(portWith(fetch).listAssistants()).resolves.toEqual([
-      { id: 'assistant-1', name: 'Assistant 1', description: 'Pricing questions' },
-      { id: 'assistant-2', name: 'Assistant 2', description: '' },
+      { id: 'assistant-1', name: 'Assistant 1', description: 'Pricing questions', kind: 'classic' },
+      { id: 'assistant-2', name: 'Assistant 2', description: '', kind: 'classic' },
     ]);
     expect(fetch).toHaveBeenCalledWith(
       `${TENANT}/api/v1/assistants?limit=100`,
