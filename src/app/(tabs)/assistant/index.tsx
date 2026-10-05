@@ -24,7 +24,7 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
       accessibilityLabel={`Ask: ${starter.prompt}`}
       style={[styles.starterRow, Shape.continuous, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
       <Icon ios="text.bubble" android="chat_bubble" size={18} color="primary" />
-      <ThemedText type="small" style={styles.starterText}>
+      <ThemedText style={styles.starterText}>
         {starter.prompt}
       </ThemedText>
       <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />
@@ -90,13 +90,13 @@ export default function NewThreadScreen() {
               <ThemedText type="title" style={styles.welcomeTitle}>
                 Find the signal in your work.
               </ThemedText>
-              <ThemedText themeColor="textSecondary" style={styles.welcomeCopy}>
+              <ThemedText style={styles.welcomeCopy}>
                 Ask a clear question. Answers stay grounded in your organization&rsquo;s knowledge.
               </ThemedText>
               {starters.length > 0 && (
                 <View style={styles.startersSection}>
-                  <ThemedText type="caption" themeColor="textSecondary">
-                    START WITH A PROMPT
+                  <ThemedText type="smallBold" themeColor="textSecondary">
+                    Start with a prompt
                   </ThemedText>
                   {starters.map((starter) => (
                     <StarterRow key={starter.id} starter={starter} onPress={ask} />
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
   kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
-  welcomeTitle: { maxWidth: 340 },
-  welcomeCopy: { maxWidth: 340 },
+  welcomeTitle: { maxWidth: 480, textAlign: 'left' },
+  welcomeCopy: { maxWidth: 480, textAlign: 'left' },
   startersSection: { gap: Spacing.two, marginTop: Spacing.three },
   starterRow: {
     flexDirection: 'row',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.card,
+    borderRadius: Radius.pill,
   },
-  starterText: { flex: 1 },
+  starterText: { flex: 1, textAlign: 'left' },
 });

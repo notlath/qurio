@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { IconButton } from '@/components/pressable';
-import { ThemedText } from '@/components/themed-text';
+import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ContentColumn, Elevation, Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -39,7 +39,7 @@ export function Composer({
         type="backgroundElement"
         style={[styles.composer, ContentColumn, Shape.continuous, { borderColor: theme.borderStrong }, Elevation.floating]}>
         <TextInput
-          style={[styles.input, { color: theme.text }]}
+          style={[TextStyles.default, styles.input, { color: theme.text }]}
           placeholder="Ask a question"
           placeholderTextColor={theme.textSecondary}
           accessibilityLabel="Your question"
@@ -98,7 +98,7 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
       ) : (
         <View style={styles.thinking} accessibilityLiveRegion="polite">
           <ActivityIndicator size="small" color={theme.primary} />
-          <ThemedText type="caption" themeColor="textSecondary">
+          <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
             Searching your knowledge base&hellip;
           </ThemedText>
         </View>
@@ -121,13 +121,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
     maxHeight: 120,
     minHeight: TouchTarget,
     paddingHorizontal: Spacing.two,
-    // Centres a single 22pt line in the tap-target-high field, level with the send button.
-    paddingVertical: (TouchTarget - 22) / 2,
+    // Center the shared body line height within the send button's tap target.
+    paddingVertical: (TouchTarget - TextStyles.default.lineHeight) / 2,
   },
   pendingRow: { gap: Spacing.three },
   pendingQuestion: {
@@ -138,4 +136,5 @@ const styles = StyleSheet.create({
     borderRadius: Radius.card,
   },
   thinking: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  thinkingText: { flex: 1 },
 });
