@@ -75,6 +75,7 @@ describe('errorMessageFor', () => {
 
   it('never includes raw error identifiers — every message is one of a fixed, curated set', () => {
     const allKinds: AppError[] = [
+      { kind: 'TenantApprovalRequired' },
       { kind: 'ConfigMissing' },
       { kind: 'AssistantNotChosen' },
       { kind: 'NotEntitled' },

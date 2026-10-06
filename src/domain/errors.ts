@@ -1,4 +1,5 @@
 export type AppError =
+  | { kind: 'TenantApprovalRequired' } // the Tenant admin must approve the published OAuth client once
   | { kind: 'ConfigMissing' } // no MDM config — administrator action
   | { kind: 'AssistantNotChosen' } // signed in, but no Assistant chosen yet — the user picks one
   | { kind: 'NotEntitled' } // authenticated, no Answers entitlement
