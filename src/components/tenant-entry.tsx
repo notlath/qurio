@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import { useQlikAuth } from '@/auth/session';
 import { hasSession } from '@/auth/access-token';
+import { useQlikAuth } from '@/auth/session';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { SignInSection } from '@/components/sign-in-section';
-import { ThemedText } from '@/components/themed-text';
 import { TenantConfigForm } from '@/components/tenant-config-form';
+import { ThemedText } from '@/components/themed-text';
 import { IS_INTERNAL_BUILD, normalizeTenantHost, saveDevConfig, validateTenantHost, type TenantConfig } from '@/config';
 import { useTenantConfig } from '@/config/context';
 import { resolveTenant } from '@/config/resolver';
@@ -39,31 +39,57 @@ export function HostnameEntry() {
     setBusy(true);
     try {
       const preflight = await validateTenantHost(tenantHost);
-      if (!preflight.ok) { setMessage(preflight.message); return; }
+      if (!preflight.ok) {
+        setMessage(preflight.message);
+        return;
+      }
       await saveDevConfig({ tenantHost });
       setResolved(result.config);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not save the Tenant hostname.');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
-  if (resolved) return (
-    <View style={styles.form}>
-      <SignInSection config={resolved} onSignedIn={reloadConfig} />
-    </View>
-  );
+  if (resolved) {
+    return (
+      <View style={styles.form}>
+        <SignInSection config={resolved} onSignedIn={reloadConfig} />
+      </View>
+    );
+  }
   return (
     <View style={styles.form}>
       <ThemedText type="title">Connect to your Tenant</ThemedText>
       <ThemedText>Tenant hostname</ThemedText>
-      <TextInput accessibilityLabel="Tenant hostname" value={hostname} onChangeText={setHostname}
-        autoCapitalize="none" autoCorrect={false} placeholder="acme.sg.qlikcloud.com"
+      <TextInput
+        accessibilityLabel="Tenant hostname"
+        value={hostname}
+        onChangeText={setHostname}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder="acme.sg.qlikcloud.com"
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, { color: theme.text, borderColor: theme.borderStrong }]} />
-      {message && <ThemedText themeColor="danger" accessibilityLiveRegion="polite">{message}</ThemedText>}
+      {message && (
+        <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
+          {message}
+        </ThemedText>
+      )}
       <PrimaryButton label="Continue" busy={busy} onPress={connect} />
-      {IS_INTERNAL_BUILD && <AppPressable accessibilityLabel="Developer" onPress={() => setDeveloper(!developer)}><ThemedText>Developer</ThemedText></AppPressable>}
-      {IS_INTERNAL_BUILD && developer && <TenantConfigForm onSaved={() => { void reloadConfig(); reloadPort(); }} />}
+      {IS_INTERNAL_BUILD && (
+        <AppPressable accessibilityLabel="Developer" onPress={() => setDeveloper(!developer)}>
+          <ThemedText>Developer</ThemedText>
+        </AppPressable>
+      )}
+      {IS_INTERNAL_BUILD && developer && (
+        <TenantConfigForm
+          onSaved={() => {
+            void reloadConfig();
+            reloadPort();
+          }} />
+      )}
     </View>
   );
 }
@@ -73,16 +99,33 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
   const [signedIn, setSignedIn] = useState<boolean | undefined>();
   useEffect(() => {
     let current = true;
-    hasSession().then((signed) => { if (current) setSignedIn(signed); }, () => { if (current) setSignedIn(false); });
-    return () => { current = false; };
+    hasSession().then(
+      (signed) => {
+        if (current) setSignedIn(signed);
+      },
+      () => {
+        if (current) setSignedIn(false);
+      },
+    );
+    return () => {
+      current = false;
+    };
   }, [config]);
   if (Platform.OS === 'web') return children;
   if (config === undefined) return null;
   if (config && signedIn === undefined) return null;
   if (config && signedIn) return children;
-  return <ScrollView contentContainerStyle={[styles.content, ContentColumn]} keyboardShouldPersistTaps="handled">
-    {config ? <SignInSection config={config} onSignedIn={async () => { setSignedIn(true); }} /> : <HostnameEntry />}
-  </ScrollView>;
+  return (
+    <ScrollView contentContainerStyle={[styles.content, ContentColumn]} keyboardShouldPersistTaps="handled">
+      {config ? (
+        <SignInSection config={config} onSignedIn={async () => {
+          setSignedIn(true);
+        }} />
+      ) : (
+        <HostnameEntry />
+      )}
+    </ScrollView>
+  );
 }
 
 export function ChangeTenant({ config }: { config: TenantConfig }) {
@@ -94,15 +137,29 @@ export function ChangeTenant({ config }: { config: TenantConfig }) {
   async function change() {
     setBusy(true);
     setError(null);
-    try { await signOut(); await clearConfig(); reloadPort(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not change Tenant.'); }
-    finally { setBusy(false); }
+    try {
+      await signOut();
+      await clearConfig();
+      reloadPort();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not change Tenant.');
+    } finally {
+      setBusy(false);
+    }
   }
-  return <View style={styles.form}>
-    <ThemedText>{config.tenantHost}</ThemedText>
-    <AppPressable accessibilityLabel="Change tenant" disabled={busy} onPress={change}><ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText></AppPressable>
-    {error && <ThemedText themeColor="danger" accessibilityLiveRegion="polite">{error}</ThemedText>}
-  </View>;
+  return (
+    <View style={styles.form}>
+      <ThemedText>{config.tenantHost}</ThemedText>
+      <AppPressable accessibilityLabel="Change tenant" disabled={busy} onPress={change}>
+        <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
+      </AppPressable>
+      {error && (
+        <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
+          {error}
+        </ThemedText>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

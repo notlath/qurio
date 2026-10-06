@@ -126,7 +126,7 @@ describe('createFixtureAnswersPort — Assistants', () => {
 
     expect(assistants.length).toBeGreaterThan(1);
     for (const assistant of assistants) {
-      expect(assistant).toEqual({ id: expect.any(String), name: expect.any(String), description: expect.any(String) });
+      expect(assistant).toEqual({ id: expect.any(String), name: expect.any(String), description: expect.any(String), kind: 'classic' });
     }
   });
 });

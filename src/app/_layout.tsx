@@ -58,16 +58,16 @@ export default function RootLayout() {
     <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
       <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
         <TenantConfigProvider>
-        <AnswersPortProvider>
-          <LockGate>
-            <TenantEntryGate>
-            <Stack screenOptions={screenOptions}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
-            </Stack>
-            </TenantEntryGate>
-          </LockGate>
-        </AnswersPortProvider>
+          <AnswersPortProvider>
+            <LockGate>
+              <TenantEntryGate>
+                <Stack screenOptions={screenOptions}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
+                </Stack>
+              </TenantEntryGate>
+            </LockGate>
+          </AnswersPortProvider>
         </TenantConfigProvider>
       </ThemeProvider>
     </KeyboardProvider>

@@ -6,6 +6,7 @@ import { AppPressable } from '@/components/pressable';
 import { usePrivacyLock } from '@/components/lock-gate';
 import { NativeSwitch } from '@/components/native-switch';
 import { SignInSection } from '@/components/sign-in-section';
+import { TenantConfigForm } from '@/components/tenant-config-form';
 import { ChangeTenant } from '@/components/tenant-entry';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -18,7 +19,6 @@ import { loadAllowScreenshots, setAllowScreenshots } from '@/config/screen-captu
 import { useTenantConfig } from '@/config/context';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
-import { TenantConfigForm } from '@/components/tenant-config-form';
 
 /** A titled, grouped list: one surface per section, rows split by inset hairlines. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -213,11 +213,23 @@ export default function SettingsScreen() {
         </Section>
       )}
 
-      {resolved && <Section title="Tenant">{managed ? <Row title={resolved.tenantHost} detail="Configured by your administrator." /> : <ChangeTenant config={resolved} />}</Section>}
+      {resolved && (
+        <Section title="Tenant">
+          {managed ? (
+            <Row title={resolved.tenantHost} detail="Configured by your administrator." />
+          ) : (
+            <ChangeTenant config={resolved} />
+          )}
+        </Section>
+      )}
 
       {IS_INTERNAL_BUILD && (
         <Section title="Developer">
-          <WorkspaceConnection resolved={resolved} onSaved={() => { void reloadConfig(); }} />
+          <WorkspaceConnection
+            resolved={resolved}
+            onSaved={() => {
+              void reloadConfig();
+            }} />
           {native && <ScreenshotRow />}
           {native && <ExpireTokenRow />}
         </Section>

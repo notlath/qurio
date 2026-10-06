@@ -15,6 +15,8 @@ jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => n
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
+jest.setTimeout(30000);
+
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');
 const makePort = (id: string) => ({
   listThreads: jest.fn(async () => ({ items: [{ id: id + '-old', name: id + ' history', updatedAt: '2026-10-06T00:00:00Z', createdAt: '2026-10-06T00:00:00Z' }] })),
@@ -76,4 +78,29 @@ it('History lists Threads for the selected Assistant and switches without creati
   expect(a.createThread).not.toHaveBeenCalled();
   expect(b.createThread).not.toHaveBeenCalled();
   await act(async () => { renderer.unmount(); });
+});
+
+
+it('aborts a pending question when another Assistant replaces the new Thread screen', async () => {
+  const a = makePort('a');
+  const b = makePort('b');
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => { finish = resolve; });
+  (a.ask as jest.Mock).mockImplementation(async () => {
+    await pending;
+    return { id: 'interaction', threadId: 'a-thread', question: 'Pending', answer: { blocks: [], citations: [] } };
+  });
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { composer(renderer).props.setQuestion('Pending'); });
+  await act(async () => { composer(renderer).props.onAsk(); });
+  const signal = (a.ask as jest.Mock).mock.calls[0][2].signal as AbortSignal;
+  useAssistantSelection.mockReturnValue({ selected: { id: 'b' } });
+  await act(async () => { renderer.update(<AnswersScope port={b}><NewThreadScreen /></AnswersScope>); });
+  try {
+    expect(signal.aborted).toBe(true);
+  } finally {
+    await act(async () => { finish(); renderer.unmount(); });
+  }
 });

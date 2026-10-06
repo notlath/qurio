@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { AppError, Interaction } from '@/domain';
 import { useAnswersPort } from '@/qlik/context';
@@ -32,6 +32,10 @@ export function useThreadConversation(
   const [error, setError] = useState<AppError | null>(null);
   const [erroredAt, setErroredAt] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   // Accepts an explicit prompt (e.g. tapping a Starter) since setQuestion + immediately reading
   // `question` would race React's state batching; defaults to whatever's currently typed.

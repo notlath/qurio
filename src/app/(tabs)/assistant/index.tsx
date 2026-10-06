@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { AssistantSwitcher } from '@/components/assistant-switcher';
-import { useAssistantSelection } from '@/qlik/assistant-selection';
-
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -16,6 +14,7 @@ import type { Starter, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { AgenticEntry } from '@/qlik-embed/agentic-entry';
+import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { useAnswersPort } from '@/qlik/context';
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
@@ -37,7 +36,12 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
 
 export default function NewThreadScreen() {
   const { selected } = useAssistantSelection();
-  return <View style={styles.flex}><AssistantSwitcher /><NewThreadConversation key={selected?.id ?? 'none'} /></View>;
+  return (
+    <View style={styles.flex}>
+      <AssistantSwitcher />
+      <NewThreadConversation key={selected?.id ?? 'none'} />
+    </View>
+  );
 }
 
 function NewThreadConversation() {

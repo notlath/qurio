@@ -76,7 +76,11 @@ export default function ThreadDetailScreen() {
   const { id, assistantId, assistantName } = useLocalSearchParams<{ id: string; assistantId: string; assistantName: string }>();
   const { portFor } = useAssistantSelection();
   const scoped = useMemo(() => portFor(assistantId), [portFor, assistantId]);
-  return <AnswersScope port={scoped}><LoadedThreadScreen id={id} assistantName={assistantName} /></AnswersScope>;
+  return (
+    <AnswersScope port={scoped}>
+      <LoadedThreadScreen id={id} assistantName={assistantName} />
+    </AnswersScope>
+  );
 }
 
 function LoadedThreadScreen({ id, assistantName }: { id: string; assistantName: string }) {

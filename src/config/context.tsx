@@ -4,12 +4,14 @@ import { resolveCurrentTenantConfig, saveDevConfig, type TenantConfig } from '@/
 import { loadManagedConfig } from '@/config/load-managed-config';
 import { resolveTenant } from '@/config/resolver';
 
-const TenantContext = createContext<{
+type TenantContextValue = {
   config: TenantConfig | null | undefined;
   managed: boolean;
   reloadConfig: () => Promise<void>;
   clearConfig: () => Promise<void>;
-} | null>(null);
+};
+
+const TenantContext = createContext<TenantContextValue | null>(null);
 
 export function TenantConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<TenantConfig | null | undefined>();
@@ -23,11 +25,17 @@ export function TenantConfigProvider({ children }: { children: ReactNode }) {
     await saveDevConfig({});
     setConfig(null);
   }, []);
-  useEffect(() => { Promise.resolve().then(reloadConfig).catch(() => setConfig(null)); }, [reloadConfig]);
-  return <TenantContext.Provider value={{ config, managed, reloadConfig, clearConfig }}>{children}</TenantContext.Provider>;
+  useEffect(() => {
+    Promise.resolve().then(reloadConfig).catch(() => setConfig(null));
+  }, [reloadConfig]);
+  return (
+    <TenantContext.Provider value={{ config, managed, reloadConfig, clearConfig }}>
+      {children}
+    </TenantContext.Provider>
+  );
 }
 
-export function useTenantConfig() {
+export function useTenantConfig(): TenantContextValue {
   const context = useContext(TenantContext);
   if (!context) throw new Error('useTenantConfig must be used within TenantConfigProvider');
   return context;

@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
+
 import { resolveCurrentTenantConfig, type TenantConfig } from '@/config';
 import type { AppError, Assistant } from '@/domain';
+
 import { createAnswersPort } from './adapter';
 import { loadAssistantChoice, rememberAssistantChoice } from './assistant-choice';
 import { AnswersScope, useAnswersPort } from './context';
@@ -22,19 +24,35 @@ export function AssistantSelectionProvider({ children }: { children: ReactNode }
   const [config, setConfig] = useState<TenantConfig | null>(null);
   const [choice, setChoice] = useState<{ assistants: Assistant[]; selected: Assistant | null } | null>(null);
   const [error, setError] = useState<AppError | null>(null);
+
   useEffect(() => {
     let current = true;
     async function load() {
       const resolved = Platform.OS === 'web' ? null : await resolveCurrentTenantConfig();
       const result = await loadAssistantChoice(base, resolved?.tenantHost ?? 'web-preview');
-      if (current) { setConfig(resolved); setChoice(result); }
+      if (current) {
+        setConfig(resolved);
+        setChoice(result);
+      }
     }
     load().catch((failure: unknown) => {
-      if (current) setError(typeof failure === 'object' && failure !== null && 'kind' in failure ? failure as AppError : { kind: 'ServiceUnavailable' });
+      if (current) {
+        setError(
+          typeof failure === 'object' && failure !== null && 'kind' in failure
+            ? failure as AppError
+            : { kind: 'ServiceUnavailable' },
+        );
+      }
     });
-    return () => { current = false; };
+    return () => {
+      current = false;
+    };
   }, [base]);
-  const portFor = useCallback((id?: string): AnswersPort => config ? createAnswersPort({ ...config, assistantId: id }) : base, [config, base]);
+
+  const portFor = useCallback(
+    (id?: string): AnswersPort => config ? createAnswersPort({ ...config, assistantId: id }) : base,
+    [config, base],
+  );
   const value = useMemo<Selection>(() => ({
     assistants: choice?.assistants ?? [],
     selected: choice?.selected ?? null,
@@ -48,7 +66,12 @@ export function AssistantSelectionProvider({ children }: { children: ReactNode }
   }), [config, choice, error, portFor]);
   const selectedId = value.selected?.id;
   const selectedPort = useMemo(() => portFor(selectedId), [portFor, selectedId]);
-  return <SelectionContext.Provider value={value}><AnswersScope port={selectedPort}>{children}</AnswersScope></SelectionContext.Provider>;
+
+  return (
+    <SelectionContext.Provider value={value}>
+      <AnswersScope port={selectedPort}>{children}</AnswersScope>
+    </SelectionContext.Provider>
+  );
 }
 
 export function useAssistantSelection(): Selection {
