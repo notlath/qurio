@@ -6,10 +6,22 @@ const CONTACT_ADMIN = 'Contact your IT administrator.';
 
 export function errorMessageFor(error: AppError): ErrorMessage {
   switch (error.kind) {
+    case 'TenantApprovalRequired':
+      return {
+        title: 'Tenant Approval required',
+        message: 'Your Tenant admin must approve the app once. Contact your Tenant admin. Then sign in again.',
+        canRetry: false,
+      };
     case 'ConfigMissing':
       return {
         title: 'Not set up yet',
         message: `This app has not been configured for your organization. ${CONTACT_ADMIN}`,
+        canRetry: false,
+      };
+    case 'AssistantNotChosen':
+      return {
+        title: 'No Assistant chosen',
+        message: 'Choose an Assistant before you ask a question.',
         canRetry: false,
       };
     case 'NotEntitled':

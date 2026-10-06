@@ -7,6 +7,14 @@ export type QlikThread = {
   updatedAt: string;
 };
 
+/** An entry of GET /api/v1/assistants, captured live on mtcteam.ap (2026-10-05). Only the mapped fields. */
+export type QlikAssistant = {
+  appIds?: string[];
+  id: string;
+  name: string;
+  description: string; // "" when unset
+};
+
 /** An Items record for an app, per the published Items API (not yet captured from the real tenant). */
 export type QlikItem = {
   id: string;

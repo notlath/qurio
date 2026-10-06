@@ -6,7 +6,7 @@
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/ui": "~57.0.21",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~57.0.26",
+    "expo": "^57.0.26",
     "expo-auth-session": "~57.0.13",
     "expo-constants": "~57.0.20",
     "expo-crypto": "~57.0.3",
@@ -37,8 +37,11 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@e2e-dev/mobile": "^0.9.2",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
+    "ai": "^7.0.128",
+    "e2e": "^0.17.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "jest": "~29.7.0",

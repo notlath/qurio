@@ -13,6 +13,8 @@ import { Platform, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { LockGate } from '@/components/lock-gate';
+import { TenantEntryGate } from '@/components/tenant-entry';
+import { TenantConfigProvider } from '@/config/context';
 import { applyScreenCapture } from '@/config/screen-capture';
 import { Colors } from '@/constants/theme';
 import { useStackScreenOptions } from '@/hooks/use-stack-options';
@@ -55,14 +57,18 @@ export default function RootLayout() {
     // tabBarRespectsIMEInsets); letting the library take the IME insets too would double the offset.
     <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
       <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
-        <AnswersPortProvider>
-          <LockGate>
-            <Stack screenOptions={screenOptions}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
-            </Stack>
-          </LockGate>
-        </AnswersPortProvider>
+        <TenantConfigProvider>
+          <AnswersPortProvider>
+            <LockGate>
+              <TenantEntryGate>
+                <Stack screenOptions={screenOptions}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
+                </Stack>
+              </TenantEntryGate>
+            </LockGate>
+          </AnswersPortProvider>
+        </TenantConfigProvider>
       </ThemeProvider>
     </KeyboardProvider>
   );

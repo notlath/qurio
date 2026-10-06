@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
@@ -9,13 +9,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ContentColumn, Spacing } from '@/constants/theme';
 import type { AppError, ThreadDetail } from '@/domain';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
-import { useAnswersPort } from '@/qlik/context';
+import { useAssistantSelection } from '@/qlik/assistant-selection';
+import { AnswersScope, useAnswersPort } from '@/qlik/context';
 
 // A separate component, mounted only once `detail` is loaded, so useThreadConversation's
 // internal useState seeds itself from the real interactions on its one and only mount —
 // calling the hook directly in the parent would lock in `[]` from before `detail` arrived,
 // since a useState initial value is only read on a component's first render.
-function ThreadConversation({ detail }: { detail: ThreadDetail }) {
+function ThreadConversation({ detail, assistantName }: { detail: ThreadDetail; assistantName: string }) {
   const {
     interactions,
     question,
@@ -32,7 +33,7 @@ function ThreadConversation({ detail }: { detail: ThreadDetail }) {
 
   return (
     <View style={styles.flex}>
-      <Stack.Screen options={{ title: detail.name }} />
+      <Stack.Screen options={{ title: assistantName }} />
       <FlatList
         style={styles.flex}
         contentContainerStyle={[styles.listContent, ContentColumn]}
@@ -72,7 +73,17 @@ function isAppError(value: unknown): value is AppError {
 }
 
 export default function ThreadDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, assistantId, assistantName } = useLocalSearchParams<{ id: string; assistantId: string; assistantName: string }>();
+  const { portFor } = useAssistantSelection();
+  const scoped = useMemo(() => portFor(assistantId), [portFor, assistantId]);
+  return (
+    <AnswersScope port={scoped}>
+      <LoadedThreadScreen id={id} assistantName={assistantName} />
+    </AnswersScope>
+  );
+}
+
+function LoadedThreadScreen({ id, assistantName }: { id: string; assistantName: string }) {
   const port = useAnswersPort();
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   // A failed load used to leave the spinner up forever, with no way out but Back.
@@ -111,7 +122,7 @@ export default function ThreadDetailScreen() {
     );
   }
 
-  return <ThreadConversation detail={detail} />;
+  return <ThreadConversation detail={detail} assistantName={assistantName} />;
 }
 
 const styles = StyleSheet.create({

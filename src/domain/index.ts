@@ -1,5 +1,6 @@
 export type { AnalyticsApp } from './analytics-app';
 export type { Answer, AnswerBlock, AnalyticsInsight, Citation } from './answer';
+export type { Assistant } from './assistant';
 export type { AppError } from './errors';
 export { errorMessageFor } from './error-messages';
 export type { ErrorMessage } from './error-messages';

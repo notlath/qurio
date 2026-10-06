@@ -120,6 +120,17 @@ describe('createFixtureAnswersPort', () => {
   });
 });
 
+describe('createFixtureAnswersPort — Assistants', () => {
+  it('lists a fixed set of Assistants as domain values', async () => {
+    const assistants = await createFixtureAnswersPort().listAssistants();
+
+    expect(assistants.length).toBeGreaterThan(1);
+    for (const assistant of assistants) {
+      expect(assistant).toEqual({ id: expect.any(String), name: expect.any(String), description: expect.any(String), kind: 'classic' });
+    }
+  });
+});
+
 describe('createFixtureAnswersPort — Analytics Apps', () => {
   it('lists Analytics Apps most recently updated first, paged', async () => {
     const port = createFixtureAnswersPort();

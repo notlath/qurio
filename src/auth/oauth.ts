@@ -1,16 +1,13 @@
-import * as AuthSession from 'expo-auth-session';
+import type * as AuthSession from 'expo-auth-session';
 
 import type { TenantConfig } from '@/config';
 
-let cached: string | undefined;
-
 /**
- * Resolved on first use, not at import: `makeRedirectUri` reads the expo-constants
- * manifest and throws without one, which would otherwise make every module that
- * transitively imports this one — the Qlik adapter included — unloadable off-device.
+ * Fixed, not `makeRedirectUri`: in Expo Go that returns an `exp://` URI the Qlik OAuth
+ * client rejects. iOS's auth session catches the `qlikanswers://` callback itself, so
+ * this also signs in from Expo Go on iOS.
  */
-export const redirectUri = (): string =>
-  (cached ??= AuthSession.makeRedirectUri({ scheme: 'qlikanswers', path: 'auth' }));
+export const redirectUri = (): string => 'qlikanswers://auth';
 
 /** Qlik publishes no discovery document; endpoints derive from the tenant host. */
 export const discoveryFor = (config: TenantConfig): AuthSession.DiscoveryDocument => ({

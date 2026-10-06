@@ -5,6 +5,7 @@ import { resolveCurrentTenantConfig } from '@/config';
 import type { AppError } from '@/domain';
 
 import { createAnswersPort } from './adapter';
+import { AssistantSelectionProvider } from './assistant-selection';
 import { createFixtureAnswersPort } from './fixtures/port';
 import type { AnswersPort } from './port';
 
@@ -31,6 +32,7 @@ function createUnconfiguredPort(): AnswersPort {
     listInteractions: fail,
     submitFeedback: fail,
     listStarters: fail,
+    listAssistants: fail,
     listAnalyticsApps: fail,
     thumbnailImage: async () => null,
   };
@@ -49,7 +51,7 @@ export async function resolveAnswersPort(): Promise<AnswersPort> {
 }
 
 export function AnswersPortProvider({ children }: { children: ReactNode }) {
-  const [port, setPort] = useState<AnswersPort | null>(null);
+  const [resolved, setResolved] = useState<{ port: AnswersPort; generation: number } | null>(null);
 
   const [attempt, setAttempt] = useState(0);
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
@@ -59,18 +61,21 @@ export function AnswersPortProvider({ children }: { children: ReactNode }) {
     // A rejected resolve must still produce a port: leaving it null renders nothing at all,
     // and a blank app is a worse failure than a screen saying it is not configured.
     resolveAnswersPort().then(
-      (resolved) => current && setPort(resolved),
-      () => current && setPort(createUnconfiguredPort()),
+      (port) => current && setResolved({ port, generation: attempt }),
+      () => current && setResolved({ port: createUnconfiguredPort(), generation: attempt }),
     );
     return () => {
       current = false;
     };
   }, [attempt]);
 
-  if (!port) return null;
+  if (!resolved) return null;
+  const { port, generation } = resolved;
   return (
     <ReloadAnswersPortContext.Provider value={reload}>
-      <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>
+      <AnswersPortContext.Provider value={port}>
+        <AssistantSelectionProvider key={generation}>{children}</AssistantSelectionProvider>
+      </AnswersPortContext.Provider>
     </ReloadAnswersPortContext.Provider>
   );
 }
@@ -84,4 +89,8 @@ export function useAnswersPort(): AnswersPort {
   const port = useContext(AnswersPortContext);
   if (!port) throw new Error('useAnswersPort must be used within an AnswersPortProvider');
   return port;
+}
+
+export function AnswersScope({ port, children }: { port: AnswersPort; children: ReactNode }) {
+  return <AnswersPortContext.Provider value={port}>{children}</AnswersPortContext.Provider>;
 }

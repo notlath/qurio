@@ -10,7 +10,6 @@ jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn() }));
 jest.mock('@/auth/session', () => ({
   useQlikAuth: () => ({ signIn: jest.fn(), signOut: jest.fn(), ready: true }),
 }));
-jest.mock('expo-auth-session', () => ({ makeRedirectUri: () => 'qlikanswers://auth' }));
 jest.mock('@/auth/tokens', () => ({
   loadExpiresAtMs: jest.fn().mockResolvedValue(null),
   loadRefreshToken: jest.fn().mockResolvedValue(null),

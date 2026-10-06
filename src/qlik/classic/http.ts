@@ -40,6 +40,7 @@ export function qlikUrl(config: TenantConfig, path: string): string {
     throw { kind: 'ServiceUnavailable' } satisfies AppError;
   }
   if (path.startsWith('/api/')) return `${tenantOrigin}${path}`;
+  if (!config.assistantId) throw { kind: 'AssistantNotChosen' } satisfies AppError;
   return `${tenantOrigin}/api/v1/assistants/${config.assistantId}${path}`;
 }
 
@@ -65,7 +66,8 @@ export async function qlikFetch<R extends HttpResponse>(
 ): Promise<R> {
   // Resolved before the token is fetched: an off-tenant URL must not even cost a token refresh.
   const url = qlikUrl(config, path);
-  const scope = url.startsWith(`https://${config.tenantHost}/api/v1/assistants/`) ? 'assistant' : 'tenant';
+  // The Assistants list counts as an Assistant call: its 403 is a missing Answers Entitlement too.
+  const scope = url.startsWith(`https://${config.tenantHost}/api/v1/assistants`) ? 'assistant' : 'tenant';
 
   const token = await deps.getToken();
   if (!token) throw { kind: 'SessionExpired' } satisfies AppError;

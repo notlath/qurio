@@ -4,6 +4,7 @@ import type { AnswersPort } from '../port';
 import {
   fixtureAnalyticsApps,
   fixtureAnswerFor,
+  fixtureAssistants,
   fixtureInteractionsByThreadId,
   fixtureStarters,
   fixtureThreads,
@@ -108,6 +109,10 @@ export function createFixtureAnswersPort(): AnswersPort {
 
     async listStarters() {
       return fixtureStarters;
+    },
+
+    async listAssistants() {
+      return fixtureAssistants;
     },
 
     async listAnalyticsApps(opts) {

@@ -341,6 +341,95 @@ describe('listAnalyticsApps', () => {
   });
 });
 
+describe('listAssistants', () => {
+  const TENANT = 'https://acme.eu.qlikcloud.com';
+  // Shape captured live from GET /api/v1/assistants on mtcteam.ap (2026-10-05), trimmed to what is mapped plus noise.
+  const wireAssistant = (n: number, description = '') => ({
+    id: `assistant-${n}`,
+    name: `Assistant ${n}`,
+    title: '',
+    description,
+    tags: [],
+    knowledgeBases: ['kb-1'],
+    legacy: true,
+  });
+
+  it('lists the Assistants the signed-in user can see, as domain values only', async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ data: [wireAssistant(1, 'Pricing questions'), wireAssistant(2)] }));
+
+    await expect(portWith(fetch).listAssistants()).resolves.toEqual([
+      { id: 'assistant-1', name: 'Assistant 1', description: 'Pricing questions', kind: 'classic' },
+      { id: 'assistant-2', name: 'Assistant 2', description: '', kind: 'classic' },
+    ]);
+    expect(fetch).toHaveBeenCalledWith(
+      `${TENANT}/api/v1/assistants?limit=100`,
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer access-1' }) }),
+    );
+  });
+
+  it('follows every next href, so no Assistant is missed', async () => {
+    const next = `${TENANT}/api/v1/assistants?limit=100&next=cursor-2`;
+    const fetch = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: [wireAssistant(1)], links: { next: { href: next } } }))
+      .mockResolvedValueOnce(jsonResponse({ data: [wireAssistant(2)] }));
+
+    const assistants = await portWith(fetch).listAssistants();
+
+    expect(assistants.map((a) => a.id)).toEqual(['assistant-1', 'assistant-2']);
+    expect(fetch).toHaveBeenLastCalledWith(next, expect.anything());
+  });
+
+  it('works before an Assistant is chosen', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireAssistant(1)] }));
+    const { assistantId: _, ...hostnameOnly } = config;
+
+    const port = createAnswersPort(hostnameOnly, { fetch, getToken: async () => 'access-1' });
+
+    await expect(port.listAssistants()).resolves.toHaveLength(1);
+  });
+
+  it.each([
+    [401, { kind: 'SessionExpired' }],
+    [403, { kind: 'NotEntitled' }],
+    [503, { kind: 'ServiceUnavailable' }],
+  ])('maps HTTP %i to a curated domain error, as the Assistant calls do', async (status, expected) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status));
+
+    await expect(portWith(fetch).listAssistants()).rejects.toEqual(expected);
+  });
+
+  it('reports a network failure as Offline', async () => {
+    const fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    await expect(portWith(fetch).listAssistants()).rejects.toEqual({ kind: 'Offline' });
+  });
+});
+
+describe('before an Assistant is chosen', () => {
+  const { assistantId: _, ...hostnameOnly } = config;
+  const hostnamePort = (fetch: jest.Mock) => createAnswersPort(hostnameOnly, { fetch, getToken: async () => 'access-1' });
+
+  it('fails every Assistant call with AssistantNotChosen, without a request', async () => {
+    const fetch = jest.fn();
+    const port = hostnamePort(fetch);
+
+    await expect(port.listThreads()).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.createThread('New')).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.ask('thread-1', 'Q?', { onDelta: () => {} })).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.listStarters()).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('still lists Analytics Apps, so the app is useful right after sign-in', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await expect(hostnamePort(fetch).listAnalyticsApps()).resolves.toEqual({ items: [], next: undefined });
+  });
+});
+
 describe('thumbnailImage', () => {
   it('addresses the app media endpoint on the Tenant, with the current bearer token', async () => {
     const image = await portWith(jest.fn()).thumbnailImage('app-1');

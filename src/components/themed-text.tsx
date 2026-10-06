@@ -97,3 +97,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+export { styles as TextStyles };
