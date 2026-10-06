@@ -56,6 +56,9 @@ export function HostnameEntry() {
     return (
       <View style={styles.form}>
         <SignInSection config={resolved} onSignedIn={reloadConfig} />
+        <AppPressable accessibilityLabel="Change tenant" onPress={() => setResolved(null)}>
+          <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
+        </AppPressable>
       </View>
     );
   }
@@ -95,7 +98,7 @@ export function HostnameEntry() {
 }
 
 export function TenantEntryGate({ children }: { children: ReactNode }) {
-  const { config } = useTenantConfig();
+  const { config, managed } = useTenantConfig();
   const [signedIn, setSignedIn] = useState<boolean | undefined>();
   useEffect(() => {
     let current = true;
@@ -118,9 +121,12 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
   return (
     <ScrollView contentContainerStyle={[styles.content, ContentColumn]} keyboardShouldPersistTaps="handled">
       {config ? (
-        <SignInSection config={config} onSignedIn={async () => {
-          setSignedIn(true);
-        }} />
+        <>
+          <SignInSection config={config} onSignedIn={async () => {
+            setSignedIn(true);
+          }} />
+          {!managed && <ChangeTenant config={config} />}
+        </>
       ) : (
         <HostnameEntry />
       )}

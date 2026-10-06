@@ -68,7 +68,7 @@ function RowAction({ label }: { label: string }) {
   );
 }
 
-function AccountSection({ resolved }: { resolved: TenantConfig | null | undefined }) {
+function AccountSection({ resolved, onSignedOut }: { resolved: TenantConfig | null | undefined; onSignedOut: () => Promise<void> }) {
   if (resolved === undefined) return null;
   return (
     <Section title="Account">
@@ -77,7 +77,7 @@ function AccountSection({ resolved }: { resolved: TenantConfig | null | undefine
       ) : Platform.OS === 'web' ? (
         <Row title="Sign-in unavailable" detail="Sign-in is native-only (ADR-0005) — not available in the web preview." />
       ) : (
-        <SignInSection config={resolved} />
+        <SignInSection config={resolved} onSignedOut={onSignedOut} />
       )}
     </Section>
   );
@@ -205,7 +205,7 @@ export default function SettingsScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[styles.content, ContentColumn]}
       keyboardShouldPersistTaps="handled">
-      <AccountSection resolved={resolved} />
+      <AccountSection resolved={resolved} onSignedOut={reloadConfig} />
 
       {native && (
         <Section title="Security">

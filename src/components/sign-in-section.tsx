@@ -10,7 +10,7 @@ import { Spacing } from '@/constants/theme';
 import { useReloadAnswersPort } from '@/qlik/context';
 
 /** One settings row: session state on the left, the one action that changes it on the right. */
-export function SignInSection({ config, onSignedIn }: { config: TenantConfig; onSignedIn?: () => Promise<void> }) {
+export function SignInSection({ config, onSignedIn, onSignedOut }: { config: TenantConfig; onSignedIn?: () => Promise<void>; onSignedOut?: () => Promise<void> }) {
   const { signIn, signOut, ready } = useQlikAuth(config);
   // A new port discards whatever the previous session's screens were holding in memory.
   const reloadPort = useReloadAnswersPort();
@@ -36,6 +36,7 @@ export function SignInSection({ config, onSignedIn }: { config: TenantConfig; on
         await signOut();
         setSignedIn(false);
         reloadPort();
+        await onSignedOut?.();
       } else {
         const tokens = await signIn();
         setSignedIn(!!tokens);
