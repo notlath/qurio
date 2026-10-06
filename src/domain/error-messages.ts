@@ -9,7 +9,7 @@ export function errorMessageFor(error: AppError): ErrorMessage {
     case 'TenantApprovalRequired':
       return {
         title: 'Tenant Approval required',
-        message: 'Your Tenant admin must approve the app once. Contact your Tenant admin, then sign in again.',
+        message: 'Your Tenant admin must approve the app once. Contact your Tenant admin. Then sign in again.',
         canRetry: false,
       };
     case 'ConfigMissing':
