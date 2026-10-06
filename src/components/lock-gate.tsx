@@ -14,6 +14,8 @@ import { resolveCurrentTenantConfig } from '@/config';
 // Used only when MDM hasn't set TenantConfig.biometricTimeoutMs — the config always wins.
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 const PRIVACY_LOCK_KEY = 'qlik.privacyLockEnabled';
+// Set only when building the e2e APK: the emulator's system unlock prompt cannot be automated.
+const E2E_SKIP_LOCK = process.env.EXPO_PUBLIC_E2E_SKIP_LOCK === '1';
 
 type PrivacyLock = {
   enabled: boolean;
@@ -43,7 +45,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(Platform.OS === 'web');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [locked, setLocked] = useState(() => Platform.OS !== 'web' && shouldBeLocked({ kind: 'cold-start' }));
+  const [locked, setLocked] = useState(() => Platform.OS !== 'web' && !E2E_SKIP_LOCK && shouldBeLocked({ kind: 'cold-start' }));
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timeoutMsRef = useRef(DEFAULT_TIMEOUT_MS);
@@ -83,7 +85,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !enabled) return;
+    if (Platform.OS === 'web' || !enabled || E2E_SKIP_LOCK) return;
     const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
       if (next === 'background' || next === 'inactive') {
         backgroundedAtRef.current = Date.now();
