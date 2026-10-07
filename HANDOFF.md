@@ -26,7 +26,12 @@ Find the cause of #9: the embedded Agentic Assistant shows "No context selected"
    - The non-admin can use Help, Application analysis and Answers assistants. The other four contexts are greyed out.
    - **Answers assistants** says: "No assistants have been set up for Qlik Answers yet."
    - **Conclusion (not confirmed):** The app is probably not the cause. The user has no Agentic Assistant to choose. The embed probably shows this empty state as "No context selected".
-4. **Risk to #10:** `GET /api/v1/assistants` returned 24 entries on `mtcteam`. The new UI shows this user none. #10's rule ("an Assistant with `appIds` is Agentic") may be wrong. Do not start #10 before Task 3C answers this.
+4. **Task 3A, done by the user on 2026-10-07 as the Tenant admin** (`/analytics/universal-assistant`):
+   - Under **Answers assistants**, the admin sees a list. It has a group "Internal Operations" (ClockSense AI) and a group "Ungrouped" (Qlik Retail AI, BMI_Assistant, Call Center, and more below).
+   - The admin also has a chat from 2026-10-06.
+   - **Conclusion (not confirmed):** The Tenant has Assistants of the new kind. The non-admin user cannot see them. The cause is probably access: space membership, the **Agentic AI › Data analysis** permission, or both. "Ungrouped" Assistants may be in personal or unshared spaces.
+   - Next step: Task 3B.
+5. **Risk to #10:** `GET /api/v1/assistants` returned 24 entries on `mtcteam`. The new UI shows this user none. #10's rule ("an Assistant with `appIds` is Agentic") may be wrong. Do not start #10 before Task 3C answers this.
 
 ## Next steps (waiting for the user)
 
