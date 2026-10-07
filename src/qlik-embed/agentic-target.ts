@@ -6,9 +6,11 @@ export type AgenticTarget = { surface: EmbedSurface; resourceId: string };
 /**
  * What the Assistant tab embeds, or `null` when this Tenant has no Agentic Assistant. Only
  * `agenticAssistantId` counts: the classic `assistantId` is a different object that the embed
- * cannot open, so it is never a fallback.
+ * cannot open, so it is never a fallback. A configured id wins over `discoveredId`, the Agentic
+ * Assistant picked from the discovered list.
  */
-export function agenticTargetFor(config: TenantConfig | null): AgenticTarget | null {
-  const resourceId = config?.agenticAssistantId?.trim();
+export function agenticTargetFor(config: TenantConfig | null, discoveredId?: string): AgenticTarget | null {
+  if (!config) return null;
+  const resourceId = config.agenticAssistantId?.trim() || discoveredId?.trim();
   return resourceId ? { surface: 'ai/agentic-assistant', resourceId } : null;
 }

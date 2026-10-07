@@ -34,4 +34,5 @@ it('excludes Agentic Assistants before applying the classic choice rules', async
   const result = await loadAssistantChoice(list([a, agentic]), 'tenant');
   expect(result.assistants).toEqual([a]);
   expect(result.selected).toEqual(a);
+  expect(result.agentic).toEqual([agentic]);
 });

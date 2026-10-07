@@ -14,7 +14,7 @@ export type AgenticAvailability =
  * Whether the Agentic Assistant can be opened right now. Web never can (ADR-0005). Re-resolves
  * whenever the port is rebuilt, which is what Settings does after a save or a sign-in change.
  */
-export function useAgenticAvailability(): AgenticAvailability {
+export function useAgenticAvailability(discoveredId?: string): AgenticAvailability {
   const port = useAnswersPort();
   const [availability, setAvailability] = useState<AgenticAvailability>(
     Platform.OS === 'web' ? { status: 'unavailable' } : { status: 'loading' },
@@ -25,7 +25,7 @@ export function useAgenticAvailability(): AgenticAvailability {
     let current = true;
     resolveCurrentTenantConfig().then(
       (config) => {
-        const target = agenticTargetFor(config);
+        const target = agenticTargetFor(config, discoveredId);
         if (current) setAvailability(config && target ? { status: 'ready', config, target } : { status: 'unavailable' });
       },
       () => current && setAvailability({ status: 'unavailable' }),
@@ -33,7 +33,7 @@ export function useAgenticAvailability(): AgenticAvailability {
     return () => {
       current = false;
     };
-  }, [port]);
+  }, [port, discoveredId]);
 
   return availability;
 }
