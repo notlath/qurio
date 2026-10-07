@@ -98,6 +98,7 @@ export function HostnameEntry() {
 }
 
 export function TenantEntryGate({ children }: { children: ReactNode }) {
+  const theme = useTheme();
   const { config, managed } = useTenantConfig();
   const [signedIn, setSignedIn] = useState<boolean | undefined>();
   useEffect(() => {
@@ -119,7 +120,11 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
   if (config && signedIn === undefined) return null;
   if (config && signedIn) return children;
   return (
-    <ScrollView contentContainerStyle={[styles.content, ContentColumn]} keyboardShouldPersistTaps="handled">
+    // Painted here: the gate replaces the navigator, which otherwise paints the screen background.
+    <ScrollView
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={[styles.content, ContentColumn]}
+      keyboardShouldPersistTaps="handled">
       {config ? (
         <>
           <SignInSection config={config} onSignedIn={async () => {

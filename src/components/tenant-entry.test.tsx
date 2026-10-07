@@ -1,10 +1,11 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { TextInput } from 'react-native';
+import { ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { ChangeTenant, HostnameEntry, TenantEntryGate } from './tenant-entry';
 import { TenantConfigForm } from './tenant-config-form';
+import { Colors } from '@/constants/theme';
 
 jest.mock('@/global.css', () => ({}));
 jest.setTimeout(30000);
@@ -86,4 +87,10 @@ it('signs out before it clears the old Tenant', async () => {
   await act(async () => { renderer = TestRenderer.create(<ChangeTenant config={{ tenantHost: 'acme.sg.qlikcloud.com', clientId: 'client' }} />); });
   await act(async () => { await renderer.root.findByType(AppPressable).props.onPress(); });
   expect(calls).toEqual(['sign-out', 'clear-tenant']);
+});
+
+it('paints the theme background behind the sign-in gate', async () => {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<TenantEntryGate><TextInput /></TenantEntryGate>); });
+  expect(StyleSheet.flatten(renderer.root.findByType(ScrollView).props.style)).toMatchObject({ backgroundColor: Colors.light.background });
 });
