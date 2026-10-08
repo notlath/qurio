@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Platform } from 'react-native';
 
-import SettingsScreen from './index';
+import SettingsScreen from '@/app/(tabs)/settings/index';
 
 jest.mock('@/global.css', () => ({}));
 jest.mock('@/config', () => ({ IS_INTERNAL_BUILD: false }));
