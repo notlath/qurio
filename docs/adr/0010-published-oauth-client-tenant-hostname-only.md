@@ -22,5 +22,5 @@ A Native client created and published in `mtcmarketing.sg` showed its consent sc
 
 - MTC must own a Tenant in each region its Customers use. A published client only works within its region.
 - Onboarding a Customer is one approval by their Tenant admin. Not yet verified: whether a non-admin's first sign-in can trigger that approval, and what such a user sees before it.
-- Published clients use "required" consent by default. A Tenant admin may be able to switch their Tenant to "trusted".
+- Published clients use "required" consent. Qlik does not permit "trusted" consent for a published client.
 - The Agentic Assistant is not yet discoverable the same way, because `/api/v1/cloud-assistants` returned 404.
