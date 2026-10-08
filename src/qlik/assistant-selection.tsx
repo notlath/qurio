@@ -12,6 +12,8 @@ import type { AnswersPort } from './port';
 type Selection = {
   assistants: Assistant[];
   selected: Assistant | null;
+  /** Discovered Agentic Assistants; opened in the embed, never chosen for classic Threads. */
+  agentic: Assistant[];
   loading: boolean;
   error: AppError | null;
   choose(assistant: Assistant): Promise<void>;
@@ -22,7 +24,7 @@ const SelectionContext = createContext<Selection | null>(null);
 export function AssistantSelectionProvider({ children }: { children: ReactNode }) {
   const base = useAnswersPort();
   const [config, setConfig] = useState<TenantConfig | null>(null);
-  const [choice, setChoice] = useState<{ assistants: Assistant[]; selected: Assistant | null } | null>(null);
+  const [choice, setChoice] = useState<{ assistants: Assistant[]; selected: Assistant | null; agentic: Assistant[] } | null>(null);
   const [error, setError] = useState<AppError | null>(null);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export function AssistantSelectionProvider({ children }: { children: ReactNode }
   const value = useMemo<Selection>(() => ({
     assistants: choice?.assistants ?? [],
     selected: choice?.selected ?? null,
+    agentic: choice?.agentic ?? [],
     loading: !choice && !error,
     error,
     async choose(assistant) {
