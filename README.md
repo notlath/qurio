@@ -28,7 +28,7 @@ The app has three tabs:
 | Tab | Behavior |
 | --- | --- |
 | Apps | Lists accessible Analytics Apps in update order. Supports list and grid views, pagination, and pull to refresh. Opens an Analytics App in an embedded Qlik view. |
-| Assistant | Provides native classic Assistant chat. Supports streamed Answers, Stop, Starters, Thread history, Thread deletion, Citations, and Feedback. Shows an Agentic Assistant entry when configured on a native platform. |
+| Assistant | Provides native classic Assistant chat. Supports streamed Answers, Stop, Starters, Thread history, Thread deletion, Citations, and Feedback. Lists accessible Agentic Assistants on native platforms. |
 | Settings | Provides Tenant Configuration, sign-in, sign-out, and a privacy lock setting. Development builds also provide screenshot and token-expiry controls. |
 
 Classic Citations show document names and available excerpts. They do not open the source documents. Negative Feedback can include a reason and a comment.
@@ -69,10 +69,9 @@ Native UI uses Expo native tabs, platform symbols, and SwiftUI or Compose switch
 For live Qlik access, obtain:
 
 - A reachable Qlik Cloud Tenant.
-- A Native OAuth client ID accepted by that Tenant.
-- A classic Assistant ID.
+- A published Native OAuth client for the Tenant's region, or a client ID supplied by device management.
 - A Qlik User with the required resource permissions and Answers Entitlement for Assistant use.
-- An Agentic Assistant ID if you need the embedded Agentic Assistant.
+- Access to the Assistant's space when using an Agentic Assistant.
 
 CLI examples use `bunx`. Dependency installation uses npm because this repository maintains `package-lock.json`. [Bun's documentation](https://github.com/oven-sh/bun/blob/main/docs/pm/bunx.mdx) explains executable resolution. Do not add `--bun` to force a different runtime for these tools.
 
@@ -164,33 +163,32 @@ The source contract is [src/config/types.ts](src/config/types.ts).
 | Key | Type | Required | Purpose |
 | --- | --- | --- | --- |
 | `tenantHost` | string | Yes | Tenant hostname, such as `acme.eu.qlikcloud.com`. Store no scheme or path. |
-| `clientId` | string | Yes | Native OAuth client ID. |
-| `assistantId` | string | Yes | Classic Assistant ID used by the REST adapter. |
-| `agenticAssistantId` | string | No | Agentic Assistant ID used by the embedded view. It does not replace `assistantId`. |
+| `clientId` | string | No | Native OAuth client ID. The resolver supplies a published client ID for supported regions when omitted. |
+| `assistantId` | string | No | Classic Assistant ID for a manual override. The normal flow discovers Assistants after sign-in. |
+| `agenticAssistantId` | string | No | Agentic Assistant ID for a manual override. The normal flow discovers accessible Agentic Assistants. |
 | `biometricTimeoutMs` | number | No | Background duration before the enabled privacy lock locks again. Default: `300000` milliseconds. |
 
-`tenantHost`, `clientId`, and `assistantId` are required even if you use only Analytics Apps or the Agentic Assistant.
+Qlik Users enter only `tenantHost`. The app currently has published test clients for the `sg` and `ap` regions. Production clients are pending in [issue #8](https://github.com/notlath/qlik-answers-mobile/issues/8).
 
 The resolver selects one complete configuration:
 
-1. Use managed configuration if all three required fields are present.
-2. Otherwise, use the saved Settings configuration if it is complete.
-3. Otherwise, return `ConfigMissing`.
+1. Resolve managed configuration first when it supplies a supported regional hostname or a client ID.
+2. Otherwise, resolve the saved hostname with the client ID for its region.
+3. Otherwise, report the missing hostname, custom domain, or unsupported region.
 
 The resolver does not combine fields from different sources. Optional fields in Settings do not fill gaps in a complete managed configuration. It removes whitespace and control characters from identifiers. It also normalizes a pasted Tenant URL to a lowercase hostname.
 
-### Configure through Settings
+### Configure through the app
 
-1. Open **Settings**.
-2. Open **Workspace connection**.
-3. Enter the Tenant hostname, OAuth client ID, and classic Assistant ID.
-4. Enter the optional Agentic Assistant ID if needed.
-5. Select **Validate & Save**.
-6. Select **Sign in** in the Account section. Complete Qlik sign-in.
+1. On first run, enter the Tenant hostname or paste its URL.
+2. Select **Continue**. The app checks the Tenant's public OAuth metadata.
+3. Sign in with the Qlik User account.
+
+Settings shows the current Tenant and **Change tenant**. Changing Tenant signs out before returning to hostname entry. Internal builds also provide a four-field **Workspace connection** form under **Developer** for manual testing.
 
 Validation checks whether the Tenant serves `/.well-known/oauth-authorization-server`. It does not verify the OAuth client ID, Assistant IDs, permissions, or entitlement.
 
-Saving replaces the local configuration and rebuilds the Qlik adapter. A blank Agentic Assistant field removes the saved optional ID. Complete managed configuration still takes precedence. The Workspace connection form is available in both development and release builds. It does not expose the lock timeout field.
+Saving a manual override replaces the local configuration and rebuilds the Qlik adapter. A resolved managed configuration still takes precedence. The manual form does not expose the lock timeout field.
 
 ### Configure through device management
 
@@ -357,11 +355,11 @@ Development traces report token-request outcomes, remaining lifetime, and saniti
 
 | Symptom | Check or action |
 | --- | --- |
-| App reports missing configuration | Supply all three required fields. Check managed configuration precedence. |
+| App reports missing configuration | Enter a Tenant hostname. Check managed configuration precedence and regional client support. |
 | Tenant validation fails | Check the hostname, internet connection, and public OAuth metadata endpoint. |
 | OAuth rejects the client or callback | Check `clientId`, Native client type, and the exact `qlikanswers://auth` redirect. |
 | Android Expo Go cannot start or sign in | Install an Android development build and connect with `--dev-client`. |
-| Agentic Assistant entry is absent | Set `agenticAssistantId` in the active configuration. The entry is native-only. |
+| Agentic Assistant entry is absent | Check that the Qlik User can access the Assistant and its space. A manual `agenticAssistantId` is an internal or managed override. The entry is native-only. |
 | Web shows sample content | This is expected. Web always uses fixtures. |
 | Embedded view reports a load failure | Check internet access and CDN access. Select **Try again**. |
 | Embedded view requests sign-in | Sign in from Settings, then reopen or retry the embedded view. |
@@ -386,7 +384,7 @@ HTTP 429 produces a visible retry delay. The adapter uses `Retry-After` seconds 
 - Classic Starters and thumbnail endpoints have implementation comments that mark their live behavior as unverified.
 - Classic Citations cannot resolve documents to viewable URLs. History can omit excerpt text because it is not hydrated separately.
 - Native classic chat is still present. Plans to retire it are not implemented.
-- Tenant-hostname-only setup and automatic Assistant discovery in ADR-0010 are not implemented. The current resolver still requires three fields.
+- Published OAuth clients in the resolver are test clients. Production client rollout and additional regions remain open in issue #8.
 
 ## Maintenance and related documents
 
