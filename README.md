@@ -184,7 +184,9 @@ The resolver does not combine fields from different sources. Optional fields in 
 2. Select **Continue**. The app checks the Tenant's public OAuth metadata.
 3. Sign in with the Qlik User account.
 
-Settings shows the current Tenant and **Change tenant**. Changing Tenant signs out before returning to hostname entry. Internal builds also provide a four-field **Workspace connection** form under **Developer** for manual testing.
+Settings shows the current Tenant and **Change tenant**. Changing Tenant signs out before returning to hostname entry.
+
+Internal builds provide a four-field **Workspace connection** form under **Developer** for manual testing.
 
 Validation checks whether the Tenant serves `/.well-known/oauth-authorization-server`. It does not verify the OAuth client ID, Assistant IDs, permissions, or entitlement.
 
