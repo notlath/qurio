@@ -215,8 +215,8 @@ export default function SettingsScreen() {
 
       {resolved && (
         <Section title="Tenant">
-          {managed ? (
-            <Row title={resolved.tenantHost} detail="Configured by your administrator." />
+          {managed || !native ? (
+            <Row title={resolved.tenantHost} detail={managed ? 'Configured by your administrator.' : undefined} />
           ) : (
             <ChangeTenant config={resolved} />
           )}
