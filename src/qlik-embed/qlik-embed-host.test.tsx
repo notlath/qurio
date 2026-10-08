@@ -98,4 +98,13 @@ describe('an embed that starts normally', () => {
 
     expect(shown()).not.toContain('could not load');
   });
+
+  it('keeps the Analytics App in the full-height shared host', () => {
+    act(() => {
+      renderer.update(<QlikEmbedHost config={config} surface="classic/app" resourceId="app-1" />);
+    });
+
+    expect(mockWebView.props.source.html).toContain('ui="classic/app" app-id="app-1"');
+    expect(mockWebView.props.style).toMatchObject({ flex: 1 });
+  });
 });
