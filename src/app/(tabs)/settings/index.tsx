@@ -217,6 +217,9 @@ export default function SettingsScreen() {
         <Section title="Tenant">
           {managed ? (
             <Row title={resolved.tenantHost} detail="Configured by your administrator." />
+          ) : !native ? (
+            // ChangeTenant signs out through useQlikAuth, which is native-only (ADR-0005).
+            <Row title={resolved.tenantHost} />
           ) : (
             <ChangeTenant config={resolved} />
           )}
