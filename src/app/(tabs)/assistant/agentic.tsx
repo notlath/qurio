@@ -1,6 +1,7 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
+import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { useAgenticAvailability } from '@/qlik-embed/use-agentic-target';
 import { QlikEmbedHost } from '@/qlik-embed/qlik-embed-host';
@@ -14,14 +15,16 @@ export default function AgenticAssistantScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const availability = useAgenticAvailability(id);
   const { bottom } = useSafeAreaInsets();
+  const keyboardOpen = useKeyboardState((state) => state.isVisible);
 
   if (availability.status === 'loading') return null;
   if (availability.status === 'unavailable') return <Redirect href="/assistant" />;
   return (
     // iOS: the native tab bar floats over the screen and only a ScrollView gets automatic insets,
     // so Qlik's bottom-pinned composer sat under it. Inside the tabs the bottom inset includes the
-    // tab bar. Android: native tabs already keep screen content above the tab bar.
-    <View style={[styles.flex, { paddingBottom: Platform.OS === 'ios' ? bottom : 0 }]}>
+    // tab bar. With the keyboard open the inset is dropped, as the Composer does, so the composer
+    // sits on the keyboard. Android: native tabs already keep screen content above the tab bar.
+    <View style={[styles.flex, { paddingBottom: Platform.OS === 'ios' && !keyboardOpen ? bottom : 0 }]}>
       <QlikEmbedHost
         config={availability.config}
         surface={availability.target.surface}

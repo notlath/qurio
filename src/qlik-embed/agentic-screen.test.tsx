@@ -7,6 +7,10 @@ import AgenticAssistantScreen from '@/app/(tabs)/assistant/agentic';
 
 jest.mock('@/global.css', () => ({}));
 jest.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () => ({}) }));
+let mockKeyboardVisible = false;
+jest.mock('react-native-keyboard-controller', () => ({
+  useKeyboardState: (select: (state: { isVisible: boolean }) => unknown) => select({ isVisible: mockKeyboardVisible }),
+}));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 83, left: 0, right: 0 }) }));
 jest.mock('@/qlik-embed/use-agentic-target', () => ({
   useAgenticAvailability: () => ({
@@ -17,11 +21,14 @@ jest.mock('@/qlik-embed/use-agentic-target', () => ({
 }));
 jest.mock('@/qlik-embed/qlik-embed-host', () => ({ QlikEmbedHost: () => null }));
 
-function onPlatform(os: 'ios' | 'android') {
+function onPlatform(os: typeof Platform.OS) {
   Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
 }
 const originalOS = Platform.OS;
-afterEach(() => onPlatform(originalOS as 'ios'));
+afterEach(() => {
+  onPlatform(originalOS);
+  mockKeyboardVisible = false;
+});
 
 /** The bottom padding around the embed: the space Qlik's bottom-pinned composer is lifted by. */
 function embedBottomPadding(): number {
@@ -44,6 +51,12 @@ describe('the Agentic Assistant screen', () => {
 
   it('on Android, adds nothing: native tabs already keep screen content above the tab bar', () => {
     onPlatform('android');
+    expect(embedBottomPadding()).toBe(0);
+  });
+
+  it('on iOS with the keyboard open, adds nothing so the composer sits on the keyboard', () => {
+    onPlatform('ios');
+    mockKeyboardVisible = true;
     expect(embedBottomPadding()).toBe(0);
   });
 });

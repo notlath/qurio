@@ -2,6 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Platform } from 'react-native';
 
+// Lives here, not beside the route: every file under src/app becomes a route.
 import SettingsScreen from '@/app/(tabs)/settings';
 
 jest.mock('@/global.css', () => ({}));
@@ -13,7 +14,6 @@ jest.mock('@/auth/access-token', () => ({ expireAccessTokenNow: jest.fn() }));
 jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn() }));
 // The web build resolves session.web.ts, which throws by design (ADR-0005).
 jest.mock('@/auth/session', () => jest.requireActual('@/auth/session.web'));
-jest.setTimeout(30000);
 
 const originalOS = Platform.OS;
 afterEach(() => Object.defineProperty(Platform, 'OS', { value: originalOS, configurable: true }));
