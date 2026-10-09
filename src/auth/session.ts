@@ -24,7 +24,8 @@ export function useQlikAuth(config: TenantConfig) {
   const discovery = discoveryFor(config);
 
   const [request, , promptAsync] = AuthSession.useAuthRequest(
-    { clientId: config.clientId, scopes: SCOPES, redirectUri: redirectUri() },
+    // Token revocation leaves browser SSO intact. Interactive sign-in must allow another account.
+    { clientId: config.clientId, scopes: SCOPES, redirectUri: redirectUri(), prompt: AuthSession.Prompt.Login },
     discovery,
   );
 

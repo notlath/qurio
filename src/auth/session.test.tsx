@@ -2,15 +2,20 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import * as AuthSession from 'expo-auth-session';
 
-import { forgetAccessToken } from '@/auth/access-token';
+import { forgetAccessToken, peekAccessToken } from '@/auth/access-token';
 import { SignInSection } from '@/components/sign-in-section';
+
+import { clearTokens, loadRefreshToken, saveRefreshToken } from './tokens';
 
 jest.mock('@/global.css', () => ({}));
 jest.mock('@/config', () => ({ IS_INTERNAL_BUILD: false }));
 jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn() }));
 jest.mock('expo-auth-session', () => ({
-  useAuthRequest: () => [{ codeVerifier: 'verifier' }, null, mockPromptAsync],
+  Prompt: { Login: 'login' },
+  TokenTypeHint: { RefreshToken: 'refresh_token' },
+  useAuthRequest: jest.fn((options) => [{ codeVerifier: 'verifier' }, null, () => mockPromptAsync(options)]),
   exchangeCodeAsync: jest.fn(),
+  revokeAsync: jest.fn().mockResolvedValue(true),
 }));
 jest.mock('expo-device', () => ({
   DeviceType: { PHONE: 1, TABLET: 2 },
@@ -21,6 +26,7 @@ jest.mock('./tokens', () => ({
   loadRefreshToken: jest.fn().mockResolvedValue(null),
   saveExpiresAtMs: jest.fn(),
   saveRefreshToken: jest.fn(),
+  clearTokens: jest.fn(),
 }));
 
 const mockPromptAsync = jest.fn();
@@ -39,7 +45,53 @@ async function signIn(): Promise<TestRenderer.ReactTestRenderer> {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPromptAsync.mockReset();
+  (loadRefreshToken as jest.Mock).mockResolvedValue(null);
+  (saveRefreshToken as jest.Mock).mockReset();
+  (clearTokens as jest.Mock).mockReset();
   forgetAccessToken();
+});
+
+it('lets another Qlik account sign in after sign-out despite the existing browser session', async () => {
+  let browserAccount = 'previous-account';
+  let selectedAccount = browserAccount;
+  let storedRefreshToken: string | null = null;
+  (loadRefreshToken as jest.Mock).mockImplementation(async () => storedRefreshToken);
+  (saveRefreshToken as jest.Mock).mockImplementation(async (token: string) => {
+    storedRefreshToken = token;
+  });
+  (clearTokens as jest.Mock).mockImplementation(async () => {
+    storedRefreshToken = null;
+  });
+  mockPromptAsync.mockImplementation(async ({ prompt }: { prompt?: string }) => {
+    if (prompt === 'login') browserAccount = selectedAccount;
+    return { type: 'success', params: { code: browserAccount } };
+  });
+  (AuthSession.exchangeCodeAsync as jest.Mock).mockImplementation(async ({ code }: { code: string }) => ({
+    accessToken: `${code}-access`, refreshToken: `${code}-refresh`, expiresIn: 3600,
+  }));
+
+  const renderer = await signIn();
+  await act(async () => {
+    await renderer.root.findAllByProps({ accessibilityLabel: 'Sign out' })[0].props.onPress();
+  });
+
+  expect(AuthSession.revokeAsync).toHaveBeenCalledWith(
+    { token: 'previous-account-access', clientId: config.clientId }, expect.any(Object),
+  );
+  expect(AuthSession.revokeAsync).toHaveBeenCalledWith(
+    { token: 'previous-account-refresh', clientId: config.clientId, tokenTypeHint: 'refresh_token' }, expect.any(Object),
+  );
+  expect(peekAccessToken()).toBeNull();
+  expect(storedRefreshToken).toBeNull();
+
+  selectedAccount = 'different-account';
+  await act(async () => {
+    await renderer.root.findByProps({ label: 'Sign in' }).props.onPress();
+  });
+  expect(peekAccessToken()).toBe('different-account-access');
+  expect(storedRefreshToken).toBe('different-account-refresh');
+  await act(async () => renderer.unmount());
 });
 
 it('tells the Qlik User that the Tenant admin must approve the app for OAUTH-28', async () => {
