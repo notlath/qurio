@@ -1,5 +1,5 @@
 import { jsLiteral, quotedAttr } from './escape';
-import { embedPageHtml } from './page';
+import { embedPageHtml, keyboardRevealScript } from './page';
 
 const input = {
   tenantHost: 'acme.sg.qlikcloud.com',
@@ -17,6 +17,74 @@ describe('embedPageHtml', () => {
     expect(html).toContain('data-client-id="client-1"');
     expect(html).toContain('data-get-access-token="getAccessToken"');
     expect(html).toContain('<qlik-embed ui="ai/agentic-assistant" assistant-id="assistant-1">');
+  });
+
+  it('resizes the page with the keyboard and stops the focus zoom (#18)', () => {
+    const html = embedPageHtml(input);
+    const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1] ?? '';
+
+    expect(viewport).toContain('width=device-width');
+    expect(viewport).toContain('interactive-widget=resizes-content');
+    expect(viewport).toContain('maximum-scale=1');
+  });
+
+  describe('keeping the focused input in view (#18)', () => {
+    type Listener = () => void;
+    function run() {
+      const listeners: Record<string, Listener> = {};
+      const form = { scrollIntoView: jest.fn() };
+      const input = { tagName: 'TEXTAREA', isContentEditable: false, closest: (sel: string) => (sel === 'form' ? form : null), scrollIntoView: jest.fn() };
+      const doc = { activeElement: input as unknown };
+      const win = { addEventListener: (type: string, fn: Listener) => (listeners[type] = fn) };
+      new Function('window', 'document', keyboardRevealScript)(win, doc);
+      return { listeners, form, input, doc };
+    }
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('scrolls the form of the focused field to the end once the keyboard has resized the page', () => {
+      const { listeners, form } = run();
+
+      listeners.resize();
+      expect(form.scrollIntoView).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(200);
+
+      expect(form.scrollIntoView).toHaveBeenCalledWith({ block: 'end' });
+    });
+
+    it('also reacts when a field takes focus', () => {
+      const { listeners, form } = run();
+
+      listeners.focusin();
+      jest.advanceTimersByTime(200);
+
+      expect(form.scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to the field itself when it has no form', () => {
+      const { listeners, input } = run();
+      input.closest = () => null;
+
+      listeners.focusin();
+      jest.advanceTimersByTime(200);
+
+      expect(input.scrollIntoView).toHaveBeenCalledWith({ block: 'end' });
+    });
+
+    it('does nothing when focus is not on something the Qlik User types into', () => {
+      const { listeners, form, doc } = run();
+      doc.activeElement = { tagName: 'BUTTON', isContentEditable: false, closest: () => form };
+
+      listeners.resize();
+      jest.advanceTimersByTime(200);
+
+      expect(form.scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it('is part of the embed page', () => {
+      expect(embedPageHtml(input)).toContain(keyboardRevealScript);
+    });
   });
 
   it('addresses an Analytics App by app-id, with no sheet-id', () => {
