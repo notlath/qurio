@@ -1,6 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { bottomInsetScript } from './page';
 import { QlikEmbedHost } from './qlik-embed-host';
 
 jest.mock('@/global.css', () => ({}));
@@ -12,11 +13,11 @@ jest.mock('@/auth/access-token', () => ({
 }));
 
 // The real WebView is native; this stand-in exposes the props the host drives.
-const mockWebView: { props: any; mounts: number } = { props: null, mounts: 0 };
+const mockWebView: { props: any; mounts: number; inject: jest.Mock } = { props: null, mounts: 0, inject: jest.fn() };
 jest.mock('react-native-webview', () => {
   const { forwardRef, useEffect, useImperativeHandle } = jest.requireActual('react');
   const WebView = forwardRef(function WebViewStub(props: any, ref: any) {
-    useImperativeHandle(ref, () => ({ injectJavaScript: jest.fn() }));
+    useImperativeHandle(ref, () => ({ injectJavaScript: mockWebView.inject }));
     useEffect(() => {
       mockWebView.mounts += 1;
     }, []);
@@ -39,6 +40,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   mockWebView.props = null;
   mockWebView.mounts = 0;
+  mockWebView.inject = jest.fn();
   act(() => {
     renderer = TestRenderer.create(<QlikEmbedHost config={config} surface="ai/agentic-assistant" resourceId="g" />);
   });
@@ -97,5 +99,42 @@ describe('an embed that starts normally', () => {
     });
 
     expect(shown()).not.toContain('could not load');
+  });
+});
+
+describe('the space kept below the embed for a floating tab bar (#13)', () => {
+  const embed = (bottomInset?: number) => (
+    <QlikEmbedHost config={config} surface="ai/agentic-assistant" resourceId="g" bottomInset={bottomInset} />
+  );
+
+  // Token replies use the same injection; only the inset scripts matter here.
+  const insetScripts = () => mockWebView.inject.mock.calls.map(([script]) => script as string).filter((s) => s.includes('--bottom-inset'));
+
+  it('builds the page with the starting inset and does not touch the running page yet', () => {
+    act(() => renderer.unmount());
+    act(() => {
+      renderer = TestRenderer.create(embed(83));
+    });
+
+    expect(mockWebView.props.source.html).toContain('--bottom-inset:83px');
+    expect(insetScripts()).toEqual([]);
+  });
+
+  it('tells the running page when the inset changes, without starting a new session', () => {
+    const mountsBefore = mockWebView.mounts;
+
+    act(() => renderer.update(embed(83)));
+    expect(insetScripts()).toEqual([bottomInsetScript(83)]);
+    act(() => renderer.update(embed(0)));
+    expect(insetScripts()).toEqual([bottomInsetScript(83), bottomInsetScript(0)]);
+
+    expect(mockWebView.mounts).toBe(mountsBefore);
+  });
+
+  it('says nothing when the inset has not changed', () => {
+    act(() => renderer.update(embed(83)));
+    act(() => renderer.update(embed(83)));
+
+    expect(insetScripts()).toEqual([bottomInsetScript(83)]);
   });
 });
