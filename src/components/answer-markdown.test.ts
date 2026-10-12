@@ -178,4 +178,28 @@ describe('parseAnswerMarkdown', () => {
     expect(result[0]).toMatchObject({ level: 1, spans: [{ text: 'Core Concept' }] });
     expect(result[8]).toEqual({ kind: 'code', text: 'Small trajectory changes = large long-term impact' });
   });
+
+  it('splits an intro line from the list items that follow it in the same chunk (#30)', () => {
+    const result = parseAnswerMarkdown(
+      'So counting from August:\n- Month 1: August\n- Month 2: September\n- Month 3: October (1st review)',
+    );
+
+    expect(result).toEqual([
+      { kind: 'paragraph', spans: [{ text: 'So counting from August:' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 1: August' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 2: September' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 3: October (1st review)' }] },
+    ]);
+  });
+
+  it('keeps text that merely contains " - " as one paragraph (#30)', () => {
+    const result = parseAnswerMarkdown('Regularization takes six months - see your contract.\nAsk HR - they confirm.');
+
+    expect(result).toEqual([
+      {
+        kind: 'paragraph',
+        spans: [{ text: 'Regularization takes six months - see your contract. Ask HR - they confirm.' }],
+      },
+    ]);
+  });
 });

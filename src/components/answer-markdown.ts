@@ -80,21 +80,27 @@ function chunkToBlocks(chunk: string): AnswerRenderBlock[] {
     return [{ kind: 'table', rows: dataRows.map(parseTableRow) }];
   }
 
-  if (lines.every((l) => NUMBERED_ITEM.test(l))) {
-    return lines.map((l) => ({
-      kind: 'numberedListItem',
-      spans: parseInlineSpans(l.match(NUMBERED_ITEM)![1]),
-    }));
+  // A chunk can mix prose lines with list items ("Intro:\n- a\n- b"): each list line is its own
+  // block, and consecutive prose lines join into one paragraph.
+  const blocks: AnswerRenderBlock[] = [];
+  let prose: string[] = [];
+  const flushProse = () => {
+    if (prose.length) blocks.push({ kind: 'paragraph', spans: parseInlineSpans(prose.join(' ')) });
+    prose = [];
+  };
+  for (const line of lines) {
+    const numbered = line.match(NUMBERED_ITEM);
+    const bullet = line.match(BULLET_ITEM);
+    if (numbered || bullet) {
+      flushProse();
+      blocks.push({
+        kind: numbered ? 'numberedListItem' : 'bulletListItem',
+        spans: parseInlineSpans((numbered ?? bullet)![1]),
+      });
+    } else prose.push(line);
   }
-
-  if (lines.every((l) => BULLET_ITEM.test(l))) {
-    return lines.map((l) => ({
-      kind: 'bulletListItem',
-      spans: parseInlineSpans(l.match(BULLET_ITEM)![1]),
-    }));
-  }
-
-  return [{ kind: 'paragraph', spans: parseInlineSpans(lines.join(' ')) }];
+  flushProse();
+  return blocks;
 }
 
 export function parseAnswerMarkdown(markdown: string): AnswerRenderBlock[] {
