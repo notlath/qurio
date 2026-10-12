@@ -48,11 +48,16 @@ const insetPx = (inset: number | undefined): string => `${Math.max(0, Math.round
 export const bottomInsetScript = (inset: number): string =>
   `document.documentElement.style.setProperty('--bottom-inset','${insetPx(inset)}');window.dispatchEvent(new Event('resize'));true;`;
 
-/** Generated in memory for each load and never written anywhere. */
+/**
+ * Generated in memory for each load and never written anywhere. The viewport sets no zoom limit, so
+ * the Qlik User can pinch-zoom (#25, WCAG 1.4.4). iOS zooms on focus into a field under 16px, so the
+ * style raises text fields to 16px instead. The rule only reaches fields in this document, not inside
+ * a shadow root or a cross-origin frame that Qlik may render.
+ */
 export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session, bottomInset }: EmbedPageInput): string {
   const tenantOrigin = tenantOriginOf(tenantHost);
   return `<!doctype html><html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content" />
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
 <script>${runtimeScript({ session, tenantOrigin })}
 ${keyboardRevealScript}</script>
 <script crossorigin="anonymous" type="application/javascript"
@@ -63,7 +68,7 @@ ${keyboardRevealScript}</script>
   data-host=${quotedAttr(tenantOrigin)}
   data-client-id=${quotedAttr(clientId)}
   data-get-access-token="getAccessToken"></script>
-<style>:root{--bottom-inset:${insetPx(bottomInset)}}html,body,qlik-embed{margin:0;height:100%;display:block}body{box-sizing:border-box;padding-bottom:var(--bottom-inset)}</style>
+<style>:root{--bottom-inset:${insetPx(bottomInset)}}html,body,qlik-embed{margin:0;height:100%;display:block}body{box-sizing:border-box;padding-bottom:var(--bottom-inset)}input,textarea,select,[contenteditable]{font-size:max(16px,1em)!important}</style>
 </head><body>
 <qlik-embed ui=${quotedAttr(surface)} ${ID_ATTRIBUTE[surface]}=${quotedAttr(resourceId)}></qlik-embed>
 </body></html>`;

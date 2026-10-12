@@ -19,13 +19,20 @@ describe('embedPageHtml', () => {
     expect(html).toContain('<qlik-embed ui="ai/agentic-assistant" assistant-id="assistant-1">');
   });
 
-  it('resizes the page with the keyboard and stops the focus zoom (#18)', () => {
+  it('resizes the page with the keyboard and lets the Qlik User pinch-zoom (#18, #25)', () => {
     const html = embedPageHtml(input);
     const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1] ?? '';
 
     expect(viewport).toContain('width=device-width');
     expect(viewport).toContain('interactive-widget=resizes-content');
-    expect(viewport).toContain('maximum-scale=1');
+    expect(viewport).not.toContain('maximum-scale');
+    expect(viewport).not.toContain('user-scalable=no');
+  });
+
+  it('stops the iOS focus zoom with 16px text fields instead of a zoom limit (#25)', () => {
+    const style = embedPageHtml(input).match(/<style>([^<]*)<\/style>/)?.[1] ?? '';
+
+    expect(style).toMatch(/input,textarea,select,\[contenteditable\]\{font-size:max\(16px,1em\)!important\}/);
   });
 
   describe('keeping the focused input in view (#18)', () => {
