@@ -14,7 +14,8 @@ import { ContentColumn, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useReloadAnswersPort } from '@/qlik/context';
 
-export function HostnameEntry() {
+/** `replacing` is set when the user already has a Tenant: nothing about it changes until they connect to another. */
+export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void; signOut: () => Promise<void> } } = {}) {
   const theme = useTheme();
   const { reloadConfig } = useTenantConfig();
   const reloadPort = useReloadAnswersPort();
@@ -43,8 +44,15 @@ export function HostnameEntry() {
         setMessage(preflight.message);
         return;
       }
+      if (replacing) await replacing.signOut();
       await saveDevConfig({ tenantHost });
-      setResolved(result.config);
+      if (replacing) {
+        // The gate shows sign-in for the new Tenant once the config changes.
+        await reloadConfig();
+        reloadPort();
+      } else {
+        setResolved(result.config);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not save the Tenant hostname.');
     } finally {
@@ -81,6 +89,11 @@ export function HostnameEntry() {
         </ThemedText>
       )}
       <PrimaryButton label="Continue" busy={busy} onPress={connect} />
+      {replacing && (
+        <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack}>
+          <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
+        </AppPressable>
+      )}
       {IS_INTERNAL_BUILD && (
         <AppPressable accessibilityLabel="Developer" onPress={() => setDeveloper(!developer)}>
           <ThemedText>Developer</ThemedText>
@@ -141,34 +154,14 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
 
 export function ChangeTenant({ config }: { config: TenantConfig }) {
   const { signOut } = useQlikAuth(config);
-  const { clearConfig } = useTenantConfig();
-  const reloadPort = useReloadAnswersPort();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function change() {
-    setBusy(true);
-    setError(null);
-    try {
-      await signOut();
-      await clearConfig();
-      reloadPort();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not change Tenant.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const [changing, setChanging] = useState(false);
+  if (changing) return <HostnameEntry replacing={{ onBack: () => setChanging(false), signOut }} />;
   return (
     <View style={styles.form}>
       <ThemedText>{config.tenantHost}</ThemedText>
-      <AppPressable accessibilityLabel="Change tenant" disabled={busy} onPress={change}>
+      <AppPressable accessibilityLabel="Change tenant" onPress={() => setChanging(true)}>
         <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
       </AppPressable>
-      {error && (
-        <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
-          {error}
-        </ThemedText>
-      )}
     </View>
   );
 }

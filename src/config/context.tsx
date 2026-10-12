@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { resolveCurrentTenantConfig, saveDevConfig, type TenantConfig } from '@/config';
+import { resolveCurrentTenantConfig, type TenantConfig } from '@/config';
 import { loadManagedConfig } from '@/config/load-managed-config';
 import { resolveTenant } from '@/config/resolver';
 
@@ -8,7 +8,6 @@ type TenantContextValue = {
   config: TenantConfig | null | undefined;
   managed: boolean;
   reloadConfig: () => Promise<void>;
-  clearConfig: () => Promise<void>;
 };
 
 const TenantContext = createContext<TenantContextValue | null>(null);
@@ -20,16 +19,11 @@ export function TenantConfigProvider({ children }: { children: ReactNode }) {
     setManaged(resolveTenant({ managed: await loadManagedConfig() }).kind === 'resolved');
     setConfig(await resolveCurrentTenantConfig());
   }, []);
-  const clearConfig = useCallback(async () => {
-    if (resolveTenant({ managed: await loadManagedConfig() }).kind === 'resolved') return;
-    await saveDevConfig({});
-    setConfig(null);
-  }, []);
   useEffect(() => {
     Promise.resolve().then(reloadConfig).catch(() => setConfig(null));
   }, [reloadConfig]);
   return (
-    <TenantContext.Provider value={{ config, managed, reloadConfig, clearConfig }}>
+    <TenantContext.Provider value={{ config, managed, reloadConfig }}>
       {children}
     </TenantContext.Provider>
   );

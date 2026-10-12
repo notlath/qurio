@@ -9,10 +9,9 @@ import { Colors } from '@/constants/theme';
 
 jest.mock('@/global.css', () => ({}));
 jest.setTimeout(30000);
-const mockClearConfig = jest.fn();
 const mockSignOut = jest.fn();
 let mockConfig: { tenantHost: string; clientId: string } | null = null;
-jest.mock('@/config/context', () => ({ useTenantConfig: () => ({ config: mockConfig, reloadConfig: jest.fn(), clearConfig: mockClearConfig }) }));
+jest.mock('@/config/context', () => ({ useTenantConfig: () => ({ config: mockConfig, reloadConfig: jest.fn() }) }));
 jest.mock('@/auth/access-token', () => ({ hasSession: jest.fn().mockResolvedValue(false) }));
 jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn() }));
 jest.mock('@/config', () => ({
@@ -79,14 +78,57 @@ it('shows the existing unreachable Tenant preflight message', async () => {
   expect(JSON.stringify(renderer.toJSON())).toContain('Could not reach');
 });
 
-it('signs out before it clears the old Tenant', async () => {
-  const calls: string[] = [];
-  mockSignOut.mockImplementation(async () => { calls.push('sign-out'); });
-  mockClearConfig.mockImplementation(async () => { calls.push('clear-tenant'); });
-  let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<ChangeTenant config={{ tenantHost: 'acme.sg.qlikcloud.com', clientId: 'client' }} />); });
-  await act(async () => { await renderer.root.findByType(AppPressable).props.onPress(); });
-  expect(calls).toEqual(['sign-out', 'clear-tenant']);
+describe('Change tenant', () => {
+  const current = { tenantHost: 'acme.sg.qlikcloud.com', clientId: 'client' };
+  async function openChangeTenant() {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<ChangeTenant config={current} />); });
+    await act(async () => { renderer.root.findByType(AppPressable).props.onPress(); });
+    return renderer;
+  }
+  const pressable = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
+    renderer.root.findAllByType(AppPressable).find((button) => button.props.accessibilityLabel === label);
+
+  beforeEach(() => {
+    mockSignOut.mockReset();
+  });
+
+  it('keeps the session and the Tenant while the user is choosing a new Tenant', async () => {
+    const renderer = await openChangeTenant();
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Connect to your Tenant');
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it('returns to the current Tenant, unchanged, when the user selects Back', async () => {
+    const renderer = await openChangeTenant();
+
+    await act(async () => { pressable(renderer, 'Back')!.props.onPress(); });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Change tenant');
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('Connect to your Tenant');
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out of the old Tenant only when the user connects to a new one', async () => {
+    const { saveDevConfig } = jest.requireMock('@/config');
+    const calls: string[] = [];
+    mockSignOut.mockImplementation(async () => { calls.push('sign-out'); });
+    saveDevConfig.mockImplementation(async () => { calls.push('save-tenant'); });
+    const renderer = await openChangeTenant();
+
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('other.sg.qlikcloud.com'); });
+    await act(async () => { await renderer.root.findByType(PrimaryButton).props.onPress(); });
+
+    expect(calls).toEqual(['sign-out', 'save-tenant']);
+  });
+
+  it('does not show Back on the first-run Tenant entry', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<HostnameEntry />); });
+
+    expect(pressable(renderer, 'Back')).toBeUndefined();
+  });
 });
 
 it('paints the theme background behind the sign-in gate', async () => {
