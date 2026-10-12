@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
@@ -27,6 +27,21 @@ export function SignInSection({ config, onSignedIn, onSignedOut }: { config: Ten
       current = false;
     };
   }, []);
+
+  // A stray tap on "Sign out" used to end the session outright. Alert.alert is a no-op on web.
+  function confirmSignOut() {
+    const title = 'Sign out?';
+    const message = 'You will need to sign in again to use your Assistants.';
+    if (Platform.OS === 'web') {
+      if (window.confirm(`${title}
+${message}`)) void handlePress();
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => void handlePress() },
+    ]);
+  }
 
   async function handlePress() {
     setError(null);
@@ -63,7 +78,7 @@ export function SignInSection({ config, onSignedIn, onSignedOut }: { config: Ten
         </View>
         {signedIn ? (
           // Signing out is the secondary path once signed in, so it is a text action, not the filled button.
-          <AppPressable accessibilityLabel="Sign out" disabled={!ready || busy} onPress={handlePress}>
+          <AppPressable accessibilityLabel="Sign out" disabled={!ready || busy} onPress={confirmSignOut}>
             <ThemedText type="linkPrimary" themeColor="danger">
               Sign out
             </ThemedText>
