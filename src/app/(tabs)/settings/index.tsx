@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { Children, Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -7,7 +8,6 @@ import { usePrivacyLock } from '@/components/lock-gate';
 import { NativeSwitch } from '@/components/native-switch';
 import { SignInSection } from '@/components/sign-in-section';
 import { TenantConfigForm } from '@/components/tenant-config-form';
-import { ChangeTenant } from '@/components/tenant-entry';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
@@ -218,10 +218,14 @@ export default function SettingsScreen() {
           {managed ? (
             <Row title={resolved.tenantHost} detail="Configured by your administrator." />
           ) : !native ? (
-            // ChangeTenant signs out through useQlikAuth, which is native-only (ADR-0005).
+            // Changing the Tenant signs out through useQlikAuth, which is native-only (ADR-0005).
             <Row title={resolved.tenantHost} />
           ) : (
-            <ChangeTenant config={resolved} />
+            <Link href="/settings/change-tenant" asChild>
+              <AppPressable accessibilityLabel="Change tenant" accessibilityHint="Opens the Tenant screen">
+                <Row title={resolved.tenantHost} accessory={<RowAction label="Change" />} />
+              </AppPressable>
+            </Link>
           )}
         </Section>
       )}

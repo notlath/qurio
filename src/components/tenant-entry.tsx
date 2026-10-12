@@ -14,8 +14,11 @@ import { ContentColumn, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useReloadAnswersPort } from '@/qlik/context';
 
-/** `replacing` is set when the user already has a Tenant: nothing about it changes until they connect to another. */
-export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void; signOut: () => Promise<void> } } = {}) {
+/**
+ * `replacing` is set when the user already has a Tenant: nothing about it changes until they connect
+ * to another. Pass `onBack` only where no navigator supplies Back (the sign-in gate).
+ */
+export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void; signOut: () => Promise<void> } } = {}) {
   const theme = useTheme();
   const { reloadConfig } = useTenantConfig();
   const reloadPort = useReloadAnswersPort();
@@ -83,7 +86,7 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void;
   }
   return (
     <View style={styles.form}>
-      {replacing && (
+      {replacing?.onBack && (
         <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack}>
           <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
         </AppPressable>

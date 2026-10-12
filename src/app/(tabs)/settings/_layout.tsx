@@ -9,6 +9,7 @@ export default function SettingsLayout() {
   return (
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ title: 'Settings', headerLargeTitle: true }} />
+      <Stack.Screen name="change-tenant" options={{ title: 'Change tenant' }} />
     </Stack>
   );
 }

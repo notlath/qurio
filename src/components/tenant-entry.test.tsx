@@ -143,6 +143,16 @@ describe('Change tenant', () => {
     expect(calls).toEqual(['sign-out', 'save-tenant']);
   });
 
+  it('leaves Back to the navigator when no onBack is given', async () => {
+    const listen = jest.spyOn(BackHandler, 'addEventListener');
+    listen.mockClear();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<HostnameEntry replacing={{ signOut: mockSignOut }} />); });
+
+    expect(pressable(renderer, 'Back')).toBeUndefined();
+    expect(listen).not.toHaveBeenCalled();
+  });
+
   it('does not show Back on the first-run Tenant entry', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => { renderer = TestRenderer.create(<HostnameEntry />); });
