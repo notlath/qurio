@@ -8,16 +8,27 @@ import { errorMessageFor } from '@/domain';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 
 export function AssistantSwitcher() {
-  const { assistants, selected, loading, error, choose } = useAssistantSelection();
+  const { assistants, agentic, selected, loading, error, choose } = useAssistantSelection();
   const [expanded, setExpanded] = useState(false);
   const [failure, setFailure] = useState(false);
   if (loading) return <ActivityIndicator accessibilityLabel="Loading Assistants" />;
-  if (error || assistants.length === 0) {
-    const message = errorMessageFor(error ?? { kind: 'NotEntitled' });
+  if (error) {
+    const message = errorMessageFor(error);
     return (
       <View style={{ padding: Spacing.three }}>
         <ThemedText type="smallBold">{message.title}</ThemedText>
         <ThemedText>{message.message}</ThemedText>
+      </View>
+    );
+  }
+  if (assistants.length === 0) {
+    // An empty classic list does not mean a missing license: nobody has verified what Qlik returns
+    // for that. Agentic Assistants have their own entry on the screen, so there is nothing to say.
+    if (agentic.length > 0) return null;
+    return (
+      <View style={{ padding: Spacing.three }}>
+        <ThemedText type="smallBold">No Assistants available</ThemedText>
+        <ThemedText>No Assistant is available to you yet. Ask your Tenant admin to give you access to an Assistant.</ThemedText>
       </View>
     );
   }
