@@ -21,7 +21,7 @@ import {
   safeUrl,
   type HostFailure,
 } from './bridge';
-import { embedPageHtml, tenantOriginOf } from './page';
+import { bottomInsetScript, embedPageHtml, tenantOriginOf } from './page';
 import { hostTrace } from './trace';
 import type { QlikEmbedHostProps } from './types';
 
@@ -41,7 +41,7 @@ export function QlikEmbedHost(props: QlikEmbedHostProps) {
   return <HostSession key={key} {...props} onRetry={() => setAttempt((n) => n + 1)} />;
 }
 
-function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
+function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
   const router = useRouter();
   const webView = useRef<WebView>(null);
   const [session] = useState(() => randomUUID());
@@ -53,9 +53,18 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
       surface,
       resourceId,
       session,
+      bottomInset,
     }),
     tenantOrigin: tenantOriginOf(config.tenantHost),
   }));
+
+  // A new inset reaches the running page; the session and its WebView are kept.
+  const shownInset = useRef(bottomInset);
+  useEffect(() => {
+    if (shownInset.current === bottomInset) return;
+    shownInset.current = bottomInset;
+    webView.current?.injectJavaScript(bottomInsetScript(bottomInset));
+  }, [bottomInset]);
 
   // Replies that resolve after this session ended (unmount, failure) are dropped, not delivered.
   const active = useRef(true);

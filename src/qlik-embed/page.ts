@@ -12,6 +12,8 @@ export type EmbedPageInput = {
   surface: EmbedSurface;
   resourceId: string;
   session: string;
+  /** Space kept clear below the embed, e.g. a floating tab bar (#13). Defaults to none. */
+  bottomInset?: number;
 };
 
 export const tenantOriginOf = (tenantHost: string): string => `https://${tenantHost}`;
@@ -33,8 +35,19 @@ window.addEventListener('resize',soon);
 window.addEventListener('focusin',soon);
 })();`;
 
+/** A whole, non-negative number of pixels; anything else becomes 0. */
+const insetPx = (inset: number | undefined): string => `${Math.max(0, Math.round(inset ?? 0)) || 0}px`;
+
+/**
+ * Changes the inset of a page that is already running, so the tab bar can move out of the way of
+ * the keyboard without a reload. The WebView frame stays full-size: resizing it fights the
+ * WebView's own keyboard handling on iOS (#13, #18). The trailing true keeps the result quiet.
+ */
+export const bottomInsetScript = (inset: number): string =>
+  `document.documentElement.style.setProperty('--bottom-inset','${insetPx(inset)}');true;`;
+
 /** Generated in memory for each load and never written anywhere. */
-export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session }: EmbedPageInput): string {
+export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session, bottomInset }: EmbedPageInput): string {
   const tenantOrigin = tenantOriginOf(tenantHost);
   return `<!doctype html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content" />
@@ -48,7 +61,7 @@ ${keyboardRevealScript}</script>
   data-host=${quotedAttr(tenantOrigin)}
   data-client-id=${quotedAttr(clientId)}
   data-get-access-token="getAccessToken"></script>
-<style>html,body,qlik-embed{margin:0;height:100%;display:block}</style>
+<style>:root{--bottom-inset:${insetPx(bottomInset)}}html,body,qlik-embed{margin:0;height:100%;display:block}body{box-sizing:border-box;padding-bottom:var(--bottom-inset)}</style>
 </head><body>
 <qlik-embed ui=${quotedAttr(surface)} ${ID_ATTRIBUTE[surface]}=${quotedAttr(resourceId)}></qlik-embed>
 </body></html>`;

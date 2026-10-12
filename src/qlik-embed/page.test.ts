@@ -1,5 +1,5 @@
 import { jsLiteral, quotedAttr } from './escape';
-import { embedPageHtml, keyboardRevealScript } from './page';
+import { bottomInsetScript, embedPageHtml, keyboardRevealScript } from './page';
 
 const input = {
   tenantHost: 'acme.sg.qlikcloud.com',
@@ -84,6 +84,36 @@ describe('embedPageHtml', () => {
 
     it('is part of the embed page', () => {
       expect(embedPageHtml(input)).toContain(keyboardRevealScript);
+    });
+  });
+
+  describe('space kept below the embed for the floating tab bar (#13)', () => {
+    it('starts with the inset the host gives it and keeps the body clear of it', () => {
+      const html = embedPageHtml({ ...input, bottomInset: 83 });
+
+      expect(html).toContain('--bottom-inset:83px');
+      expect(html).toMatch(/body\{[^}]*box-sizing:border-box[^}]*padding-bottom:var\(--bottom-inset\)/);
+    });
+
+    it('starts with no inset when the host gives none', () => {
+      expect(embedPageHtml(input)).toContain('--bottom-inset:0px');
+    });
+
+    it('turns anything that is not a plain length into 0 or a whole number', () => {
+      expect(embedPageHtml({ ...input, bottomInset: -5 })).toContain('--bottom-inset:0px');
+      expect(embedPageHtml({ ...input, bottomInset: Number.NaN })).toContain('--bottom-inset:0px');
+      expect(embedPageHtml({ ...input, bottomInset: 82.6 })).toContain('--bottom-inset:83px');
+    });
+
+    it('can change the inset in a page that is already running', () => {
+      const style = { setProperty: jest.fn() };
+      new Function('document', bottomInsetScript(83))({ documentElement: { style } });
+
+      expect(style.setProperty).toHaveBeenCalledWith('--bottom-inset', '83px');
+    });
+
+    it('ends the injected script with true, so the WebView does not report a result', () => {
+      expect(bottomInsetScript(0).trim().endsWith('true;')).toBe(true);
     });
   });
 
