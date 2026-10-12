@@ -98,7 +98,7 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
           setOpen(true);
         }}
         // A header gives its left item no width limit, so keep room for the History button.
-        style={placement === 'header' ? [styles.trigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
+        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
         <ThemedText type={placement === 'header' ? 'default' : 'smallBold'} numberOfLines={1} style={[styles.triggerText, placement === 'header' && styles.headerTriggerText]}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>
@@ -224,6 +224,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   triggerText: { flexShrink: 1 },
+  // iOS 26 wraps a header item in a glass capsule that hugs its content. Inset the text so it does not
+  // touch the capsule's rounded ends. Android draws no capsule, so it needs no inset.
+  headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
   headerTriggerText: { fontFamily: Fonts.semibold, fontSize: 17, lineHeight: 22 },
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
