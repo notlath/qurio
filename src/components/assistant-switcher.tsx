@@ -99,7 +99,7 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
         }}
         // A header gives its left item no width limit, so keep room for the History button.
         style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
-        <ThemedText type={placement === 'header' ? 'default' : 'smallBold'} numberOfLines={1} style={[styles.triggerText, placement === 'header' && styles.headerTriggerText]}>
+        <ThemedText type={placement === 'header' ? 'default' : 'smallBold'} numberOfLines={1} style={[styles.triggerText, placement === 'header' && styles.semibold17]}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>
         {!nothingElseToPick && <Icon ios="chevron.up.chevron.down" android="unfold_more" size={14} color="textSecondary" />}
@@ -109,7 +109,7 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
         <View style={styles.overlay}>
           <Pressable accessibilityLabel="Close" style={[StyleSheet.absoluteFill, { backgroundColor: theme.scrim }]} onPress={() => setOpen(false)} />
           <ThemedView type="backgroundElement" style={[styles.sheet, Shape.continuous, { paddingBottom: bottom + Spacing.three }]}>
-            <ThemedText type="smallBold" accessibilityRole="header" style={styles.sheetTitle}>Choose an Assistant</ThemedText>
+            <ThemedText accessibilityRole="header" style={[styles.sheetTitle, styles.semibold17]}>Choose an Assistant</ThemedText>
             <ScrollView contentContainerStyle={styles.sheetContent}>
               {assistants.length > 0 && (
                 <Group title="Legacy Assistants">
@@ -165,7 +165,7 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.group}>
-      <ThemedText type="caption" themeColor="textSecondary" accessibilityRole="header" style={styles.groupTitle}>{title}</ThemedText>
+      <ThemedText type="smallBold" themeColor="textSecondary" accessibilityRole="header" style={styles.groupTitle}>{title}</ThemedText>
       {children}
     </View>
   );
@@ -199,13 +199,13 @@ function Option({ kind, label, title, subtitle, current, onPress }: {
       <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={18} color={current ? 'primary' : 'textSecondary'} />
       <View style={styles.optionText}>
         <View style={styles.titleRow}>
-          <ThemedText type="smallBold" numberOfLines={1} style={styles.optionTitle}>{title}</ThemedText>
-          <View style={[styles.badge, { borderColor: theme.border }]}>
-            <ThemedText type="caption" themeColor="textSecondary">{KIND[kind].badge}</ThemedText>
+          <ThemedText numberOfLines={1} style={[styles.optionTitle, styles.semibold16]}>{title}</ThemedText>
+          <View style={[styles.badge, { borderColor: theme.borderStrong }]}>
+            <ThemedText type="small" themeColor="textSecondary">{KIND[kind].badge}</ThemedText>
           </View>
         </View>
         {!!subtitle && <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>{subtitle}</ThemedText>}
-        {kind === 'agentic' && <ThemedText type="caption" themeColor="textSecondary">Opens in Qlik</ThemedText>}
+        {kind === 'agentic' && <ThemedText type="small" themeColor="textSecondary">Opens in Qlik</ThemedText>}
       </View>
       {current && <Icon ios="checkmark" android="check" size={18} color="primary" />}
       {kind === 'agentic' && <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />}
@@ -227,7 +227,10 @@ const styles = StyleSheet.create({
   // iOS 26 wraps a header item in a glass capsule that hugs its content. Inset the text so it does not
   // touch the capsule's rounded ends. Android draws no capsule, so it needs no inset.
   headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
-  headerTriggerText: { fontFamily: Fonts.semibold, fontSize: 17, lineHeight: 22 },
+  // The sheet uses three sizes only: 17 for its title, 16 for each Assistant name, 14 for everything
+  // secondary. Captions (12) were too small to read against the sheet, so the sheet no longer uses them.
+  semibold17: { fontFamily: Fonts.semibold, fontSize: 17, lineHeight: 22 },
+  semibold16: { fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 22 },
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     maxHeight: '75%',
