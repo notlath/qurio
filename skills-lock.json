@@ -92,6 +92,12 @@
       "skillPath": "skills/background-processing/SKILL.md",
       "computedHash": "12d6340de6c438430f5d081ff01052c9be55992f698e1c770721f2267d343b9c"
     },
+    "better-ui": {
+      "source": "jakubkrehel/skills",
+      "sourceType": "github",
+      "skillPath": "skills/better-ui/SKILL.md",
+      "computedHash": "74573763ba1906eb6cd2b35dc3747cb2a2afc940b398203672195f0509ce9bde"
+    },
     "brandkit": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
