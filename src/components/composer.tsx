@@ -114,10 +114,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: Spacing.one,
     padding: Spacing.one,
-    paddingLeft: Spacing.two,
+    paddingLeft: Spacing.three,
     borderWidth: StyleSheet.hairlineWidth,
-    // Near-pill at one line; keeps the card radius rather than a stadium as the question wraps.
-    borderRadius: Radius.card,
+    // A full pill at one line: the send button's radius plus the padding around it. It stays a rounded
+    // rectangle rather than a stadium as the question wraps.
+    borderRadius: TouchTarget / 2 + Spacing.one,
   },
   input: {
     flex: 1,

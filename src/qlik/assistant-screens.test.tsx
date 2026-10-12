@@ -11,7 +11,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
 jest.mock('expo-router', () => ({ Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => ({ id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' }) }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
-jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => null }));
+jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => null, AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
@@ -45,6 +45,16 @@ it('creates a Thread only on the first question and resets for another Assistant
   await act(async () => { composer(renderer).props.setQuestion('New question'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(b.ask).toHaveBeenCalledWith('b-thread', 'New question', expect.any(Object));
+  await act(async () => { renderer.unmount(); });
+});
+
+it('greets the Qlik User and offers the starters as chips, with the selector left to the header', async () => {
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><NewThreadScreen /></AnswersScope>); });
+
+  expect(renderer.root.findAll((node) => node.props.children === 'What can I help with?').length).toBeGreaterThan(0);
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Ask: a starter' }).length).toBeGreaterThan(0);
   await act(async () => { renderer.unmount(); });
 });
 

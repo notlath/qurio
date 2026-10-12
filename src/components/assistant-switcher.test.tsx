@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { errorMessageFor } from '@/domain';
-import { AssistantSwitcher } from './assistant-switcher';
+import { AssistantProblem, AssistantSwitcher } from './assistant-switcher';
 
 jest.mock('@/global.css', () => ({}));
 const mockPush = jest.fn();
@@ -142,6 +142,62 @@ it('has nothing to open when the only choice is the one Legacy Assistant already
   await act(async () => { renderer = TestRenderer.create(<AssistantSwitcher />); });
 
   expect(renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.disabled).toBe(true);
+});
+
+describe('in a navigator header', () => {
+  const render = (selection: object) => {
+    useAssistantSelection.mockReturnValue({ assistants: [], agentic: [], selected: null, loading: false, error: null, choose: jest.fn(), ...selection });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<AssistantSwitcher includeAgentic placement="header" />);
+    });
+    return renderer;
+  };
+
+  it('shows the current Assistant as the trigger', () => {
+    const renderer = render({ assistants, selected: assistants[0] });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Knowledge');
+  });
+
+  it('leaves an error to the screen body, so the header stays compact', () => {
+    expect(render({ error: { kind: 'ServiceUnavailable' } }).toJSON()).toBeNull();
+  });
+
+  it('leaves "No Assistants available" to the screen body', () => {
+    expect(render({}).toJSON()).toBeNull();
+  });
+});
+
+describe('AssistantProblem', () => {
+  const render = (selection: object) => {
+    useAssistantSelection.mockReturnValue({ assistants, agentic: [], loading: false, error: null, ...selection });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<AssistantProblem />);
+    });
+    return renderer.toJSON();
+  };
+
+  it('says nothing while there are Assistants to choose from', () => {
+    expect(render({})).toBeNull();
+  });
+
+  it('says nothing while the Assistants load', () => {
+    expect(render({ assistants: [], loading: true })).toBeNull();
+  });
+
+  it('says nothing when only Agentic Assistants exist', () => {
+    expect(render({ assistants: [], agentic: [{ id: 'g' }] })).toBeNull();
+  });
+
+  it('explains an error from the Assistants request', () => {
+    expect(JSON.stringify(render({ assistants: [], error: { kind: 'ServiceUnavailable' } }))).toContain(errorMessageFor({ kind: 'ServiceUnavailable' }).title);
+  });
+
+  it('asks the Qlik User to ask the Tenant admin when there is no Assistant at all', () => {
+    expect(JSON.stringify(render({ assistants: [] }))).toContain('Tenant admin');
+  });
 });
 
 describe('a Qlik User with no classic Assistant (#22)', () => {

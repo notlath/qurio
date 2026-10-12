@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
-import { AssistantSwitcher } from '@/components/assistant-switcher';
+import { AssistantProblem } from '@/components/assistant-switcher';
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -24,11 +24,10 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
       onPress={() => onPress(starter.prompt)}
       accessibilityLabel={`Ask: ${starter.prompt}`}
       style={[styles.starterRow, Shape.continuous, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-      <Icon ios="text.bubble" android="chat_bubble" size={18} color="primary" />
-      <ThemedText style={styles.starterText}>
+      <Icon ios="text.bubble" android="chat_bubble" size={16} color="primary" />
+      <ThemedText type="small" numberOfLines={2} style={styles.starterText}>
         {starter.prompt}
       </ThemedText>
-      <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />
     </AppPressable>
   );
 }
@@ -37,7 +36,7 @@ export default function NewThreadScreen() {
   const { selected } = useAssistantSelection();
   return (
     <View style={styles.flex}>
-      <AssistantSwitcher includeAgentic />
+      <AssistantProblem />
       <NewThreadConversation key={selected?.id ?? 'none'} />
     </View>
   );
@@ -98,16 +97,13 @@ function NewThreadConversation() {
                 </ThemedText>
               </View>
               <ThemedText type="title" style={styles.welcomeTitle}>
-                Find the signal in your work.
+                What can I help with?
               </ThemedText>
-              <ThemedText style={styles.welcomeCopy}>
-                Ask a clear question. Answers stay grounded in your organization&rsquo;s knowledge.
+              <ThemedText type="small" themeColor="textSecondary" style={styles.welcomeCopy}>
+                Answers stay grounded in your organization&rsquo;s knowledge.
               </ThemedText>
               {starters.length > 0 && (
-                <View style={styles.startersSection}>
-                  <ThemedText type="smallBold" themeColor="textSecondary">
-                    Start with a prompt
-                  </ThemedText>
+                <View style={styles.startersSection} accessibilityLabel="Start with a prompt">
                   {starters.map((starter) => (
                     <StarterRow key={starter.id} starter={starter} onPress={ask} />
                   ))}
@@ -139,20 +135,20 @@ function NewThreadConversation() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
-  emptyState: { flex: 1, justifyContent: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
   kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
-  welcomeTitle: { maxWidth: 480, textAlign: 'left' },
-  welcomeCopy: { maxWidth: 480, textAlign: 'left' },
-  startersSection: { gap: Spacing.two, marginTop: Spacing.three },
+  welcomeTitle: { maxWidth: 480, textAlign: 'center' },
+  welcomeCopy: { maxWidth: 480, textAlign: 'center' },
+  startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },
   starterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.two,
+    maxWidth: '100%',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.pill,
   },
-  starterText: { flex: 1, textAlign: 'left' },
+  starterText: { flexShrink: 1 },
 });
