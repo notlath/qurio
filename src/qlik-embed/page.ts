@@ -20,7 +20,7 @@ export const tenantOriginOf = (tenantHost: string): string => `https://${tenantH
 export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session }: EmbedPageInput): string {
   const tenantOrigin = tenantOriginOf(tenantHost);
   return `<!doctype html><html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content" />
 <script>${runtimeScript({ session, tenantOrigin })}</script>
 <script crossorigin="anonymous" type="application/javascript"
   src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components@1/dist/index.min.js"

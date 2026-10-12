@@ -19,6 +19,15 @@ describe('embedPageHtml', () => {
     expect(html).toContain('<qlik-embed ui="ai/agentic-assistant" assistant-id="assistant-1">');
   });
 
+  it('resizes the page with the keyboard and stops the focus zoom (#18)', () => {
+    const html = embedPageHtml(input);
+    const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1] ?? '';
+
+    expect(viewport).toContain('width=device-width');
+    expect(viewport).toContain('interactive-widget=resizes-content');
+    expect(viewport).toContain('maximum-scale=1');
+  });
+
   it('addresses an Analytics App by app-id, with no sheet-id', () => {
     const html = embedPageHtml({ ...input, surface: 'classic/app', resourceId: 'app-1' });
 
