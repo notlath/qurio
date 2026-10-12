@@ -41,10 +41,12 @@ const insetPx = (inset: number | undefined): string => `${Math.max(0, Math.round
 /**
  * Changes the inset of a page that is already running, so the tab bar can move out of the way of
  * the keyboard without a reload. The WebView frame stays full-size: resizing it fights the
- * WebView's own keyboard handling on iOS (#13, #18). The trailing true keeps the result quiet.
+ * WebView's own keyboard handling on iOS (#13, #18). The resize event makes keyboardRevealScript
+ * check the focused field again: a new inset moves the composer, and nothing else would. The
+ * trailing true keeps the result quiet.
  */
 export const bottomInsetScript = (inset: number): string =>
-  `document.documentElement.style.setProperty('--bottom-inset','${insetPx(inset)}');true;`;
+  `document.documentElement.style.setProperty('--bottom-inset','${insetPx(inset)}');window.dispatchEvent(new Event('resize'));true;`;
 
 /** Generated in memory for each load and never written anywhere. */
 export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session, bottomInset }: EmbedPageInput): string {

@@ -107,9 +107,17 @@ describe('embedPageHtml', () => {
 
     it('can change the inset in a page that is already running', () => {
       const style = { setProperty: jest.fn() };
-      new Function('document', bottomInsetScript(83))({ documentElement: { style } });
+      new Function('document', 'window', bottomInsetScript(83))({ documentElement: { style } }, { dispatchEvent: jest.fn() });
 
       expect(style.setProperty).toHaveBeenCalledWith('--bottom-inset', '83px');
+    });
+
+    it('then lets the page re-check what is in view, as it does after the keyboard resizes it', () => {
+      const win = { dispatchEvent: jest.fn() };
+      new Function('document', 'window', bottomInsetScript(0))({ documentElement: { style: { setProperty: jest.fn() } } }, win);
+
+      expect(win.dispatchEvent).toHaveBeenCalledTimes(1);
+      expect(win.dispatchEvent.mock.calls[0][0].type).toBe('resize');
     });
 
     it('ends the injected script with true, so the WebView does not report a result', () => {
