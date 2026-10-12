@@ -6,10 +6,11 @@ import ThreadDetailScreen from '@/app/(tabs)/assistant/thread/[id]';
 import { AnswersScope } from './context';
 import type { AnswersPort } from './port';
 
+const mockDismissTo = jest.fn();
 jest.mock('@/global.css', () => ({}));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
-jest.mock('expo-router', () => ({ Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => ({ id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ dismissTo: mockDismissTo }), Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => ({ id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' }) }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
 jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => null, AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
@@ -150,4 +151,16 @@ describe('History when no Assistant is selected (#22)', () => {
 
     expect(await show(port)).toContain('No Assistant chosen');
   });
+});
+
+it('History with no conversations offers one action: ask a question', async () => {
+  const port = { ...makePort('a'), listThreads: jest.fn(async () => ({ items: [] })) } as unknown as AnswersPort;
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' }, assistants: [{ id: 'a' }] });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
+
+  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Ask a question' }).props.onPress(); });
+
+  expect(mockDismissTo).toHaveBeenCalledWith('/assistant');
+  await act(async () => { renderer.unmount(); });
 });

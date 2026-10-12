@@ -10,7 +10,6 @@ function HistoryLink() {
     <Link href="/assistant/history" asChild>
       <IconButton
         accessibilityLabel="Open conversation history"
-        variant="tinted"
         icon={<Icon ios="clock.arrow.circlepath" android="history" size={22} color="primary" />}
       />
     </Link>

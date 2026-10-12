@@ -43,7 +43,9 @@ describe('the open selector', () => {
   it('lists the Legacy Assistants under their own heading, each marked Legacy, with the current one selected', async () => {
     const { renderer, text } = await open();
 
-    expect(text()).toContain('LEGACY ASSISTANTS');
+    expect(text()).toContain('Choose an Assistant');
+    expect(text()).toContain('Legacy Assistants');
+    expect(text()).not.toContain('LEGACY');
     expect(text()).toContain('Operations');
     expect(row(renderer, 'Knowledge, Legacy').props.accessibilityState).toMatchObject({ selected: true });
     expect(row(renderer, 'Operations, Legacy').props.accessibilityState).toMatchObject({ selected: false });
@@ -56,7 +58,7 @@ describe('the open selector', () => {
 
     expect(choose).toHaveBeenCalledWith(assistants[1]);
     expect(mockPush).not.toHaveBeenCalled();
-    expect(text()).not.toContain('LEGACY ASSISTANTS');
+    expect(text()).not.toContain('Legacy Assistants');
   });
 
   it('stays open and says so when the choice cannot be remembered', async () => {
@@ -66,7 +68,7 @@ describe('the open selector', () => {
     await act(async () => { await row(renderer, 'Operations, Legacy').props.onPress(); });
 
     expect(text()).toContain('Could not remember the Assistant');
-    expect(text()).toContain('LEGACY ASSISTANTS');
+    expect(text()).toContain('Legacy Assistants');
   });
 
   it('lists Agentic Assistants under their own heading, marked Agentic and "Opens in Qlik"', async () => {
@@ -74,7 +76,7 @@ describe('the open selector', () => {
 
     const { text } = await open({ includeAgentic: true });
 
-    expect(text()).toContain('AGENTIC ASSISTANTS');
+    expect(text()).toContain('Agentic Assistants');
     expect(text()).toContain('ClockSense AI');
     expect(text()).toContain('Opens in Qlik');
   });
@@ -89,7 +91,7 @@ describe('the open selector', () => {
 
     expect(mockPush).toHaveBeenCalledWith(clockRow.href);
     expect(choose).not.toHaveBeenCalled();
-    expect(text()).not.toContain('AGENTIC ASSISTANTS');
+    expect(text()).not.toContain('Agentic Assistants');
   });
 
   it('does not offer Agentic Assistants where only Legacy Assistants make sense (History)', async () => {
@@ -97,7 +99,7 @@ describe('the open selector', () => {
 
     const { text } = await open();
 
-    expect(text()).not.toContain('AGENTIC ASSISTANTS');
+    expect(text()).not.toContain('Agentic Assistants');
     expect(text()).not.toContain('ClockSense AI');
   });
 

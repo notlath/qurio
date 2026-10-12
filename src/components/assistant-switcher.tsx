@@ -8,7 +8,7 @@ import { Icon } from '@/components/icon';
 import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
+import { Elevation, Fonts, Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
@@ -98,62 +98,65 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
           setOpen(true);
         }}
         // A header gives its left item no width limit, so keep room for the History button.
-        style={placement === 'header' ? [styles.trigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : styles.trigger}>
+        style={placement === 'header' ? [styles.trigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
         <ThemedText type={placement === 'header' ? 'default' : 'smallBold'} numberOfLines={1} style={[styles.triggerText, placement === 'header' && styles.headerTriggerText]}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>
         {!nothingElseToPick && <Icon ios="chevron.up.chevron.down" android="unfold_more" size={14} color="textSecondary" />}
       </AppPressable>
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)} onDismiss={openPending}>
-        <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={() => setOpen(false)} />
-        <ThemedView type="backgroundElement" style={[styles.sheet, Shape.continuous, { paddingBottom: bottom + Spacing.three, borderColor: theme.border }]}>
-          <ScrollView>
-            {assistants.length > 0 && (
-              <Group title="Legacy Assistants">
-                {assistants.map((assistant) => (
-                  <Option
-                    key={assistant.id}
-                    label={`${assistant.name}, Legacy`}
-                    title={assistant.name}
-                    badge="Legacy"
-                    subtitle={assistant.description}
-                    current={assistant.id === selected?.id}
-                    onPress={async () => {
-                      try {
-                        await choose(assistant);
+      {/* A fade, not a slide: a sliding Modal drags its scrim up from the bottom with the sheet. */}
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} onDismiss={openPending}>
+        <View style={styles.overlay}>
+          <Pressable accessibilityLabel="Close" style={[StyleSheet.absoluteFill, { backgroundColor: theme.scrim }]} onPress={() => setOpen(false)} />
+          <ThemedView type="backgroundElement" style={[styles.sheet, Shape.continuous, { paddingBottom: bottom + Spacing.three }]}>
+            <ThemedText type="smallBold" accessibilityRole="header" style={styles.sheetTitle}>Choose an Assistant</ThemedText>
+            <ScrollView contentContainerStyle={styles.sheetContent}>
+              {assistants.length > 0 && (
+                <Group title="Legacy Assistants">
+                  {assistants.map((assistant) => (
+                    <Option
+                      key={assistant.id}
+                      kind="legacy"
+                      label={`${assistant.name}, Legacy`}
+                      title={assistant.name}
+                      subtitle={assistant.description}
+                      current={assistant.id === selected?.id}
+                      onPress={async () => {
+                        try {
+                          await choose(assistant);
+                          setOpen(false);
+                          setFailure(false);
+                        } catch {
+                          setFailure(true);
+                        }
+                      }} />
+                  ))}
+                </Group>
+              )}
+              {hasAgentic && (
+                <Group title="Agentic Assistants">
+                  {offered.rows.map((row) => (
+                    <Option
+                      key={row.key}
+                      kind="agentic"
+                      label={`${row.title}, Agentic, opens in Qlik`}
+                      title={row.title}
+                      subtitle={row.subtitle}
+                      onPress={() => {
+                        pendingHref.current = row.href;
                         setOpen(false);
-                        setFailure(false);
-                      } catch {
-                        setFailure(true);
-                      }
-                    }} />
-                ))}
-              </Group>
-            )}
-            {hasAgentic && (
-              <Group title="Agentic Assistants">
-                {offered.rows.map((row) => (
-                  <Option
-                    key={row.key}
-                    label={`${row.title}, Agentic, opens in Qlik`}
-                    title={row.title}
-                    badge="Agentic"
-                    subtitle={row.subtitle}
-                    cue="Opens in Qlik"
-                    onPress={() => {
-                      pendingHref.current = row.href;
-                      setOpen(false);
-                      if (Platform.OS !== 'ios') openPending();
-                    }} />
-                ))}
-                {offered.noAccess && (
-                  <ThemedText type="small" themeColor="textSecondary">{AGENTIC_NO_ACCESS}</ThemedText>
-                )}
-              </Group>
-            )}
-            {failure && <ThemedText themeColor="danger">Could not remember the Assistant. Try again.</ThemedText>}
-          </ScrollView>
-        </ThemedView>
+                        if (Platform.OS !== 'ios') openPending();
+                      }} />
+                  ))}
+                  {offered.noAccess && (
+                    <ThemedText type="small" themeColor="textSecondary" style={styles.groupNote}>{AGENTIC_NO_ACCESS}</ThemedText>
+                  )}
+                </Group>
+              )}
+              {failure && <ThemedText type="small" themeColor="danger" style={styles.groupNote}>Could not remember the Assistant. Try again.</ThemedText>}
+            </ScrollView>
+          </ThemedView>
+        </View>
       </Modal>
     </View>
   );
@@ -162,57 +165,90 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.group}>
-      <ThemedText type="caption" themeColor="textSecondary" accessibilityRole="header">{title.toUpperCase()}</ThemedText>
+      <ThemedText type="caption" themeColor="textSecondary" accessibilityRole="header" style={styles.groupTitle}>{title}</ThemedText>
       {children}
     </View>
   );
 }
 
-/** Only a Legacy row can be current, so only it passes `current`. */
-function Option({ label, title, badge, subtitle, cue, current, onPress }: {
+const KIND = {
+  legacy: { badge: 'Legacy', ios: 'text.bubble', android: 'chat_bubble' },
+  agentic: { badge: 'Agentic', ios: 'wand.and.stars', android: 'auto_awesome' },
+} as const;
+
+/**
+ * Only a Legacy row can be current, so only it passes `current`. The kind shows as an icon and a
+ * badge, never by colour alone. An Agentic row ends in an "Opens in Qlik" cue instead of a check.
+ */
+function Option({ kind, label, title, subtitle, current, onPress }: {
+  kind: keyof typeof KIND;
   label: string;
   title: string;
-  badge: string;
   subtitle?: string;
-  cue?: string;
   current?: boolean;
   onPress: () => void;
 }) {
+  const theme = useTheme();
   return (
     <AppPressable
       accessibilityLabel={label}
       accessibilityHint={subtitle || undefined}
       accessibilityState={current === undefined ? undefined : { selected: current }}
       onPress={onPress}
-      style={styles.option}>
+      style={[styles.option, Shape.continuous, current ? { backgroundColor: theme.backgroundSelected } : {}]}>
+      <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={18} color={current ? 'primary' : 'textSecondary'} />
       <View style={styles.optionText}>
         <View style={styles.titleRow}>
-          <ThemedText type="smallBold">{title}</ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">{badge}</ThemedText>
+          <ThemedText type="smallBold" numberOfLines={1} style={styles.optionTitle}>{title}</ThemedText>
+          <View style={[styles.badge, { borderColor: theme.border }]}>
+            <ThemedText type="caption" themeColor="textSecondary">{KIND[kind].badge}</ThemedText>
+          </View>
         </View>
-        {!!subtitle && <ThemedText type="small" themeColor="textSecondary">{subtitle}</ThemedText>}
+        {!!subtitle && <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>{subtitle}</ThemedText>}
+        {kind === 'agentic' && <ThemedText type="caption" themeColor="textSecondary">Opens in Qlik</ThemedText>}
       </View>
       {current && <Icon ios="checkmark" android="check" size={18} color="primary" />}
-      {cue && <ThemedText type="caption" themeColor="textSecondary">{cue}</ThemedText>}
+      {kind === 'agentic' && <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />}
     </AppPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  inline: { padding: Spacing.three },
+  inline: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.one },
   trigger: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  // On History the trigger is a chip, so it reads as the filter for the list below it.
+  inlineTrigger: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.pill,
+  },
   triggerText: { flexShrink: 1 },
-  headerTriggerText: { fontFamily: Fonts.semibold, fontSize: 18, lineHeight: 24 },
-  backdrop: { flex: 1 },
+  headerTriggerText: { fontFamily: Fonts.semibold, fontSize: 17, lineHeight: 22 },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    maxHeight: '70%',
-    padding: Spacing.three,
+    maxHeight: '75%',
+    paddingTop: Spacing.three,
     borderTopLeftRadius: Radius.card,
     borderTopRightRadius: Radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    ...Elevation.floating,
   },
-  group: { gap: Spacing.one, paddingBottom: Spacing.three },
-  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  sheetTitle: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.two },
+  sheetContent: { paddingHorizontal: Spacing.two, gap: Spacing.three },
+  group: { gap: Spacing.half },
+  groupTitle: { paddingHorizontal: Spacing.two, paddingBottom: Spacing.one },
+  groupNote: { paddingHorizontal: Spacing.two },
+  // Nested inside the sheet, so it takes the small radius step (outer radius minus padding).
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+    borderRadius: Radius.small,
+  },
   optionText: { flex: 1, gap: Spacing.half },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  optionTitle: { flexShrink: 1 },
+  badge: { paddingHorizontal: Spacing.two, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.pill },
 });

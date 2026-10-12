@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
 
@@ -6,11 +6,10 @@ import { AssistantSwitcher } from '@/components/assistant-switcher';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
-import { AppPressable, IconButton } from '@/components/pressable';
+import { AppPressable, IconButton, PrimaryButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Spacing } from '@/constants/theme';
 import type { AppError, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
@@ -22,7 +21,6 @@ function isAppError(value: unknown): value is AppError {
 
 function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string) => void }) {
   const { selected } = useAssistantSelection();
-  const theme = useTheme();
 
   // Deleting a thread is not undoable and the control sits inside a tappable row — a stray tap
   // used to destroy a conversation outright, with no confirmation of any kind.
@@ -34,9 +32,8 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
   }
 
   return (
-    <ThemedView
-      type="backgroundElement"
-      style={[styles.row, Shape.continuous, { borderColor: theme.border }]}>
+    // Plain rows grouped by spacing, not a bordered card per row (ui-skills playbook).
+    <View style={styles.row}>
       <Link
         href={{
           pathname: '/assistant/thread/[id]',
@@ -47,7 +44,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
           accessibilityLabel={`Open ${thread.name}`}
           accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
           style={styles.rowText}>
-          <ThemedText type="smallBold" numberOfLines={2}>
+          <ThemedText numberOfLines={1}>
             {thread.name}
           </ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">
@@ -60,7 +57,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
         accessibilityLabel={`Delete ${thread.name}`}
         icon={<Icon ios="trash" android="delete" size={18} color="textSecondary" />}
       />
-    </ThemedView>
+    </View>
   );
 }
 
@@ -79,6 +76,7 @@ export default function HistoryScreen() {
 
 function AssistantHistory() {
   const port = useAnswersPort();
+  const router = useRouter();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -158,8 +156,9 @@ function AssistantHistory() {
           <EmptyState
             icon={<Icon ios="bubble.left.and.bubble.right" android="forum" size={28} color="primary" />}
             title="No conversations yet"
-            message="Ask the Assistant a question and the conversation will be saved here."
-          />
+            message="Ask the Assistant a question and the conversation will be saved here.">
+            <PrimaryButton label="Ask a question" onPress={() => router.dismissTo('/assistant')} />
+          </EmptyState>
         )
       }
       ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : null}
@@ -172,13 +171,7 @@ function ThreadRowSkeleton() {
   const theme = useTheme();
 
   return (
-    <View
-      style={[
-        styles.row,
-        styles.skeletonRow,
-        Shape.continuous,
-        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
+    <View style={[styles.row, styles.skeletonRow]}>
       <View style={[styles.skeletonLine, { width: '70%', backgroundColor: theme.backgroundSelected }]} />
       <View style={[styles.skeletonLine, { width: '20%', backgroundColor: theme.backgroundSelected }]} />
     </View>
@@ -186,18 +179,11 @@ function ThreadRowSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  listContent: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.four, gap: Spacing.two },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingLeft: Spacing.three,
-    paddingRight: Spacing.one,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.card,
-  },
-  rowText: { flex: 1, gap: Spacing.half, paddingVertical: Spacing.three },
-  skeletons: { gap: Spacing.two },
+  listContent: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.four, gap: Spacing.half },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  rowText: { flex: 1, gap: Spacing.half, paddingVertical: Spacing.two },
+  skeletons: { gap: Spacing.half },
+  // Same height as a row: two text lines in the row's vertical padding.
   skeletonRow: { flexDirection: 'column', alignItems: 'flex-start', gap: Spacing.two, paddingVertical: Spacing.three },
   skeletonLine: { height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.four },
