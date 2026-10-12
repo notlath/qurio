@@ -10,14 +10,29 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { useAgenticAvailability } from './use-agentic-target';
 
+const NO_ACCESS =
+  "You don't have access to the Agentic Assistant that your administrator set up. Ask your Tenant admin to give you access to its space.";
+
 /**
  * The configured Agentic Assistant, or else one row per discovered Agentic Assistant (ticket 10).
  * Only on the Assistant screen, so History stays classic-only. Never on web (ADR-0005).
  */
 export function AgenticEntry(): ReactElement | null {
   const availability = useAgenticAvailability();
-  const { agentic } = useAssistantSelection();
+  const { agentic, assistants, loading, error } = useAssistantSelection();
   if (availability.status === 'ready') {
+    // The list holds only the Assistants the Qlik User can view (#9). Once it has loaded without the
+    // configured one, the embed would only show "No context selected" (#16). While it loads, or if it
+    // fails, the app cannot tell, so it still offers the embed.
+    const configuredId = availability.target.resourceId;
+    const cannotView = !loading && !error && ![...assistants, ...agentic].some(({ id }) => id === configuredId);
+    if (cannotView) {
+      return (
+        <View style={[styles.container, ContentColumn]}>
+          <ThemedText type="small" themeColor="textSecondary">{NO_ACCESS}</ThemedText>
+        </View>
+      );
+    }
     return (
       <View style={[styles.container, ContentColumn]}>
         <EntryRow
