@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { ScrollView, StyleSheet, TextInput } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { ChangeTenant, HostnameEntry, TenantEntryGate } from './tenant-entry';
@@ -108,6 +108,26 @@ describe('Change tenant', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('Change tenant');
     expect(JSON.stringify(renderer.toJSON())).not.toContain('Connect to your Tenant');
     expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it('treats the Android system Back like the Back button', async () => {
+    const listen = jest.spyOn(BackHandler, 'addEventListener');
+    const renderer = await openChangeTenant();
+    const onHardwareBack = listen.mock.calls.at(-1)![1];
+
+    let handled: boolean | null | undefined;
+    await act(async () => { handled = (onHardwareBack as () => boolean)(); });
+
+    expect(handled).toBe(true);
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('Connect to your Tenant');
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it('puts Back above the title', async () => {
+    const renderer = await openChangeTenant();
+    const text = JSON.stringify(renderer.toJSON());
+
+    expect(text.indexOf('Back')).toBeLessThan(text.indexOf('Connect to your Tenant'));
   });
 
   it('signs out of the old Tenant only when the user connects to a new one', async () => {

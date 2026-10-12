@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { BackHandler, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
@@ -24,6 +24,17 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void;
   const [busy, setBusy] = useState(false);
   const [resolved, setResolved] = useState<TenantConfig | null>(null);
   const [developer, setDeveloper] = useState(false);
+
+  // Android's system Back gesture or button must do what the on-screen Back does.
+  const onBack = replacing?.onBack;
+  useEffect(() => {
+    if (!onBack) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!busy) onBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onBack, busy]);
 
   async function connect() {
     setMessage(null);
@@ -72,6 +83,11 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void;
   }
   return (
     <View style={styles.form}>
+      {replacing && (
+        <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack}>
+          <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
+        </AppPressable>
+      )}
       <ThemedText type="title">Connect to your Tenant</ThemedText>
       <ThemedText>Tenant hostname</ThemedText>
       <TextInput
@@ -89,11 +105,6 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack: () => void;
         </ThemedText>
       )}
       <PrimaryButton label="Continue" busy={busy} onPress={connect} />
-      {replacing && (
-        <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack}>
-          <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
-        </AppPressable>
-      )}
       {IS_INTERNAL_BUILD && (
         <AppPressable accessibilityLabel="Developer" onPress={() => setDeveloper(!developer)}>
           <ThemedText>Developer</ThemedText>
