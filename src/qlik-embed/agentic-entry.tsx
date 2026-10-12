@@ -1,98 +1,50 @@
-import { Link } from 'expo-router';
-import type { ComponentProps, ReactElement } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import type { Href } from 'expo-router';
+import { Platform } from 'react-native';
 
-import { Icon } from '@/components/icon';
-import { AppPressable } from '@/components/pressable';
-import { ThemedText } from '@/components/themed-text';
-import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
-import { useAgenticAvailability } from './use-agentic-target';
+import { useAgenticAvailability, type AgenticAvailability } from './use-agentic-target';
 
-const NO_ACCESS =
+type Selection = Pick<ReturnType<typeof useAssistantSelection>, 'assistants' | 'agentic' | 'loading' | 'error'>;
+
+export type AgenticRow = { key: string; title: string; subtitle: string; href: Href };
+
+export const AGENTIC_NO_ACCESS =
   "You don't have access to the Agentic Assistant that your administrator set up. Ask your Tenant admin to give you access to its space.";
 
+const DEFAULT_SUBTITLE = 'Ask about your analytics apps and knowledge bases.';
+const opens = (id: string): Href => ({ pathname: '/assistant/agentic', params: { id } });
+
 /**
- * The configured Agentic Assistant, or else one row per discovered Agentic Assistant (ticket 10).
- * Only on the Assistant screen, so History stays classic-only. Never on web (ADR-0005).
+ * What the selector offers for Agentic Assistants: the configured one, or else one row per
+ * discovered one (ticket 10). Never on web (ADR-0005).
  */
-export function AgenticEntry(): ReactElement | null {
-  const availability = useAgenticAvailability();
-  const { agentic, assistants, loading, error } = useAssistantSelection();
+export function agenticRows(availability: AgenticAvailability, selection: Selection): { rows: AgenticRow[]; noAccess: boolean } {
+  const { assistants, agentic, loading, error } = selection;
   if (availability.status === 'ready') {
     // The list holds only the Assistants the Qlik User can view (#9). Once it has loaded without the
     // configured one, the embed would only show "No context selected" (#16). While it loads, or if it
     // fails, the app cannot tell, so it still offers the embed.
     const configuredId = availability.target.resourceId;
-    const cannotView = !loading && !error && ![...assistants, ...agentic].some(({ id }) => id === configuredId);
-    if (cannotView) {
-      return (
-        <View style={[styles.container, ContentColumn]}>
-          <ThemedText type="small" themeColor="textSecondary">{NO_ACCESS}</ThemedText>
-        </View>
-      );
+    const named = agentic.find(({ id }) => id === configuredId);
+    if (named) {
+      return { rows: [{ key: named.id, title: named.name, subtitle: named.description || DEFAULT_SUBTITLE, href: opens(named.id) }], noAccess: false };
     }
-    return (
-      <View style={[styles.container, ContentColumn]}>
-        <EntryRow
-          href="/assistant/agentic"
-          title="Open the Agentic Assistant"
-          subtitle="Ask about your analytics apps and knowledge bases." />
-      </View>
-    );
+    const cannotView = !loading && !error && !assistants.some(({ id }) => id === configuredId);
+    if (cannotView) return { rows: [], noAccess: true };
+    return { rows: [{ key: configuredId, title: 'Open the Agentic Assistant', subtitle: DEFAULT_SUBTITLE, href: '/assistant/agentic' }], noAccess: false };
   }
-  if (Platform.OS === 'web' || agentic.length === 0) return null;
-
-  return (
-    <View style={[styles.container, ContentColumn]}>
-      <ThemedText type="smallBold" themeColor="textSecondary">Agentic Assistants</ThemedText>
-      {agentic.map((assistant) => (
-        <EntryRow
-          key={assistant.id}
-          href={{ pathname: '/assistant/agentic', params: { id: assistant.id } }}
-          title={assistant.name}
-          subtitle={assistant.description || 'Ask about your analytics apps and knowledge bases.'} />
-      ))}
-    </View>
-  );
+  if (Platform.OS === 'web') return { rows: [], noAccess: false };
+  return {
+    rows: agentic.map((assistant) => ({
+      key: assistant.id,
+      title: assistant.name,
+      subtitle: assistant.description || DEFAULT_SUBTITLE,
+      href: opens(assistant.id),
+    })),
+    noAccess: false,
+  };
 }
 
-function EntryRow({ href, title, subtitle }: { href: ComponentProps<typeof Link>['href']; title: string; subtitle: string }) {
-  const theme = useTheme();
-  return (
-    <Link href={href} asChild>
-      <AppPressable
-        accessibilityLabel={title}
-        // Flattened: `Link asChild` throws in development if its child's style is an array.
-        style={StyleSheet.flatten([
-          styles.agenticEntry,
-          Shape.continuous,
-          { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-        ])}>
-        <View style={[styles.tile, Shape.continuous, { backgroundColor: theme.backgroundSelected }]}>
-          <Icon ios="wand.and.stars" android="auto_awesome" color="primary" />
-        </View>
-        <View style={styles.text}>
-          <ThemedText type="smallBold">{title}</ThemedText>
-          <ThemedText type="small">{subtitle}</ThemedText>
-        </View>
-        <Icon ios="chevron.right" android="chevron_right" size={14} color="textSecondary" />
-      </AppPressable>
-    </Link>
-  );
+export function useAgenticRows(): { rows: AgenticRow[]; noAccess: boolean } {
+  return agenticRows(useAgenticAvailability(), useAssistantSelection());
 }
-
-const styles = StyleSheet.create({
-  container: { gap: Spacing.two, paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
-  agenticEntry: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.card,
-  },
-  tile: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.small },
-  text: { flex: 1, gap: Spacing.one },
-});

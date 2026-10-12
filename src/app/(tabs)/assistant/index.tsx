@@ -13,7 +13,6 @@ import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { Starter, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
-import { AgenticEntry } from '@/qlik-embed/agentic-entry';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { useAnswersPort } from '@/qlik/context';
 
@@ -38,7 +37,7 @@ export default function NewThreadScreen() {
   const { selected } = useAssistantSelection();
   return (
     <View style={styles.flex}>
-      <AssistantSwitcher />
+      <AssistantSwitcher includeAgentic />
       <NewThreadConversation key={selected?.id ?? 'none'} />
     </View>
   );
@@ -81,7 +80,6 @@ function NewThreadConversation() {
 
   return (
     <View style={styles.flex}>
-      <AgenticEntry />
       <FlatList
         style={styles.flex}
         contentContainerStyle={[styles.listContent, ContentColumn]}

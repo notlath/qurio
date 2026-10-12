@@ -30,6 +30,10 @@ _Avoid_: Bot, agent, chatbot
 An Assistant that reasons over both Knowledge Bases and an Analytics App, returning insights and explanations as well as document answers. Distinct from a classic Assistant, which covers Knowledge Bases only.
 _Avoid_: Agentic chat, agent
 
+**Legacy Assistant**:
+An Assistant that covers Knowledge Bases only. The app chats with it natively over the Qlik REST API and keeps its Threads. Qlik's own help pages call this kind "legacy", and the app shows that word to Qlik Users. The code and older notes call it a "classic" Assistant.
+_Avoid_: Classic Assistant in text the Qlik User reads
+
 **Analytics App**:
 A Qlik Sense application in the Tenant, made of Sheets. Qlik Users browse it in the app, and an Agentic Assistant can reason over it. Distinct from a Knowledge Base, which holds documents.
 _Avoid_: App (unqualified)
