@@ -104,3 +104,40 @@ it('aborts a pending question when another Assistant replaces the new Thread scr
     await act(async () => { finish(); renderer.unmount(); });
   }
 });
+
+describe('History when no Assistant is selected (#22)', () => {
+  const notChosen = () =>
+    ({ listThreads: jest.fn(async () => { throw { kind: 'AssistantNotChosen' }; }) }) as unknown as AnswersPort & { listThreads: jest.Mock };
+  const show = async (port: AnswersPort) => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
+    // Some props are objects with cycles, so keep each one once instead of using plain stringify.
+    const seen = new WeakSet();
+    const text = JSON.stringify(renderer.toJSON(), (_key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+      }
+      return value;
+    });
+    await act(async () => { renderer.unmount(); });
+    return text;
+  };
+
+  it('does not ask the Qlik User to choose an Assistant when there is none to choose', async () => {
+    const port = notChosen();
+    useAssistantSelection.mockReturnValue({ selected: null, assistants: [] });
+
+    const text = await show(port);
+
+    expect(text).not.toContain('No Assistant chosen');
+    expect(port.listThreads).not.toHaveBeenCalled();
+  });
+
+  it('still asks the Qlik User to choose when there are Assistants and none is chosen', async () => {
+    const port = notChosen();
+    useAssistantSelection.mockReturnValue({ selected: null, assistants: [{ id: 'a' }, { id: 'b' }] });
+
+    expect(await show(port)).toContain('No Assistant chosen');
+  });
+});

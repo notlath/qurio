@@ -65,11 +65,14 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
 }
 
 export default function HistoryScreen() {
-  const { selected } = useAssistantSelection();
+  const { selected, assistants } = useAssistantSelection();
+  // With no Assistant to choose, the switcher already says why. Loading History would only add
+  // "No Assistant chosen", which tells the Qlik User to pick from nothing (#22).
+  const nothingToChoose = !selected && assistants.length === 0;
   return (
     <View style={{ flex: 1 }}>
       <AssistantSwitcher />
-      <AssistantHistory key={selected?.id ?? 'none'} />
+      {nothingToChoose ? null : <AssistantHistory key={selected?.id ?? 'none'} />}
     </View>
   );
 }
