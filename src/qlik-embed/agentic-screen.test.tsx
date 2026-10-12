@@ -7,9 +7,14 @@ import AgenticAssistantScreen from '@/app/(tabs)/assistant/agentic';
 
 jest.mock('@/global.css', () => ({}));
 jest.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () => ({}) }));
-let mockKeyboardVisible = false;
+const mockKeyboard: Record<string, () => void> = {};
 jest.mock('react-native-keyboard-controller', () => ({
-  useKeyboardState: (select: (state: { isVisible: boolean }) => unknown) => select({ isVisible: mockKeyboardVisible }),
+  KeyboardEvents: {
+    addListener: (name: string, listener: () => void) => {
+      mockKeyboard[name] = listener;
+      return { remove: jest.fn() };
+    },
+  },
 }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 83, left: 0, right: 0 }) }));
 jest.mock('@/qlik-embed/use-agentic-target', () => ({
@@ -25,41 +30,69 @@ function onPlatform(os: typeof Platform.OS) {
   Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
 }
 const originalOS = Platform.OS;
+let renderer: TestRenderer.ReactTestRenderer | undefined;
 afterEach(() => {
   onPlatform(originalOS);
-  mockKeyboardVisible = false;
+  act(() => renderer?.unmount());
+  renderer = undefined;
 });
 
-/** The space the screen asks the embed to keep below its content: how far Qlik's composer is lifted. */
-function embedBottomInset(): number {
-  let renderer!: TestRenderer.ReactTestRenderer;
+/** Shows the screen and reads the space it asks the embed to keep below its content. */
+function showScreen() {
   act(() => {
     renderer = TestRenderer.create(<AgenticAssistantScreen />);
   });
   const { QlikEmbedHost } = jest.requireMock('@/qlik-embed/qlik-embed-host');
-  const embed = renderer.root.findByType(QlikEmbedHost);
-  const { bottomInset } = embed.props;
+  const embed = () => renderer!.root.findByType(QlikEmbedHost);
   // The embed is the screen's direct child: a wrapper View broke the keyboard handling (#13, #18).
-  const wrapperType = embed.parent?.type;
-  act(() => renderer.unmount());
-  expect(wrapperType).not.toBe('View');
-  return bottomInset ?? 0;
+  expect(embed().parent?.type).not.toBe('View');
+  return {
+    inset: (): number => embed().props.bottomInset ?? 0,
+    keyboard: (event: 'keyboardWillShow' | 'keyboardDidShow' | 'keyboardWillHide') => act(() => mockKeyboard[event]?.()),
+  };
 }
 
 describe('the Agentic Assistant screen', () => {
   it('on iOS, keeps the embed content above the floating tab bar so the composer is not covered', () => {
     onPlatform('ios');
-    expect(embedBottomInset()).toBe(83);
+    expect(showScreen().inset()).toBe(83);
   });
 
-  it('on iOS with the keyboard open, keeps nothing: the keyboard covers the tab bar', () => {
+  it('on iOS, keeps the space while the keyboard slides in, so the composer does not sink under the tab bar', () => {
     onPlatform('ios');
-    mockKeyboardVisible = true;
-    expect(embedBottomInset()).toBe(0);
+    const screen = showScreen();
+
+    screen.keyboard('keyboardWillShow');
+
+    expect(screen.inset()).toBe(83);
+  });
+
+  it('on iOS, drops the space once the keyboard is up and covers the tab bar', () => {
+    onPlatform('ios');
+    const screen = showScreen();
+
+    screen.keyboard('keyboardDidShow');
+
+    expect(screen.inset()).toBe(0);
+  });
+
+  it('on iOS, brings the space back as soon as the keyboard starts to hide', () => {
+    onPlatform('ios');
+    const screen = showScreen();
+    screen.keyboard('keyboardDidShow');
+
+    screen.keyboard('keyboardWillHide');
+
+    expect(screen.inset()).toBe(83);
   });
 
   it('on Android, keeps nothing: native tabs already keep screen content above the tab bar', () => {
     onPlatform('android');
-    expect(embedBottomInset()).toBe(0);
+    const screen = showScreen();
+    expect(screen.inset()).toBe(0);
+
+    screen.keyboard('keyboardDidShow');
+
+    expect(screen.inset()).toBe(0);
   });
 });
