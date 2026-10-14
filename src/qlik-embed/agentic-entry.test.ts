@@ -19,7 +19,7 @@ it('names the configured Agentic Assistant when the list has it, and shows only 
 
   expect(noAccess).toBe(false);
   expect(rows).toEqual([
-    { key: 'g', title: 'Configured', subtitle: 'Sales questions', href: { pathname: '/assistant/agentic', params: { id: 'g' } } },
+    { key: 'g', title: 'Configured', href: { pathname: '/assistant/agentic', params: { id: 'g' } } },
   ]);
 });
 
@@ -41,7 +41,7 @@ describe('a Qlik User who cannot see the configured Agentic Assistant (#16)', ()
     const { rows, noAccess } = agenticRows(ready, { ...loaded, assistants: [{ ...configured, kind: 'classic' }], agentic: [] });
 
     expect(noAccess).toBe(false);
-    expect(rows).toEqual([{ key: 'g', title: 'Open the Agentic Assistant', subtitle: expect.any(String), href: '/assistant/agentic' }]);
+    expect(rows).toEqual([{ key: 'g', title: 'Open the Agentic Assistant', href: '/assistant/agentic' }]);
   });
 
   it('still opens the embed while the list loads, because the app cannot tell yet', () => {

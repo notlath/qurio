@@ -6,12 +6,11 @@ import { useAgenticAvailability, type AgenticAvailability } from './use-agentic-
 
 type Selection = Pick<ReturnType<typeof useAssistantSelection>, 'assistants' | 'agentic' | 'loading' | 'error'>;
 
-export type AgenticRow = { key: string; title: string; subtitle: string; href: Href };
+export type AgenticRow = { key: string; title: string; href: Href };
 
 export const AGENTIC_NO_ACCESS =
   "You don't have access to the Agentic Assistant that your administrator set up. Ask your Tenant admin to give you access to its space.";
 
-const DEFAULT_SUBTITLE = 'Ask about your analytics apps and knowledge bases.';
 const opens = (id: string): Href => ({ pathname: '/assistant/agentic', params: { id } });
 
 /**
@@ -27,18 +26,17 @@ export function agenticRows(availability: AgenticAvailability, selection: Select
     const configuredId = availability.target.resourceId;
     const named = agentic.find(({ id }) => id === configuredId);
     if (named) {
-      return { rows: [{ key: named.id, title: named.name, subtitle: named.description || DEFAULT_SUBTITLE, href: opens(named.id) }], noAccess: false };
+      return { rows: [{ key: named.id, title: named.name, href: opens(named.id) }], noAccess: false };
     }
     const cannotView = !loading && !error && !assistants.some(({ id }) => id === configuredId);
     if (cannotView) return { rows: [], noAccess: true };
-    return { rows: [{ key: configuredId, title: 'Open the Agentic Assistant', subtitle: DEFAULT_SUBTITLE, href: '/assistant/agentic' }], noAccess: false };
+    return { rows: [{ key: configuredId, title: 'Open the Agentic Assistant', href: '/assistant/agentic' }], noAccess: false };
   }
   if (Platform.OS === 'web') return { rows: [], noAccess: false };
   return {
     rows: agentic.map((assistant) => ({
       key: assistant.id,
       title: assistant.name,
-      subtitle: assistant.description || DEFAULT_SUBTITLE,
       href: opens(assistant.id),
     })),
     noAccess: false,

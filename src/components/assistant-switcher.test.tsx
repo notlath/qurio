@@ -14,7 +14,7 @@ let mockAgentic: { rows: object[]; noAccess: boolean } = { rows: [], noAccess: f
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => mockAgentic, AGENTIC_NO_ACCESS: "You don't have access to the Agentic Assistant" }));
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');
 const assistants = [{ id: 'a', name: 'Knowledge', description: '' }, { id: 'b', name: 'Operations', description: '' }];
-const clockRow = { key: 'clock', title: 'ClockSense AI', subtitle: 'Ask about analytics', href: { pathname: '/assistant/agentic', params: { id: 'clock' } } };
+const clockRow = { key: 'clock', title: 'ClockSense AI', href: { pathname: '/assistant/agentic', params: { id: 'clock' } } };
 
 beforeEach(() => {
   mockPush.mockReset();
@@ -55,7 +55,7 @@ it('opens the list as its own sheet route, with Agentic Assistants only where th
 });
 
 describe('the open selector', () => {
-  it('lists the Legacy Assistants under their own heading, each marked Legacy, with the current one selected', async () => {
+  it('lists the Legacy Assistants under their own heading, each labelled Legacy for screen readers, with the current one selected', async () => {
     const { renderer, text } = await open();
 
     expect(text()).toContain('Choose an Assistant');
@@ -95,14 +95,20 @@ describe('the open selector', () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it('lists Agentic Assistants under their own heading, marked Agentic and "Opens in Qlik"', async () => {
-    mockAgentic = { rows: [clockRow], noAccess: false };
+  it('lists Agentic Assistants under their own heading, which says once that they open in Qlik', async () => {
+    mockAgentic = { rows: [clockRow, { ...clockRow, key: 'sales', title: 'Sales AI' }], noAccess: false };
 
     const { text } = await open({ includeAgentic: true });
 
     expect(text()).toContain('Agentic Assistants');
     expect(text()).toContain('ClockSense AI');
-    expect(text()).toContain('Opens in Qlik');
+    expect(text().split('Opens in Qlik').length - 1).toBe(1);
+  });
+
+  it('names each Assistant once, with no kind badge, since the group heading already gives the kind', async () => {
+    const { text } = await open();
+
+    expect(text()).not.toContain('"Legacy"');
   });
 
   it('opens an Agentic Assistant in place of the sheet and leaves the Legacy choice alone', async () => {

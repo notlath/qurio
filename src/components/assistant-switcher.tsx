@@ -7,7 +7,6 @@ import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
@@ -119,8 +118,10 @@ function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
   const hasAgentic = offered.rows.length > 0 || offered.noAccess;
 
   return (
-    <ThemedView type="backgroundElement" style={styles.sheet}>
-      <View style={styles.sheetHeader}>
+    <>
+      {/* iOS sizes a form sheet's ScrollView from its siblings: a header must stay a real view
+          (`collapsable={false}`), or the ScrollView is laid over it and hides the title. */}
+      <View collapsable={false} style={styles.sheetHeader}>
         <ThemedText type="headline" accessibilityRole="header" style={styles.sheetTitle}>Choose an Assistant</ThemedText>
         <IconButton
           accessibilityLabel="Close"
@@ -128,7 +129,9 @@ function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
           icon={<Icon ios="xmark" android="close" size={18} color="textSecondary" />}
         />
       </View>
-      <ScrollView contentContainerStyle={[styles.sheetContent, { paddingBottom: bottom + Spacing.three }]}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.sheetContent, { paddingBottom: Spacing.four + (Platform.OS === 'ios' ? 0 : bottom) }]}>
         {assistants.length > 0 && (
           <Group title="Legacy Assistants">
             {assistants.map((assistant) => (
@@ -153,14 +156,14 @@ function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
           </Group>
         )}
         {hasAgentic && (
-          <Group title="Agentic Assistants">
+          // Said once for the group, not on every row. Each row's label still says it.
+          <Group title="Agentic Assistants" note="Opens in Qlik">
             {offered.rows.map((row) => (
               <Option
                 key={row.key}
                 kind="agentic"
                 label={`${row.title}, Agentic, opens in Qlik`}
                 title={row.title}
-                subtitle={row.subtitle}
                 // Replaces the sheet, so Back from the Agentic Assistant returns to the Assistant screen.
                 onPress={() => router.replace(row.href)} />
             ))}
@@ -171,27 +174,32 @@ function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
         )}
         {failure && <ThemedText type="small" themeColor="danger" style={styles.groupNote}>Could not remember the Assistant. Try again.</ThemedText>}
       </ScrollView>
-    </ThemedView>
+    </>
   );
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
     <View style={styles.group}>
-      <ThemedText type="smallBold" themeColor="textSecondary" accessibilityRole="header" style={styles.groupTitle}>{title}</ThemedText>
+      <View style={styles.groupHeading}>
+        <ThemedText type="smallBold" themeColor="textSecondary" accessibilityRole="header">{title}</ThemedText>
+        {note && <ThemedText type="small" themeColor="textSecondary">{note}</ThemedText>}
+      </View>
       {children}
     </View>
   );
 }
 
 const KIND = {
-  legacy: { badge: 'Legacy', ios: 'text.bubble', android: 'chat_bubble' },
-  agentic: { badge: 'Agentic', ios: 'wand.and.stars', android: 'auto_awesome' },
+  legacy: { ios: 'text.bubble', android: 'chat_bubble' },
+  agentic: { ios: 'wand.and.stars', android: 'auto_awesome' },
 } as const;
 
 /**
- * Only a Legacy row can be current, so only it passes `current`. The kind shows as an icon and a
- * badge, never by colour alone. An Agentic row ends in an "Opens in Qlik" cue instead of a check.
+ * One line per Assistant: its icon, its name and, for a Legacy Assistant, its description. The
+ * group heading gives the kind, and the icon repeats it, so it is never shown by colour alone.
+ * Only a Legacy row can be current, so only it passes `current`. An Agentic row ends in an
+ * outward arrow instead of a check, because it opens in Qlik.
  */
 function Option({ kind, label, title, subtitle, current, onPress }: {
   kind: keyof typeof KIND;
@@ -210,19 +218,13 @@ function Option({ kind, label, title, subtitle, current, onPress }: {
       onPress={onPress}
       feedback="highlight"
       style={[styles.option, Shape.continuous, current ? { backgroundColor: theme.backgroundSelected } : {}]}>
-      <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={18} color={current ? 'primary' : 'textSecondary'} />
+      <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={20} color={current ? 'primary' : 'textSecondary'} />
       <View style={styles.optionText}>
-        <View style={styles.titleRow}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.optionTitle}>{title}</ThemedText>
-          <View style={[styles.badge, { borderColor: theme.borderStrong }]}>
-            <ThemedText type="small" themeColor="textSecondary">{KIND[kind].badge}</ThemedText>
-          </View>
-        </View>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>{title}</ThemedText>
         {!!subtitle && <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>{subtitle}</ThemedText>}
-        {kind === 'agentic' && <ThemedText type="small" themeColor="textSecondary">Opens in Qlik</ThemedText>}
       </View>
       {current && <Icon ios="checkmark" android="check" size={18} color="primary" />}
-      {kind === 'agentic' && <Icon ios="arrow.up.right" android="north_east" size={14} color="textSecondary" />}
+      {kind === 'agentic' && <Icon ios="arrow.up.right" android="north_east" size={16} color="textSecondary" />}
     </AppPressable>
   );
 }
@@ -243,24 +245,35 @@ const styles = StyleSheet.create({
   headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
   // The sheet uses three sizes only: headline (17) for its title, defaultSemiBold (16) for each
   // Assistant name, small (14) for everything secondary. Captions (12) were too small to read here.
-  sheet: { flex: 1, paddingTop: Spacing.three },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing.four, paddingRight: Spacing.two, paddingBottom: Spacing.two },
+  // One left edge for the title, the group headings and the row icons: the list inset plus the row's own.
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.two,
+    paddingLeft: Spacing.five,
+    paddingRight: Spacing.three,
+  },
   sheetTitle: { flex: 1 },
-  sheetContent: { paddingHorizontal: Spacing.two, gap: Spacing.three },
-  group: { gap: Spacing.half },
-  groupTitle: { paddingHorizontal: Spacing.two, paddingBottom: Spacing.one },
-  groupNote: { paddingHorizontal: Spacing.two },
+  sheetContent: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, gap: Spacing.four },
+  group: { gap: Spacing.one },
+  groupHeading: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.one,
+  },
+  groupNote: { paddingHorizontal: Spacing.three },
   // Nested inside the sheet, so it takes the small radius step (outer radius minus padding).
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    paddingHorizontal: Spacing.two,
+    minHeight: 56,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: Radius.small,
   },
   optionText: { flex: 1, gap: Spacing.half },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  optionTitle: { flexShrink: 1 },
-  badge: { paddingHorizontal: Spacing.two, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.pill },
 });
