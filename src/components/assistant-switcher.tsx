@@ -1,14 +1,14 @@
 import { useRouter } from 'expo-router';
-import type { Href } from 'expo-router';
-import { useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
-import { AppPressable } from '@/components/pressable';
+import { AppPressable, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Elevation, Fonts, Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
+import { Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
@@ -16,9 +16,10 @@ import { AGENTIC_NO_ACCESS, useAgenticRows } from '@/qlik-embed/agentic-entry';
 
 /**
  * One picker for every kind of Assistant, after the assistant-ui Model Selector: a trigger with the
- * current Assistant, and a grouped list. Choosing a Legacy Assistant sets the current one. Choosing
- * an Agentic Assistant opens it in Qlik, so it is never marked current. History passes no
- * `includeAgentic` because its Threads belong to Legacy Assistants.
+ * current Assistant, and a grouped list in a native form sheet (the `assistant/choose` route).
+ * Choosing a Legacy Assistant sets the current one. Choosing an Agentic Assistant opens it in Qlik,
+ * so it is never marked current. History passes no `includeAgentic` because its Threads belong to
+ * Legacy Assistants.
  */
 export function AssistantSwitcher({ includeAgentic = false, placement = 'inline' }: { includeAgentic?: boolean; placement?: Placement }) {
   return includeAgentic ? <WithAgentic placement={placement} /> : <Selector offered={NO_AGENTIC} includeAgentic={false} placement={placement} />;
@@ -59,20 +60,10 @@ function WithAgentic({ placement }: { placement: Placement }) {
 }
 
 function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<typeof useAgenticRows>; includeAgentic: boolean; placement: Placement }) {
-  const { assistants, agentic, selected, loading, error, choose } = useAssistantSelection();
+  const { assistants, agentic, selected, loading, error } = useAssistantSelection();
   const router = useRouter();
-  const { bottom } = useSafeAreaInsets();
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const [open, setOpen] = useState(false);
-  const [failure, setFailure] = useState(false);
-  // iOS drops a navigation that starts while a Modal is still dismissing, so it waits for onDismiss.
-  const pendingHref = useRef<Href | null>(null);
-  function openPending() {
-    const href = pendingHref.current;
-    pendingHref.current = null;
-    if (href) router.push(href);
-  }
   if (loading) return <ActivityIndicator accessibilityLabel="Loading Assistants" />;
   if (error) return placement === 'header' ? null : <AssistantProblem />;
   if (assistants.length === 0) {
@@ -92,73 +83,95 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
       <AppPressable
         disabled={nothingElseToPick}
         accessibilityLabel="Choose Assistant"
-        accessibilityState={{ expanded: open, disabled: nothingElseToPick }}
-        onPress={() => {
-          setFailure(false);
-          setOpen(true);
-        }}
-        // A header gives its left item no width limit, so keep room for the History button.
-        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
-        <ThemedText type={placement === 'header' ? 'default' : 'smallBold'} numberOfLines={1} style={[styles.triggerText, placement === 'header' && styles.semibold17]}>
+        accessibilityState={{ disabled: nothingElseToPick }}
+        onPress={() => router.push(includeAgentic ? '/assistant/choose?agentic=1' : '/assistant/choose')}
+        // In the header it is a bar button, so it dims. On History it is a chip, so it scales.
+        feedback={placement === 'header' ? 'opacity' : 'scale'}
+        // A header gives its left item no width limit, so keep room for the header's right buttons.
+        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget * 2 - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
+        <ThemedText type={placement === 'header' ? 'headline' : 'smallBold'} numberOfLines={1} style={styles.triggerText}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>
         {!nothingElseToPick && <Icon ios="chevron.up.chevron.down" android="unfold_more" size={14} color="textSecondary" />}
       </AppPressable>
-      {/* A fade, not a slide: a sliding Modal drags its scrim up from the bottom with the sheet. */}
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} onDismiss={openPending}>
-        <View style={styles.overlay}>
-          <Pressable accessibilityLabel="Close" style={[StyleSheet.absoluteFill, { backgroundColor: theme.scrim }]} onPress={() => setOpen(false)} />
-          <ThemedView type="backgroundElement" style={[styles.sheet, Shape.continuous, { paddingBottom: bottom + Spacing.three }]}>
-            <ThemedText accessibilityRole="header" style={[styles.sheetTitle, styles.semibold17]}>Choose an Assistant</ThemedText>
-            <ScrollView contentContainerStyle={styles.sheetContent}>
-              {assistants.length > 0 && (
-                <Group title="Legacy Assistants">
-                  {assistants.map((assistant) => (
-                    <Option
-                      key={assistant.id}
-                      kind="legacy"
-                      label={`${assistant.name}, Legacy`}
-                      title={assistant.name}
-                      subtitle={assistant.description}
-                      current={assistant.id === selected?.id}
-                      onPress={async () => {
-                        try {
-                          await choose(assistant);
-                          setOpen(false);
-                          setFailure(false);
-                        } catch {
-                          setFailure(true);
-                        }
-                      }} />
-                  ))}
-                </Group>
-              )}
-              {hasAgentic && (
-                <Group title="Agentic Assistants">
-                  {offered.rows.map((row) => (
-                    <Option
-                      key={row.key}
-                      kind="agentic"
-                      label={`${row.title}, Agentic, opens in Qlik`}
-                      title={row.title}
-                      subtitle={row.subtitle}
-                      onPress={() => {
-                        pendingHref.current = row.href;
-                        setOpen(false);
-                        if (Platform.OS !== 'ios') openPending();
-                      }} />
-                  ))}
-                  {offered.noAccess && (
-                    <ThemedText type="small" themeColor="textSecondary" style={styles.groupNote}>{AGENTIC_NO_ACCESS}</ThemedText>
-                  )}
-                </Group>
-              )}
-              {failure && <ThemedText type="small" themeColor="danger" style={styles.groupNote}>Could not remember the Assistant. Try again.</ThemedText>}
-            </ScrollView>
-          </ThemedView>
-        </View>
-      </Modal>
     </View>
+  );
+}
+
+/**
+ * The list inside the `assistant/choose` form sheet. The sheet's own title and Close button live
+ * here, because Android draws no navigator header inside a form sheet.
+ */
+export function AssistantChooser({ includeAgentic }: { includeAgentic: boolean }) {
+  return includeAgentic ? <ChooserWithAgentic /> : <Chooser offered={NO_AGENTIC} />;
+}
+
+// Its own component so History's list never resolves Agentic availability.
+function ChooserWithAgentic() {
+  return <Chooser offered={useAgenticRows()} />;
+}
+
+function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
+  const { assistants, selected, choose } = useAssistantSelection();
+  const router = useRouter();
+  const { bottom } = useSafeAreaInsets();
+  const [failure, setFailure] = useState(false);
+  const hasAgentic = offered.rows.length > 0 || offered.noAccess;
+
+  return (
+    <ThemedView type="backgroundElement" style={styles.sheet}>
+      <View style={styles.sheetHeader}>
+        <ThemedText type="headline" accessibilityRole="header" style={styles.sheetTitle}>Choose an Assistant</ThemedText>
+        <IconButton
+          accessibilityLabel="Close"
+          onPress={() => router.back()}
+          icon={<Icon ios="xmark" android="close" size={18} color="textSecondary" />}
+        />
+      </View>
+      <ScrollView contentContainerStyle={[styles.sheetContent, { paddingBottom: bottom + Spacing.three }]}>
+        {assistants.length > 0 && (
+          <Group title="Legacy Assistants">
+            {assistants.map((assistant) => (
+              <Option
+                key={assistant.id}
+                kind="legacy"
+                label={`${assistant.name}, Legacy`}
+                title={assistant.name}
+                subtitle={assistant.description}
+                current={assistant.id === selected?.id}
+                onPress={async () => {
+                  setFailure(false);
+                  try {
+                    await choose(assistant);
+                    selectionHaptic();
+                    router.back();
+                  } catch {
+                    setFailure(true);
+                  }
+                }} />
+            ))}
+          </Group>
+        )}
+        {hasAgentic && (
+          <Group title="Agentic Assistants">
+            {offered.rows.map((row) => (
+              <Option
+                key={row.key}
+                kind="agentic"
+                label={`${row.title}, Agentic, opens in Qlik`}
+                title={row.title}
+                subtitle={row.subtitle}
+                // Replaces the sheet, so Back from the Agentic Assistant returns to the Assistant screen.
+                onPress={() => router.replace(row.href)} />
+            ))}
+            {offered.noAccess && (
+              <ThemedText type="small" themeColor="textSecondary" style={styles.groupNote}>{AGENTIC_NO_ACCESS}</ThemedText>
+            )}
+          </Group>
+        )}
+        {failure && <ThemedText type="small" themeColor="danger" style={styles.groupNote}>Could not remember the Assistant. Try again.</ThemedText>}
+      </ScrollView>
+    </ThemedView>
   );
 }
 
@@ -195,11 +208,12 @@ function Option({ kind, label, title, subtitle, current, onPress }: {
       accessibilityHint={subtitle || undefined}
       accessibilityState={current === undefined ? undefined : { selected: current }}
       onPress={onPress}
+      feedback="highlight"
       style={[styles.option, Shape.continuous, current ? { backgroundColor: theme.backgroundSelected } : {}]}>
       <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={18} color={current ? 'primary' : 'textSecondary'} />
       <View style={styles.optionText}>
         <View style={styles.titleRow}>
-          <ThemedText numberOfLines={1} style={[styles.optionTitle, styles.semibold16]}>{title}</ThemedText>
+          <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.optionTitle}>{title}</ThemedText>
           <View style={[styles.badge, { borderColor: theme.borderStrong }]}>
             <ThemedText type="small" themeColor="textSecondary">{KIND[kind].badge}</ThemedText>
           </View>
@@ -227,19 +241,11 @@ const styles = StyleSheet.create({
   // iOS 26 wraps a header item in a glass capsule that hugs its content. Inset the text so it does not
   // touch the capsule's rounded ends. Android draws no capsule, so it needs no inset.
   headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
-  // The sheet uses three sizes only: 17 for its title, 16 for each Assistant name, 14 for everything
-  // secondary. Captions (12) were too small to read against the sheet, so the sheet no longer uses them.
-  semibold17: { fontFamily: Fonts.semibold, fontSize: 17, lineHeight: 22 },
-  semibold16: { fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 22 },
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: {
-    maxHeight: '75%',
-    paddingTop: Spacing.three,
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
-    ...Elevation.floating,
-  },
-  sheetTitle: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.two },
+  // The sheet uses three sizes only: headline (17) for its title, defaultSemiBold (16) for each
+  // Assistant name, small (14) for everything secondary. Captions (12) were too small to read here.
+  sheet: { flex: 1, paddingTop: Spacing.three },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing.four, paddingRight: Spacing.two, paddingBottom: Spacing.two },
+  sheetTitle: { flex: 1 },
   sheetContent: { paddingHorizontal: Spacing.two, gap: Spacing.three },
   group: { gap: Spacing.half },
   groupTitle: { paddingHorizontal: Spacing.two, paddingBottom: Spacing.one },

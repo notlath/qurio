@@ -4,7 +4,19 @@ import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'question' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code' | 'caption';
+  type?:
+    | 'default'
+    | 'defaultSemiBold'
+    | 'headline'
+    | 'question'
+    | 'title'
+    | 'small'
+    | 'smallBold'
+    | 'subtitle'
+    | 'link'
+    | 'linkPrimary'
+    | 'code'
+    | 'caption';
   themeColor?: ThemeColor;
 };
 
@@ -19,6 +31,8 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
       style={[
         { color },
         type === 'default' && styles.default,
+        type === 'defaultSemiBold' && styles.defaultSemiBold,
+        type === 'headline' && styles.headline,
         type === 'question' && styles.question,
         type === 'title' && styles.title,
         type === 'small' && styles.small,
@@ -59,6 +73,18 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 16,
     lineHeight: 24,
+  },
+  // A title in a header or a sheet, as iOS's Headline style.
+  headline: {
+    fontFamily: Fonts.semibold,
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  // A list row's name. Tighter than body copy, because it is one line, not a paragraph.
+  defaultSemiBold: {
+    fontFamily: Fonts.semibold,
+    fontSize: 16,
+    lineHeight: 22,
   },
   question: {
     fontFamily: Fonts.semibold,

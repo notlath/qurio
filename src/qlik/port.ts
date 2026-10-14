@@ -29,8 +29,8 @@ export interface AnswersPort {
   listAssistants(): Promise<Assistant[]>;
 
   // Every Analytics App the signed-in Qlik User can see, most recently updated first. `cursor` is the
-  // `next` of the previous page; callers never build one.
-  listAnalyticsApps(opts?: { limit?: number; cursor?: string }): Promise<{ items: AnalyticsApp[]; next?: string }>;
+  // `next` of the previous page; callers never build one. `name` limits the list to a name search.
+  listAnalyticsApps(opts?: { limit?: number; cursor?: string; name?: string }): Promise<{ items: AnalyticsApp[]; next?: string }>;
 
   // An image request for an app's thumbnail, ready for an image view — resolved per use so it always
   // carries a current token. Null when there is no session to send. Only asked for `hasThumbnail` apps.

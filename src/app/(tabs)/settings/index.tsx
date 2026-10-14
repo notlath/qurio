@@ -164,6 +164,7 @@ function WorkspaceConnection({
       <AppPressable
         accessibilityLabel="Workspace connection"
         accessibilityState={{ expanded: open }}
+        feedback="highlight"
         onPress={() => setOpen((o) => !o)}>
         <Row
           title="Workspace connection"
@@ -183,6 +184,7 @@ function ExpireTokenRow() {
   return (
     <AppPressable
       accessibilityLabel="Expire the access token now"
+      feedback="highlight"
       onPress={async () => {
         await expireAccessTokenNow();
         setMarked(true);
@@ -222,7 +224,7 @@ export default function SettingsScreen() {
             <Row title={resolved.tenantHost} />
           ) : (
             <Link href="/settings/change-tenant" asChild>
-              <AppPressable accessibilityLabel="Change tenant" accessibilityHint="Opens the Tenant screen">
+              <AppPressable accessibilityLabel="Change tenant" accessibilityHint="Opens the Tenant screen" feedback="highlight">
                 <Row title={resolved.tenantHost} accessory={<RowAction label="Change" />} />
               </AppPressable>
             </Link>
@@ -250,7 +252,8 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.two },
   // Inset to line up with the row text inside the group, not the group's edge.
   sectionTitle: { paddingHorizontal: Spacing.three },
-  group: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card },
+  // Clipped, so a pressed row's highlight follows the group's rounded corners.
+  group: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card, overflow: 'hidden' },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.three },
   row: {
     flexDirection: 'row',

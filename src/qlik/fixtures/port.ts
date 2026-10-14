@@ -116,7 +116,9 @@ export function createFixtureAnswersPort(): AnswersPort {
     },
 
     async listAnalyticsApps(opts) {
-      return paginate(fixtureAnalyticsApps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
+      const name = opts?.name?.toLowerCase();
+      const apps = name ? fixtureAnalyticsApps.filter((app) => app.name.toLowerCase().includes(name)) : fixtureAnalyticsApps;
+      return paginate(apps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
 
     async thumbnailImage() {

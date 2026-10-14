@@ -9,7 +9,8 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { LockGate } from '@/components/lock-gate';
@@ -53,26 +54,31 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    // iOS only: Android already lifts the chat above the keyboard natively (NativeTabs'
-    // tabBarRespectsIMEInsets); letting the library take the IME insets too would double the offset.
-    <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
-      <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
-        <TenantConfigProvider>
-          <AnswersPortProvider>
-            <LockGate>
-              <TenantEntryGate>
-                <Stack screenOptions={screenOptions}>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
-                </Stack>
-              </TenantEntryGate>
-            </LockGate>
-          </AnswersPortProvider>
-        </TenantConfigProvider>
-      </ThemeProvider>
-    </KeyboardProvider>
+    // Gesture Handler needs one root view above every gesture, such as History's swipe to delete.
+    <GestureHandlerRootView style={styles.root}>
+      {/* iOS only: Android already lifts the chat above the keyboard natively (NativeTabs'
+          tabBarRespectsIMEInsets); letting the library take the IME insets too would double the offset. */}
+      <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
+        <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
+          <TenantConfigProvider>
+            <AnswersPortProvider>
+              <LockGate>
+                <TenantEntryGate>
+                  <Stack screenOptions={screenOptions}>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
+                  </Stack>
+                </TenantEntryGate>
+              </LockGate>
+            </AnswersPortProvider>
+          </TenantConfigProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });
 
 /**
  * The navigator paints every screen's background, tab bar and header from this theme — left at

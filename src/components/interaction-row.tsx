@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
 import { AnswerContent } from '@/components/answer-content';
+import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, Chip, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
@@ -47,6 +48,7 @@ function Sources({ citations }: { citations: Citation[] }) {
         onPress={() => setExpanded((open) => !open)}
         accessibilityLabel={expanded ? `Hide ${label}` : `Show ${label}`}
         accessibilityState={{ expanded }}
+        feedback="scale"
         style={[styles.sourcesToggle, { borderColor: theme.border }]}>
         <Icon ios="doc.text" android="description" size={16} color="primary" />
         <ThemedText type="smallBold" themeColor="primary">
@@ -118,7 +120,10 @@ function FeedbackControl({ threadId, interactionId, initial }: { threadId: strin
         <IconButton
           accessibilityLabel="Helpful"
           accessibilityState={{ selected: vote === 1 }}
-          onPress={() => submit({ vote: 1 })}
+          onPress={() => {
+            selectionHaptic();
+            submit({ vote: 1 });
+          }}
           disabled={submitting}
           icon={
             <Icon
@@ -132,7 +137,10 @@ function FeedbackControl({ threadId, interactionId, initial }: { threadId: strin
         <IconButton
           accessibilityLabel="Not helpful"
           accessibilityState={{ selected: vote === -1 || showNegativeForm, expanded: showNegativeForm }}
-          onPress={() => setShowNegativeForm(true)}
+          onPress={() => {
+            selectionHaptic();
+            setShowNegativeForm(true);
+          }}
           disabled={submitting}
           icon={
             <Icon

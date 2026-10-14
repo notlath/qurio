@@ -272,6 +272,16 @@ describe('listAnalyticsApps', () => {
     expect(url).not.toMatch(/spaceId|collectionId|name=|query=/);
   });
 
+  it('searches by app name when the Qlik User types one', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await portWith(fetch).listAnalyticsApps({ name: 'sales & ops' });
+
+    expect(fetch.mock.calls[0][0]).toBe(
+      `${TENANT}/api/v1/items?resourceType=app&sort=-updatedAt&limit=50&name=sales%20%26%20ops`,
+    );
+  });
+
   it('maps each item to a domain Analytics App keyed by resourceId', async () => {
     const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireItem(1), wireItem(2)] }));
 

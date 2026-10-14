@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import HistoryScreen from '@/app/(tabs)/assistant/history';
 import NewThreadScreen from '@/app/(tabs)/assistant';
@@ -15,6 +16,8 @@ jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: 
 jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => null, AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
+// Reanimated's worklets do not load under Jest. The swipe itself needs a device, so the row passes through.
+jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({ __esModule: true, default: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
 jest.setTimeout(30000);
 
@@ -46,6 +49,27 @@ it('creates a Thread only on the first question and resets for another Assistant
   await act(async () => { composer(renderer).props.setQuestion('New question'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(b.ask).toHaveBeenCalledWith('b-thread', 'New question', expect.any(Object));
+  await act(async () => { renderer.unmount(); });
+});
+
+it('offers a new conversation once one has started, and the next question starts another Thread', async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  const actions = () => renderer.root.findByType('Header' as never).props.options.headerRight();
+
+  expect(actions().props.canStartNew).toBe(false);
+  await act(async () => { composer(renderer).props.setQuestion('First'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(actions().props.canStartNew).toBe(true);
+
+  await act(async () => { actions().props.onNew(); });
+  expect(actions().props.canStartNew).toBe(false);
+  expect(composer(renderer).props.question).toBe('');
+  await act(async () => { composer(renderer).props.setQuestion('Second'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(a.createThread).toHaveBeenCalledTimes(2);
   await act(async () => { renderer.unmount(); });
 });
 
@@ -163,4 +187,29 @@ it('History with no conversations offers one action: ask a question', async () =
 
   expect(mockDismissTo).toHaveBeenCalledWith('/assistant');
   await act(async () => { renderer.unmount(); });
+});
+
+it('History deletes a conversation only after confirmation, from a long press or the Delete action', async () => {
+  const port = { ...makePort('a'), deleteThread: jest.fn(async () => undefined) } as unknown as AnswersPort & { deleteThread: jest.Mock };
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' }, assistants: [{ id: 'a' }] });
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
+  const row = () => renderer.root.findByProps({ accessibilityLabel: 'Open a history' });
+  try {
+    expect(row().props.accessibilityActions).toEqual([{ name: 'delete', label: 'Delete' }]);
+    await act(async () => { row().props.onLongPress(); });
+    expect(alert).toHaveBeenLastCalledWith('Delete conversation?', expect.any(String), expect.any(Array), expect.any(Object));
+    expect(port.deleteThread).not.toHaveBeenCalled();
+
+    await act(async () => { row().props.onAccessibilityAction({ nativeEvent: { actionName: 'delete' } }); });
+    const buttons = alert.mock.calls[1][2] as AlertButton[];
+    await act(async () => { buttons.find((button) => button.style === 'destructive')!.onPress!(); });
+
+    expect(port.deleteThread).toHaveBeenCalledWith('a-old');
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Open a history' }).length).toBe(0);
+  } finally {
+    alert.mockRestore();
+    await act(async () => { renderer.unmount(); });
+  }
 });

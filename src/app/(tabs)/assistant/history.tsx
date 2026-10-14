@@ -1,12 +1,14 @@
 import { Link, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
+import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { AssistantSwitcher } from '@/components/assistant-switcher';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
+import { warningHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
-import { AppPressable, IconButton, PrimaryButton } from '@/components/pressable';
+import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { ThemedText } from '@/components/themed-text';
 import { ContentColumn, Radius, Spacing } from '@/constants/theme';
@@ -19,21 +21,59 @@ function isAppError(value: unknown): value is AppError {
   return typeof value === 'object' && value !== null && 'kind' in value;
 }
 
+/** The action a left swipe uncovers. It asks first, like every other way to delete. */
+function DeleteAction({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+
+  return (
+    <AppPressable
+      onPress={onPress}
+      accessibilityLabel="Delete"
+      style={[styles.deleteAction, { backgroundColor: theme.danger }]}>
+      <Icon ios="trash" android="delete" size={18} color="dangerForeground" />
+      <ThemedText type="smallBold" themeColor="dangerForeground">
+        Delete
+      </ThemedText>
+    </AppPressable>
+  );
+}
+
 function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string) => void }) {
   const { selected } = useAssistantSelection();
+  const theme = useTheme();
+  const swipeable = useRef<SwipeableMethods>(null);
 
-  // Deleting a thread is not undoable and the control sits inside a tappable row — a stray tap
-  // used to destroy a conversation outright, with no confirmation of any kind.
+  // Deleting a thread is not undoable, so every path to it asks first: the swipe action, a long
+  // press, and the screen reader's Delete action. Each row used to carry its own trash button,
+  // where a stray tap destroyed a conversation.
   function confirmDelete() {
-    Alert.alert('Delete conversation?', `"${thread.name}" and its answers will be permanently removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => onDelete(thread.id) },
-    ]);
+    const close = () => swipeable.current?.close();
+    Alert.alert(
+      'Delete conversation?',
+      `"${thread.name}" and its answers will be permanently removed.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: close },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            warningHaptic();
+            onDelete(thread.id);
+          },
+        },
+      ],
+      // Android: a tap outside the dialog cancels it, so the row must close then as well.
+      { cancelable: true, onDismiss: close },
+    );
   }
 
   return (
-    // Plain rows grouped by spacing, not a bordered card per row (ui-skills playbook).
-    <View style={styles.row}>
+    <ReanimatedSwipeable
+      ref={swipeable}
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+      renderRightActions={() => <DeleteAction onPress={confirmDelete} />}>
       <Link
         href={{
           pathname: '/assistant/thread/[id]',
@@ -43,7 +83,15 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
         <AppPressable
           accessibilityLabel={`Open ${thread.name}`}
           accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
-          style={styles.rowText}>
+          accessibilityActions={[{ name: 'delete', label: 'Delete' }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'delete') confirmDelete();
+          }}
+          onLongPress={confirmDelete}
+          feedback="highlight"
+          // Flattened: `Link asChild` throws in development if its child's style is an array.
+          // Opaque, so the Delete action stays hidden under the row until a swipe uncovers it.
+          style={StyleSheet.flatten([styles.row, { backgroundColor: theme.background }])}>
           <ThemedText numberOfLines={1}>
             {thread.name}
           </ThemedText>
@@ -52,12 +100,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
           </ThemedText>
         </AppPressable>
       </Link>
-      <IconButton
-        onPress={confirmDelete}
-        accessibilityLabel={`Delete ${thread.name}`}
-        icon={<Icon ios="trash" android="delete" size={18} color="textSecondary" />}
-      />
-    </View>
+    </ReanimatedSwipeable>
   );
 }
 
@@ -151,7 +194,9 @@ function AssistantHistory() {
             ))}
           </View>
         ) : error ? (
-          <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={() => setError(null)} />
+          <View style={styles.inset}>
+            <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={() => setError(null)} />
+          </View>
         ) : (
           <EmptyState
             icon={<Icon ios="bubble.left.and.bubble.right" android="forum" size={28} color="primary" />}
@@ -178,13 +223,16 @@ function ThreadRowSkeleton() {
   );
 }
 
+// Rows run edge to edge, so the press highlight and the swipe span the whole width. The text keeps
+// its inset through the row's own padding.
 const styles = StyleSheet.create({
-  listContent: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.four, gap: Spacing.half },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  rowText: { flex: 1, gap: Spacing.half, paddingVertical: Spacing.two },
+  listContent: { paddingTop: Spacing.two, paddingBottom: Spacing.four, gap: Spacing.half },
+  inset: { paddingHorizontal: Spacing.three },
+  row: { gap: Spacing.half, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  deleteAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.four },
   skeletons: { gap: Spacing.half },
   // Same height as a row: two text lines in the row's vertical padding.
-  skeletonRow: { flexDirection: 'column', alignItems: 'flex-start', gap: Spacing.two, paddingVertical: Spacing.three },
+  skeletonRow: { gap: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.three },
   skeletonLine: { height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.four },
 });

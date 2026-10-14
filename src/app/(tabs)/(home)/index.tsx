@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Link, Stack } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -6,6 +5,7 @@ import { ActivityIndicator, FlatList, StyleSheet, useWindowDimensions, View } fr
 import { AppCover } from '@/components/app-cover';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
+import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
@@ -21,9 +21,19 @@ function isAppError(value: unknown): value is AppError {
   return typeof value === 'object' && value !== null && 'kind' in value;
 }
 
-// Held against the port that produced it: a new port means a new Tenant or session, and the
-// previous Qlik User's list must not survive that (ADR-0007) — memory only, never stored.
-type AppsState = { port: AnswersPort; apps: AnalyticsApp[]; next?: string; error?: AppError; erroredAt?: number };
+// Held against the port and the search that produced it: a new port means a new Tenant or session,
+// and the previous Qlik User's list must not survive that (ADR-0007) — memory only, never stored.
+type AppsState = { port: AnswersPort; name: string; apps: AnalyticsApp[]; next?: string; error?: AppError; erroredAt?: number };
+
+/** How long typing must pause before the search runs, so each keystroke is not its own request. */
+const SEARCH_DEBOUNCE_MS = 300;
+
+type Search = { port: AnswersPort; name: string };
+
+/** True when `state` holds the list for this port and this search. */
+function isFor(state: Search | null, search: Search): boolean {
+  return state?.port === search.port && state.name === search.name;
+}
 
 function AppRow({ app }: { app: AnalyticsApp }) {
   const theme = useTheme();
@@ -33,6 +43,7 @@ function AppRow({ app }: { app: AnalyticsApp }) {
     <Link href={{ pathname: '/apps/[id]', params: { id: app.id, name: app.name } }} asChild>
       <AppPressable
         accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
+        feedback="scale"
         // Flattened: `Link asChild` throws in development if its child's style is an array.
         style={StyleSheet.flatten([
           styles.row,
@@ -80,6 +91,7 @@ function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
     <Link href={{ pathname: '/apps/[id]', params: { id: app.id, name: app.name } }} asChild>
       <AppPressable
         accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
+        feedback="scale"
         // Flattened: `Link asChild` throws in development if its child's style is an array.
         style={StyleSheet.flatten([
           styles.card,
@@ -131,7 +143,7 @@ function ViewModeToggle({ mode, onChange }: { mode: AppsViewMode; onChange: (mod
     <IconButton
       accessibilityLabel={next === 'grid' ? 'Show apps as a grid' : 'Show apps as a list'}
       onPress={() => {
-        if (process.env.EXPO_OS !== 'web') Haptics.selectionAsync();
+        selectionHaptic();
         onChange(next);
       }}
       icon={
@@ -153,31 +165,39 @@ export default function AppsScreen() {
   const [state, setState] = useState<AppsState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const current = state?.port === port ? state : null;
-  // A request started for an earlier port can finish after the current one's; its result is dropped.
-  const livePort = useRef(port);
+  // `search` is what the field holds. `name` is the search that runs, once typing pauses.
+  const [search, setSearch] = useState('');
+  const [name, setName] = useState('');
+  const current = isFor(state, { port, name }) ? state : null;
+  // A request for an earlier port or search can finish after the current one. Its result is dropped.
+  const live = useRef<Search>({ port, name });
   useEffect(() => {
-    livePort.current = port;
-  }, [port]);
+    live.current = { port, name };
+  }, [port, name]);
 
-  const load = useCallback(
-    () =>
-      port.listAnalyticsApps().then(
-        (page) => {
-          if (livePort.current === port) setState({ port, apps: page.items, next: page.next });
-        },
-        (e) => {
-          if (livePort.current !== port) return;
-          setState({
-            port,
-            apps: [],
-            error: isAppError(e) ? e : { kind: 'ServiceUnavailable' },
-            erroredAt: Date.now(),
-          });
-        },
-      ),
-    [port],
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => setName(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const load = useCallback(() => {
+    const isLive = () => isFor(live.current, { port, name });
+    return port.listAnalyticsApps(name ? { name } : undefined).then(
+      (page) => {
+        if (isLive()) setState({ port, name, apps: page.items, next: page.next });
+      },
+      (e) => {
+        if (!isLive()) return;
+        setState({
+          port,
+          name,
+          apps: [],
+          error: isAppError(e) ? e : { kind: 'ServiceUnavailable' },
+          erroredAt: Date.now(),
+        });
+      },
+    );
+  }, [port, name]);
 
   useEffect(() => {
     load();
@@ -198,13 +218,13 @@ export default function AppsScreen() {
     if (!current?.next || loadingMore) return;
     setLoadingMore(true);
     try {
-      const page = await port.listAnalyticsApps({ cursor: current.next });
+      const page = await port.listAnalyticsApps({ cursor: current.next, name: name || undefined });
       setState((prev) =>
-        prev?.port === port ? { ...prev, apps: [...prev.apps, ...page.items], next: page.next } : prev,
+        prev && isFor(prev, { port, name }) ? { ...prev, apps: [...prev.apps, ...page.items], next: page.next } : prev,
       );
     } catch (e) {
       setState((prev) =>
-        prev?.port === port
+        prev && isFor(prev, { port, name })
           ? { ...prev, error: isAppError(e) ? e : { kind: 'ServiceUnavailable' }, erroredAt: Date.now() }
           : prev,
       );
@@ -231,7 +251,19 @@ export default function AppsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerRight: () => <ViewModeToggle mode={viewMode} onChange={setViewMode} /> }} />
+      <Stack.Screen
+        options={{
+          headerRight: () => <ViewModeToggle mode={viewMode} onChange={setViewMode} />,
+          // The native search field: under the large title on iOS, a header action on Android.
+          headerSearchBarOptions: {
+            placeholder: 'Search Analytics Apps',
+            autoCapitalize: 'none',
+            onChangeText: (event) => setSearch(event.nativeEvent.text),
+            onCancelButtonPress: () => setSearch(''),
+            onClose: () => setSearch(''),
+          },
+        }}
+      />
       <FlatList
         // numColumns cannot change on a mounted list, so each layout is its own list.
         key={grid ? `grid-${columns}` : 'list'}
@@ -255,7 +287,13 @@ export default function AppsScreen() {
               style={grid ? [styles.skeletons, styles.gridRow, styles.skeletonGrid] : styles.skeletons}>
               {[0, 1, 2, 3].map((i) => (grid ? <AppCardSkeleton key={i} width={cardWidth} /> : <AppRowSkeleton key={i} />))}
             </View>
-          ) : current.erroredAt !== undefined ? null : (
+          ) : current.erroredAt !== undefined ? null : name ? (
+            <EmptyState
+              icon={<Icon ios="magnifyingglass" android="search" size={28} color="primary" />}
+              title="No matching Analytics Apps"
+              message={`No Analytics App name matches "${name}".`}
+            />
+          ) : (
             // Only a load that succeeded may say there is nothing to show — a dismissed error must not
             // read as "no apps". Zero apps is also no evidence about licences or access, so no claim is made.
             <EmptyState

@@ -1,3 +1,4 @@
+import { Link, Stack } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -6,7 +7,7 @@ import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
 import { InteractionRow } from '@/components/interaction-row';
-import { AppPressable } from '@/components/pressable';
+import { AppPressable, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
@@ -23,6 +24,7 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
     <AppPressable
       onPress={() => onPress(starter.prompt)}
       accessibilityLabel={`Ask: ${starter.prompt}`}
+      feedback="scale"
       style={[styles.starterRow, Shape.continuous, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
       <Icon ios="text.bubble" android="chat_bubble" size={16} color="primary" />
       <ThemedText type="small" numberOfLines={2} style={styles.starterText}>
@@ -32,17 +34,46 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
   );
 }
 
-export default function NewThreadScreen() {
-  const { selected } = useAssistantSelection();
+/**
+ * The header's actions. "New conversation" shows only once there is a conversation to leave, as in
+ * the ChatGPT and Gemini apps: on an empty screen it would do nothing.
+ */
+function HeaderActions({ canStartNew, onNew }: { canStartNew: boolean; onNew: () => void }) {
   return (
-    <View style={styles.flex}>
-      <AssistantProblem />
-      <NewThreadConversation key={selected?.id ?? 'none'} />
+    <View style={styles.headerActions}>
+      {canStartNew && (
+        <IconButton
+          accessibilityLabel="New conversation"
+          onPress={onNew}
+          icon={<Icon ios="square.and.pencil" android="edit_square" size={22} color="primary" />}
+        />
+      )}
+      <Link href="/assistant/history" asChild>
+        <IconButton
+          accessibilityLabel="Open conversation history"
+          icon={<Icon ios="clock.arrow.circlepath" android="history" size={22} color="primary" />}
+        />
+      </Link>
     </View>
   );
 }
 
-function NewThreadConversation() {
+export default function NewThreadScreen() {
+  const { selected } = useAssistantSelection();
+  // A new conversation is a fresh mount, so a pending question is aborted and nothing carries over.
+  const [conversation, setConversation] = useState(0);
+  return (
+    <View style={styles.flex}>
+      <AssistantProblem />
+      <NewThreadConversation
+        key={`${selected?.id ?? 'none'}:${conversation}`}
+        onNew={() => setConversation((n) => n + 1)}
+      />
+    </View>
+  );
+}
+
+function NewThreadConversation({ onNew }: { onNew: () => void }) {
   const port = useAnswersPort();
   const [starters, setStarters] = useState<Starter[]>([]);
   const threadRef = useRef<Promise<Thread> | null>(null);
@@ -79,6 +110,11 @@ function NewThreadConversation() {
 
   return (
     <View style={styles.flex}>
+      <Stack.Screen
+        options={{
+          headerRight: () => <HeaderActions canStartNew={asking || interactions.length > 0} onNew={onNew} />,
+        }}
+      />
       <FlatList
         style={styles.flex}
         contentContainerStyle={[styles.listContent, ContentColumn]}
@@ -134,6 +170,7 @@ function NewThreadConversation() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },

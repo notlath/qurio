@@ -202,4 +202,30 @@ describe('parseAnswerMarkdown', () => {
       },
     ]);
   });
+  it('parses every prefix of a streaming answer, so a half-arrived marker never crashes or hides text', () => {
+    const markdown = [
+      '# Title',
+      '',
+      'Some **bold** and *italic* with a [link](https://example.com).',
+      '',
+      '1. First',
+      '2. Second',
+      '',
+      '| A | B |',
+      '|---|---|',
+      '| 1 | 2 |',
+      '',
+      '```',
+      'code',
+      '```',
+    ].join('\n');
+
+    for (let end = 1; end <= markdown.length; end++) {
+      const prefix = markdown.slice(0, end);
+      const text = JSON.stringify(parseAnswerMarkdown(prefix));
+      // The newest character always shows somewhere, unless it is markup or whitespace.
+      const last = prefix.trim().slice(-1);
+      if (/[a-z0-9]/i.test(last)) expect(text).toContain(last);
+    }
+  });
 });

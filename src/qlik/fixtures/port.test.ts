@@ -156,4 +156,16 @@ describe('createFixtureAnswersPort — Analytics Apps', () => {
     expect(ids.length).toBeGreaterThan(4);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('finds apps by part of the name, ignoring case, across pages', async () => {
+    const port = createFixtureAnswersPort();
+
+    const first = await port.listAnalyticsApps({ limit: 1, name: 'R' });
+    const second = await port.listAnalyticsApps({ limit: 1, name: 'R', cursor: first.next });
+
+    expect(first.items.every((app) => app.name.toLowerCase().includes('r'))).toBe(true);
+    expect(second.items.every((app) => app.name.toLowerCase().includes('r'))).toBe(true);
+    expect(second.items[0].id).not.toBe(first.items[0].id);
+    await expect(port.listAnalyticsApps({ name: 'no such app' })).resolves.toEqual({ items: [], next: undefined });
+  });
 });

@@ -128,9 +128,12 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
 
     async listAnalyticsApps(opts) {
       // Items is tenant-level, not part of the Assistant: `/api/` paths are rooted at the Tenant.
+      // `name` is Items' case-insensitive name search. Later pages follow Qlik's own `next` href, which
+      // is expected to keep it: not yet seen against a live Tenant, nor whether it matches part of a name.
       const path =
         opts?.cursor ??
-        `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}`;
+        `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}` +
+          (opts?.name ? `&name=${encodeURIComponent(opts.name)}` : '');
       const { data, links } = await json<QlikList<QlikItem>>(path);
       return { items: data.map(toAnalyticsApp), next: links?.next?.href };
     },

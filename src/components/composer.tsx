@@ -2,6 +2,8 @@ import { ActivityIndicator, StyleSheet, TextInput, View, type ScrollViewProps } 
 import { KeyboardChatScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnswerContent } from '@/components/answer-content';
+import { tapHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { IconButton } from '@/components/pressable';
 import { TextStyles, ThemedText } from '@/components/themed-text';
@@ -30,6 +32,11 @@ export function Composer({
   const { bottom } = useSafeAreaInsets();
   const canAsk = !!question.trim();
 
+  function send() {
+    if (canAsk) tapHaptic();
+    onAsk();
+  }
+
   return (
     // Rides the keyboard frame by frame (iOS interactive dismiss included). The bottom inset —
     // home indicator plus tab bar inside the tabs — is handed back once the keyboard is up, so the
@@ -45,7 +52,7 @@ export function Composer({
           accessibilityLabel="Your question"
           value={question}
           onChangeText={setQuestion}
-          onSubmitEditing={onAsk}
+          onSubmitEditing={send}
           // A multiline input otherwise inserts a newline on return, so the "send" key never sent.
           submitBehavior="submit"
           editable={!asking}
@@ -61,7 +68,7 @@ export function Composer({
           />
         ) : (
           <IconButton
-            onPress={onAsk}
+            onPress={send}
             disabled={!canAsk}
             accessibilityLabel="Ask question"
             variant={canAsk ? 'filled' : 'tinted'}
@@ -94,7 +101,8 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
         <ThemedText type="question">{question}</ThemedText>
       </ThemedView>
       {partialAnswer ? (
-        <ThemedText>{partialAnswer}</ThemedText>
+        // The same renderer as the finished answer, so lists and bold do not jump into place at the end.
+        <AnswerContent markdown={partialAnswer} />
       ) : (
         <View style={styles.thinking} accessibilityLiveRegion="polite">
           <ActivityIndicator size="small" color={theme.primary} />

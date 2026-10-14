@@ -1,12 +1,13 @@
 import React from 'react';
-import { Modal } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { errorMessageFor } from '@/domain';
-import { AssistantProblem, AssistantSwitcher } from './assistant-switcher';
+import { AssistantChooser, AssistantProblem, AssistantSwitcher } from './assistant-switcher';
 
 jest.mock('@/global.css', () => ({}));
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+const mockBack = jest.fn();
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, back: mockBack, replace: mockReplace }) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
 let mockAgentic: { rows: object[]; noAccess: boolean } = { rows: [], noAccess: false };
@@ -17,15 +18,17 @@ const clockRow = { key: 'clock', title: 'ClockSense AI', subtitle: 'Ask about an
 
 beforeEach(() => {
   mockPush.mockReset();
+  mockBack.mockReset();
+  mockReplace.mockReset();
   mockAgentic = { rows: [], noAccess: false };
 });
 
+/** The sheet's content, as the `assistant/choose` route renders it. */
 async function open(props: { includeAgentic?: boolean } = {}) {
   const choose = jest.fn().mockResolvedValue(undefined);
   useAssistantSelection.mockReturnValue({ assistants, agentic: [], selected: assistants[0], loading: false, error: null, choose });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AssistantSwitcher {...props} />); });
-  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.onPress(); });
+  await act(async () => { renderer = TestRenderer.create(<AssistantChooser includeAgentic={!!props.includeAgentic} />); });
   return { renderer, choose, text: () => JSON.stringify(renderer.toJSON()) };
 }
 const row = (renderer: TestRenderer.ReactTestRenderer, label: string) => renderer.root.findByProps({ accessibilityLabel: label });
@@ -37,6 +40,18 @@ it('shows the selected Assistant and keeps the list closed until the trigger is 
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Knowledge');
   expect(JSON.stringify(renderer.toJSON())).not.toContain('Operations');
+});
+
+it('opens the list as its own sheet route, with Agentic Assistants only where they are offered', async () => {
+  useAssistantSelection.mockReturnValue({ assistants, agentic: [], selected: assistants[0], loading: false, error: null, choose: jest.fn() });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AssistantSwitcher />); });
+  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.onPress(); });
+  expect(mockPush).toHaveBeenLastCalledWith('/assistant/choose');
+
+  await act(async () => { renderer.update(<AssistantSwitcher includeAgentic placement="header" />); });
+  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.onPress(); });
+  expect(mockPush).toHaveBeenLastCalledWith('/assistant/choose?agentic=1');
 });
 
 describe('the open selector', () => {
@@ -52,13 +67,22 @@ describe('the open selector', () => {
   });
 
   it('chooses a Legacy Assistant without creating a Thread, then closes', async () => {
-    const { renderer, choose, text } = await open();
+    const { renderer, choose } = await open();
 
     await act(async () => { await row(renderer, 'Operations, Legacy').props.onPress(); });
 
     expect(choose).toHaveBeenCalledWith(assistants[1]);
     expect(mockPush).not.toHaveBeenCalled();
-    expect(text()).not.toContain('Legacy Assistants');
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes from its Close button without choosing', async () => {
+    const { renderer, choose } = await open();
+
+    await act(async () => { row(renderer, 'Close').props.onPress(); });
+
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(choose).not.toHaveBeenCalled();
   });
 
   it('stays open and says so when the choice cannot be remembered', async () => {
@@ -68,7 +92,7 @@ describe('the open selector', () => {
     await act(async () => { await row(renderer, 'Operations, Legacy').props.onPress(); });
 
     expect(text()).toContain('Could not remember the Assistant');
-    expect(text()).toContain('Legacy Assistants');
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it('lists Agentic Assistants under their own heading, marked Agentic and "Opens in Qlik"', async () => {
@@ -81,17 +105,15 @@ describe('the open selector', () => {
     expect(text()).toContain('Opens in Qlik');
   });
 
-  it('opens an Agentic Assistant as a pushed screen and leaves the Legacy choice alone', async () => {
+  it('opens an Agentic Assistant in place of the sheet and leaves the Legacy choice alone', async () => {
     mockAgentic = { rows: [clockRow], noAccess: false };
-    const { renderer, choose, text } = await open({ includeAgentic: true });
+    const { renderer, choose } = await open({ includeAgentic: true });
 
     await act(async () => { row(renderer, 'ClockSense AI, Agentic, opens in Qlik').props.onPress(); });
-    expect(mockPush).not.toHaveBeenCalled();
-    await act(async () => { renderer.root.findByType(Modal).props.onDismiss(); });
 
-    expect(mockPush).toHaveBeenCalledWith(clockRow.href);
+    // Replaced, so Back from the Agentic Assistant returns to the Assistant screen, not to the sheet.
+    expect(mockReplace).toHaveBeenCalledWith(clockRow.href);
     expect(choose).not.toHaveBeenCalled();
-    expect(text()).not.toContain('Agentic Assistants');
   });
 
   it('does not offer Agentic Assistants where only Legacy Assistants make sense (History)', async () => {
@@ -129,11 +151,12 @@ it('shows nothing rather than an empty sheet when there is nothing to offer', as
 });
 
 it('forgets an earlier failure when the list is opened again', async () => {
-  const { renderer, choose, text } = await open();
-  choose.mockRejectedValueOnce(new Error('storage'));
-  await act(async () => { await row(renderer, 'Operations, Legacy').props.onPress(); });
-  await act(async () => { renderer.root.findByType(Modal).props.onRequestClose(); });
-  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.onPress(); });
+  const first = await open();
+  first.choose.mockRejectedValueOnce(new Error('storage'));
+  await act(async () => { await row(first.renderer, 'Operations, Legacy').props.onPress(); });
+  await act(async () => { first.renderer.unmount(); });
+
+  const { text } = await open();
 
   expect(text()).not.toContain('Could not remember');
 });

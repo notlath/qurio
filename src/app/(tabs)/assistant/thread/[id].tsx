@@ -1,13 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { InteractionRow } from '@/components/interaction-row';
-import { ThemedText } from '@/components/themed-text';
-import { ContentColumn, Spacing } from '@/constants/theme';
+import { TextStyles, ThemedText } from '@/components/themed-text';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { AppError, ThreadDetail } from '@/domain';
+import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { AnswersScope, useAnswersPort } from '@/qlik/context';
@@ -114,20 +115,42 @@ function LoadedThreadScreen({ id, assistantName }: { id: string; assistantName: 
     );
   }
 
-  if (!detail) {
-    return (
-      <View style={styles.loadingState}>
-        <ActivityIndicator accessibilityLabel="Loading conversation" />
-      </View>
-    );
-  }
+  if (!detail) return <ThreadSkeleton />;
 
   return <ThreadConversation detail={detail} assistantName={assistantName} />;
 }
 
+/** A question bubble and an answer's lines, where the conversation will land, so nothing reflows. */
+function ThreadSkeleton() {
+  const theme = useTheme();
+  const fill = { backgroundColor: theme.backgroundSelected };
+
+  return (
+    <View accessible accessibilityLabel="Loading conversation" style={[styles.listContent, ContentColumn]}>
+      <View style={styles.skeletonTurn}>
+        <View style={[styles.skeletonQuestion, Shape.continuous, fill]} />
+        <View style={styles.skeletonAnswer}>
+          {(['100%', '92%', '60%'] as const).map((width) => (
+            <View key={width} style={[styles.skeletonLine, { width }, fill]} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonTurn: { gap: Spacing.three },
+  // A one-line question bubble: the question line height inside the bubble's vertical padding.
+  skeletonQuestion: {
+    alignSelf: 'flex-end',
+    width: '60%',
+    height: TextStyles.question.lineHeight + Spacing.two * 2,
+    borderRadius: Radius.card,
+  },
+  skeletonAnswer: { gap: Spacing.three },
+  skeletonLine: { height: 12, borderRadius: Radius.pill },
   failureState: { flex: 1, justifyContent: 'center', padding: Spacing.three },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.four },

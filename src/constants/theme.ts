@@ -24,8 +24,7 @@ export const Colors = {
     // neighbours; `border` at 1.24:1 is a decorative separator only. 3.24:1 vs background.
     borderStrong: '#7C8F83',
     danger: '#B42318',
-    // Solid scrim behind sheets (ui-skills playbook: a solid scrim, not a blur).
-    scrim: 'rgba(11, 31, 20, 0.32)',
+    dangerForeground: '#FFFFFF', // 6.57:1 on danger
   },
   dark: {
     text: '#F2F7F2',
@@ -38,7 +37,7 @@ export const Colors = {
     border: '#31473A',
     borderStrong: '#5E7566', // 3.65:1 vs background
     danger: '#FFB4AB',
-    scrim: 'rgba(0, 0, 0, 0.56)',
+    dangerForeground: '#690005', // 7.72:1 on danger
   },
 } as const;
 
