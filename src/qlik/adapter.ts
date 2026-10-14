@@ -128,8 +128,8 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
 
     async listAnalyticsApps(opts) {
       // Items is tenant-level, not part of the Assistant: `/api/` paths are rooted at the Tenant.
-      // `name` is Items' case-insensitive name search. Later pages follow Qlik's own `next` href, which
-      // is expected to keep it: not yet seen against a live Tenant, nor whether it matches part of a name.
+      // `name` is Items' name search. Seen live on mtcklpi.sg (2026-10-15): it ignores case, matches part
+      // of a name ("sal" finds "Sales Analysis"), and Qlik's own `next` href keeps it for later pages.
       const path =
         opts?.cursor ??
         `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}` +
