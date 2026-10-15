@@ -42,6 +42,7 @@ function ThreadConversation({ detail, assistantName }: { detail: ThreadDetail; a
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <InteractionRow interaction={item} />}
         keyboardDismissMode="interactive"
+        contentInsetAdjustmentBehavior="automatic"
         renderScrollComponent={(props) => <ChatScrollView {...props} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>

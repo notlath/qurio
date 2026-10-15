@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 import { AssistantSwitcher } from '@/components/assistant-switcher';
 import { useStackScreenOptions } from '@/hooks/use-stack-options';
@@ -10,6 +11,11 @@ function AssistantTrigger() {
   return <AssistantSwitcher includeAgentic placement="header" />;
 }
 
+// Transparent on iOS, so the conversation scrolls under the header and iOS blurs it there, as it does
+// under the large-title headers of the other tabs. Android ignores contentInsetAdjustmentBehavior, so
+// a transparent header there would cover the first message.
+const CHAT_HEADER = { headerTransparent: Platform.OS === 'ios' };
+
 // The Assistant area owns its own stack so a Thread opened from History keeps the Assistant
 // tab selected and Back returns through History.
 export default function AssistantLayout() {
@@ -18,10 +24,10 @@ export default function AssistantLayout() {
 
   return (
     <Stack screenOptions={screenOptions}>
-      <Stack.Screen name="index" options={{ title: 'Assistant', headerTitle: '', headerLeft: AssistantTrigger }} />
+      <Stack.Screen name="index" options={{ ...CHAT_HEADER, title: 'Assistant', headerTitle: '', headerLeft: AssistantTrigger }} />
       <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant' }} />
       <Stack.Screen name="history" options={{ title: 'History', headerLargeTitle: true }} />
-      <Stack.Screen name="thread/[id]" options={{ title: 'Thread' }} />
+      <Stack.Screen name="thread/[id]" options={{ ...CHAT_HEADER, title: 'Thread' }} />
       <Stack.Screen
         name="choose"
         options={{

@@ -121,6 +121,7 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <InteractionRow interaction={item} />}
         keyboardDismissMode="interactive"
+        contentInsetAdjustmentBehavior="automatic"
         renderScrollComponent={(props) => <ChatScrollView {...props} />}
         ListEmptyComponent={
           asking ? null : (
