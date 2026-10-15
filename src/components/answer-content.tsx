@@ -1,4 +1,5 @@
-import { Linking, ScrollView, StyleSheet, View, type TextStyle } from 'react-native';
+import { useState } from 'react';
+import { Linking, PixelRatio, ScrollView, StyleSheet, View, type TextStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -86,38 +87,90 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
         </View>
       );
     case 'table':
-      return (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScroll}>
-          <View style={[styles.table, Shape.continuous, { borderColor: theme.border }]}>
-            {block.rows.map((row, rowIndex) => (
-              <View
-                key={rowIndex}
-                style={[
-                  styles.tableRow,
-                  rowIndex > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
-                  // The parser emits the header row first; it gets the tinted band.
-                  rowIndex === 0 && { backgroundColor: theme.backgroundSelected },
-                ]}>
-                {row.map((cell, cellIndex) => (
-                  <View key={cellIndex} style={styles.tableCell}>
-                    <Spans spans={cell} />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      );
+      return <Table rows={block.rows} />;
     case 'code':
       return (
         <ThemedView type="backgroundElement" style={[styles.codeBlock, Shape.continuous, { borderColor: theme.border }]}>
-          <ThemedText type="code" selectable>
-            {block.text}
-          </ThemedText>
+          {/* Sideways, never wrapped: a wrapped expression split inside tokens and could not be read as written. */}
+          <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.codeScroll}>
+            <ThemedText type="code" selectable>
+              {block.text}
+            </ThemedText>
+          </ScrollView>
         </ThemedView>
       );
   }
 }
+
+/** Average Body glyph width, used to size a column from its longest cell before layout. */
+const CHAR_WIDTH = 8;
+const COLUMN_MIN = 96;
+const COLUMN_MAX = 240;
+
+/**
+ * One width per column, from its longest cell, so every row lines up. A fixed width per cell cut
+ * columns off at the bubble edge, and the numbers in them mid-figure. Scales with the text size.
+ */
+function columnWidths(rows: InlineSpan[][][]): number[] {
+  const columns = Math.max(...rows.map((row) => row.length));
+  const scale = PixelRatio.getFontScale();
+  return Array.from({ length: columns }, (_, column) => {
+    const longest = Math.max(0, ...rows.map((row) => (row[column] ?? []).reduce((length, span) => length + span.text.length, 0)));
+    return Math.min(COLUMN_MAX * scale, Math.max(COLUMN_MIN * scale, longest * CHAR_WIDTH * scale + Spacing.two * 2));
+  });
+}
+
+/**
+ * A table scrolls sideways across the full bubble, edge to edge. When it is wider than the bubble,
+ * the scroll bar shows and a line below says so: hidden columns gave no sign that they existed.
+ */
+function Table({ rows }: { rows: InlineSpan[][][] }) {
+  const theme = useTheme();
+  const [viewWidth, setViewWidth] = useState(0);
+  const widths = columnWidths(rows);
+  const tableWidth = widths.reduce((sum, width) => sum + width, StyleSheet.hairlineWidth * 2);
+  // The table starts one inset in from the bubble's left edge, and may run to its right edge.
+  const overflows = viewWidth > 0 && tableWidth > viewWidth - BUBBLE_INSET;
+
+  return (
+    <View style={styles.tableBlock}>
+      <ScrollView
+        testID="table-scroll"
+        horizontal
+        showsHorizontalScrollIndicator
+        onLayout={(event) => setViewWidth(event.nativeEvent.layout.width)}
+        style={styles.tableBleed}
+        contentContainerStyle={styles.tableScroll}>
+        <View style={[styles.table, Shape.continuous, { borderColor: theme.border }]}>
+          {rows.map((row, rowIndex) => (
+            <View
+              key={rowIndex}
+              style={[
+                styles.tableRow,
+                rowIndex > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
+                // The parser emits the header row first; it gets the tinted band.
+                rowIndex === 0 && { backgroundColor: theme.backgroundSelected },
+              ]}>
+              {widths.map((width, cellIndex) => (
+                <View key={cellIndex} testID="table-cell" style={[styles.tableCell, { width }]}>
+                  <Spans spans={row[cellIndex] ?? []} />
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      {overflows && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {`Scroll sideways to see all ${widths.length} columns`}
+        </ThemedText>
+      )}
+    </View>
+  );
+}
+
+/** The Answer bubble's horizontal padding (AnswerBubble), which a table bleeds through to the edge. */
+const BUBBLE_INSET = Spacing.three;
 
 // Weight is the font family, not `fontWeight`: Android renders a custom family's `fontWeight: 700`
 // as Regular, so bold spans and headings in answers silently lost their emphasis there.
@@ -132,10 +185,12 @@ const styles = StyleSheet.create({
   listItem: { flexDirection: 'row', gap: Spacing.two },
   marker: { minWidth: Spacing.three, fontFamily: Fonts.semibold },
   listItemContent: { flex: 1 },
+  tableBlock: { gap: Spacing.one },
+  tableBleed: { marginHorizontal: -BUBBLE_INSET },
+  tableScroll: { paddingHorizontal: BUBBLE_INSET },
   table: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small, overflow: 'hidden' },
-  tableScroll: { minWidth: '100%' },
   tableRow: { flexDirection: 'row' },
-  // A floor on cell width: `flex: 1` alone squeezed wide tables into one-word columns.
-  tableCell: { flex: 1, minWidth: 120, paddingHorizontal: Spacing.two, paddingVertical: Spacing.two },
-  codeBlock: { padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small },
+  tableCell: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.two },
+  codeBlock: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small, overflow: 'hidden' },
+  codeScroll: { padding: Spacing.three },
 });

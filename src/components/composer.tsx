@@ -3,7 +3,7 @@ import { KeyboardChatScrollView, KeyboardStickyView } from 'react-native-keyboar
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnswerContent } from '@/components/answer-content';
-import { hasWideBlock } from '@/components/answer-markdown';
+import { needsFullColumn } from '@/components/answer-markdown';
 import { tapHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AnswerBubble } from '@/components/interaction-row';
@@ -106,7 +106,7 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
       <ThemedView type="backgroundSelected" style={[styles.pendingQuestion, Shape.continuous]}>
         <ThemedText type="question">{question}</ThemedText>
       </ThemedView>
-      <AnswerBubble wide={!!partialAnswer && hasWideBlock(partialAnswer)}>
+      <AnswerBubble wide={!!partialAnswer && needsFullColumn(partialAnswer)}>
         {partialAnswer ? (
           <AnswerContent markdown={partialAnswer} />
         ) : (

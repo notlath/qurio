@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
 import { AnswerContent } from '@/components/answer-content';
-import { hasWideBlock } from '@/components/answer-markdown';
+import { needsFullColumn } from '@/components/answer-markdown';
 import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, Chip, IconButton } from '@/components/pressable';
@@ -234,7 +234,10 @@ export function AnswerBubble({ wide, children }: { wide: boolean; children: Reac
 
 /** The question on the right in the brand tint, the Answer on the left, then Sources and Feedback. */
 export function InteractionRow({ interaction }: { interaction: Interaction }) {
-  const wide = interaction.answer.blocks.some((block) => block.kind === 'text' && hasWideBlock(block.markdown));
+  const { blocks, citations } = interaction.answer;
+  const wide = blocks.some((block) => block.kind === 'text' && needsFullColumn(block.markdown));
+  // Stopping before the first word leaves nothing to read or rate.
+  const empty = citations.length === 0 && blocks.every((block) => block.kind === 'text' && !block.markdown.trim());
 
   return (
     <View style={styles.interactionRow}>
@@ -246,24 +249,32 @@ export function InteractionRow({ interaction }: { interaction: Interaction }) {
 
       <View style={styles.answer}>
         <AnswerBubble wide={wide}>
-          {interaction.answer.blocks.map((block, index) =>
-            block.kind === 'text' ? (
-              <AnswerContent key={index} markdown={block.markdown} />
-            ) : (
-              <ThemedText key={index} selectable>
-                {block.insight.narrative}
-              </ThemedText>
-            ),
+          {empty ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              No Answer was given. It may have been stopped before it started.
+            </ThemedText>
+          ) : (
+            blocks.map((block, index) =>
+              block.kind === 'text' ? (
+                <AnswerContent key={index} markdown={block.markdown} />
+              ) : (
+                <ThemedText key={index} selectable>
+                  {block.insight.narrative}
+                </ThemedText>
+              ),
+            )
           )}
         </AnswerBubble>
 
         {interaction.answer.citations.length > 0 && <Sources citations={interaction.answer.citations} />}
 
-        <FeedbackControl
-          threadId={interaction.threadId}
-          interactionId={interaction.id}
-          initial={interaction.feedback}
-        />
+        {!empty && (
+          <FeedbackControl
+            threadId={interaction.threadId}
+            interactionId={interaction.id}
+            initial={interaction.feedback}
+          />
+        )}
       </View>
     </View>
   );

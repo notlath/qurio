@@ -1,4 +1,4 @@
-import type { AnalyticsApp, Assistant } from '@/domain';
+import type { AnalyticsApp, Answer, Assistant, Citation } from '@/domain';
 
 import { fixtureAnalyticsApps, fixtureAssistants } from './data';
 
@@ -8,7 +8,12 @@ import { fixtureAnalyticsApps, fixtureAssistants } from './data';
  * `CLASSIC CHATTTTT`). Neither Qlik API documents a name limit, and this app sets none.
  * Picked in dev builds with `?data=` on the web preview URL (src/qlik/context.tsx).
  */
-export type FixtureData = { apps: AnalyticsApp[]; assistants: Assistant[] };
+export type FixtureData = {
+  apps: AnalyticsApp[];
+  assistants: Assistant[];
+  /** Answers for this dataset, picked by the question. Absent, or no match: the demo Answers. */
+  answerFor?: (question: string) => Answer | undefined;
+};
 export type FixtureDataName = 'demo' | 'worst' | 'empty' | 'one' | 'many';
 
 const now = Date.now();
@@ -64,9 +69,94 @@ const manyAssistants: Assistant[] = Array.from({ length: 40 }, (_, i) => ({
   description: i % 3 === 0 ? 'Answers from the policy handbook.' : '',
 }));
 
+const text = (markdown: string, citations: Citation[] = []): Answer => ({ blocks: [{ kind: 'text', markdown }], citations });
+
+// Wide enough that five columns of real policy data cannot fit a phone.
+const wideTable = text(
+  [
+    'Here are the 2026 travel limits by office:',
+    '',
+    '| Office | Per diem (SGD) | Hotel cap per night (SGD) | Business class threshold | Approver |',
+    '|---|---|---|---|---|',
+    '| Singapore | 120.00 | 350.00 | Flights over 6 hours | Regional Head of People & Culture |',
+    '| Kuala Lumpur | 95.00 | 280.00 | Flights over 8 hours | Country Finance Controller |',
+    '| Jakarta | 1,284,500.00 IDR | 2,450,000.00 IDR | Never | Chief Executive Officer |',
+  ].join('\n'),
+);
+
+// A Qlik set-analysis expression: one long line with no spaces to break at.
+const longCode = text(
+  [
+    'Use this expression in the sheet:',
+    '',
+    '```',
+    "Sum({<Year={2026},Region={'APAC'},CostCenter={'CC-4410','CC-4420','CC-4431'},ClaimStatus={'Approved'}>}ReimbursementAmountLocalCurrency)/Count(DISTINCT EmployeeID)",
+    '```',
+  ].join('\n'),
+);
+
+const longUrl = text(
+  'The full policy is at https://intranet.malayan.example.com/hr/policies/travel-and-expense/apac/2026/HR-POL-2026-0042-REV-07.pdf?version=7&lang=en and the summary is [HR-POL-2026-0042-REV-07_APAC_Travel&Expense_Consolidated_FINAL](https://intranet.malayan.example.com/hr/policies/summary).',
+);
+
+const citationFiles = [
+  'Q3 Board Deck — FINAL (revised) v12 [approved by legal].pdf',
+  'HR-POL-2026-0042-REV-07_APAC_Travel&Expense_Consolidated.pdf',
+  'IMG_20250914_183022_HDR_portrait_edited_edited.HEIC',
+  'Employee Handbook 2026.pdf',
+  'Handbook.pdf',
+  'Handbook.pdf',
+  'Kebijakan Perjalanan Dinas dan Penggantian Biaya Karyawan 2026.docx',
+  'travel-faq.md',
+  'Benefits Overview (Singapore, Malaysia, Indonesia, Philippines, Vietnam).pptx',
+  'Reimbursement_Rates_Q3.xlsx',
+  'Policy.pdf',
+  'Memo from the CFO regarding per diem changes effective 1 October 2026.pdf',
+];
+const manyCitations = text(
+  'Business-class travel needs the approval listed for each office in the travel policy.',
+  citationFiles.map((documentPath, i) => ({
+    documentId: `wc-doc-${i}`,
+    knowledgeBaseId: 'wc-kb',
+    documentPath,
+    excerpts: i % 3 === 0 ? [longExcerpt(i)] : i % 3 === 1 ? ['Approval is required.'] : [],
+  })),
+);
+function longExcerpt(i: number): string {
+  return `Section ${i + 1}.4: Employees travelling on flights longer than six hours may book business class with prior written approval from the approver listed in Appendix B, provided the booking is made at least 14 days before departure and the fare does not exceed 1.5 times the economy fare on the same route.`;
+}
+
+// About 4,000 characters: what a thorough policy Answer really runs to.
+const longAnswer = text(
+  [
+    '# Travel and expense policy for APAC, 2026',
+    '',
+    ...Array.from({ length: 9 }, (_, i) =>
+      [
+        `## ${['Booking', 'Approval', 'Per diem', 'Hotels', 'Flights', 'Ground transport', 'Meals', 'Receipts', 'Exceptions'][i]}`,
+        '',
+        'Employees must follow the rules in this section for every trip, whether domestic or international, and keep all receipts until the claim is approved. Managers are responsible for checking that each claim matches the trip purpose stated in the original request.',
+        '',
+        '- Submit the request at least 14 days before departure.',
+        '- Attach the itinerary and the cost estimate.',
+      ].join('\n'),
+    ),
+  ].join('\n\n'),
+);
+
+const worstAnswerFor = (question: string): Answer | undefined => {
+  if (/limit|table/i.test(question)) return wideTable;
+  if (/expression|code/i.test(question)) return longCode;
+  if (/where|link|url/i.test(question)) return longUrl;
+  if (/approv|source/i.test(question)) return manyCitations;
+  if (/everything|full|long/i.test(question)) return longAnswer;
+  if (/^is |^does |^can /i.test(question)) return text('Yes.');
+  return undefined;
+};
+
 export const fixtureDataSets: Record<FixtureDataName, FixtureData> = {
   demo: { apps: fixtureAnalyticsApps, assistants: fixtureAssistants },
-  worst: { apps: worstApps, assistants: worstAssistants },
+  worst: { apps: worstApps, assistants: worstAssistants, answerFor: worstAnswerFor },
   empty: { apps: [], assistants: [] },
   one: { apps: [worstApps[1]], assistants: [worstAssistants[0]] },
   many: { apps: manyApps, assistants: manyAssistants },

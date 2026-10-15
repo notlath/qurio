@@ -19,16 +19,18 @@ export type AnswerRenderBlock =
   | { kind: 'code'; text: string };
 
 /** Bold, italic, and links, matched left to right — none was ever observed nested inside another. */
-const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\)/g;
+// A raw URL ends before the punctuation that closes its sentence, so "…policy.pdf." links the file.
+const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s<>]*[^\s<>.,;:!?)\]'"])/g;
 
 export function parseInlineSpans(text: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
   let lastIndex = 0;
   for (const match of text.matchAll(INLINE)) {
     if (match.index! > lastIndex) spans.push({ text: text.slice(lastIndex, match.index) });
-    const [, bold, italic, linkText, href] = match;
+    const [, bold, italic, linkText, href, url] = match;
     if (bold !== undefined) spans.push({ text: bold, bold: true });
     else if (italic !== undefined) spans.push({ text: italic, italic: true });
+    else if (url !== undefined) spans.push({ text: url, href: url });
     else spans.push({ text: linkText, href });
     lastIndex = match.index! + match[0].length;
   }
@@ -107,7 +109,14 @@ export function parseAnswerMarkdown(markdown: string): AnswerRenderBlock[] {
   return splitIntoChunks(markdown).flatMap(chunkToBlocks);
 }
 
-/** True when an Answer holds a table or a code block, which need the whole column to stay readable. */
-export function hasWideBlock(markdown: string): boolean {
-  return parseAnswerMarkdown(markdown).some((block) => block.kind === 'table' || block.kind === 'code');
+/** About four lines in the hugging bubble on a phone. Longer prose reads better across the column. */
+const SHORT_ANSWER_CHARS = 280;
+
+/**
+ * True for every Answer except one short paragraph. Tables and code need the width, and a long
+ * Answer read at 85% wide left a narrow column with an empty strip beside it for screens.
+ */
+export function needsFullColumn(markdown: string): boolean {
+  const blocks = parseAnswerMarkdown(markdown);
+  return blocks.length > 1 || blocks.some((block) => block.kind !== 'paragraph') || markdown.length > SHORT_ANSWER_CHARS;
 }

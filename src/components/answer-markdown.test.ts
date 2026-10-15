@@ -1,4 +1,4 @@
-import { hasWideBlock, parseAnswerMarkdown } from './answer-markdown';
+import { needsFullColumn, parseAnswerMarkdown, parseInlineSpans } from './answer-markdown';
 
 // Sanitised examples below are copied from docs/poc-tickets/fixtures/10-answer-rendering-subset/CATALOGUE.md
 // — real markdown syntax as captured from the tenant, invented placeholder prose (the source is a
@@ -230,13 +230,36 @@ describe('parseAnswerMarkdown', () => {
   });
 });
 
-describe('hasWideBlock', () => {
-  it('is true for an Answer with a table or a code block, which need the whole column', () => {
-    expect(hasWideBlock('Intro\n\n| A | B |\n|---|---|\n| 1 | 2 |')).toBe(true);
-    expect(hasWideBlock('```\nconst x = 1;\n```')).toBe(true);
+describe('needsFullColumn', () => {
+  it('is false only for one short paragraph, so short replies keep the hugging bubble', () => {
+    expect(needsFullColumn('Yes.')).toBe(false);
+    expect(needsFullColumn('Travel approval now requires manager sign-off.')).toBe(false);
   });
 
-  it('is false for prose, lists and headings', () => {
-    expect(hasWideBlock('# Title\n\nSome **bold** text.\n\n- one\n- two')).toBe(false);
+  it('is true for tables, code, headings, lists, several paragraphs and long prose', () => {
+    expect(needsFullColumn('| A | B |\n|---|---|\n| 1 | 2 |')).toBe(true);
+    expect(needsFullColumn('```\nconst x = 1;\n```')).toBe(true);
+    expect(needsFullColumn('# Title')).toBe(true);
+    expect(needsFullColumn('- one\n- two')).toBe(true);
+    expect(needsFullColumn('First paragraph.\n\nSecond paragraph.')).toBe(true);
+    expect(needsFullColumn('Employees must follow the rules in this section. '.repeat(8))).toBe(true);
+  });
+});
+
+describe('raw URLs in an Answer', () => {
+  it('become links, without the punctuation that ends the sentence', () => {
+    expect(parseInlineSpans('The policy is at https://intranet.example.com/hr/policy.pdf?v=7&lang=en. Read it.')).toEqual([
+      { text: 'The policy is at ' },
+      { text: 'https://intranet.example.com/hr/policy.pdf?v=7&lang=en', href: 'https://intranet.example.com/hr/policy.pdf?v=7&lang=en' },
+      { text: '. Read it.' },
+    ]);
+  });
+
+  it("leave the URL of a Markdown link alone", () => {
+    expect(parseInlineSpans('See [the site](https://example.com).')).toEqual([
+      { text: 'See ' },
+      { text: 'the site', href: 'https://example.com' },
+      { text: '.' },
+    ]);
   });
 });

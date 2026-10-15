@@ -63,7 +63,7 @@ export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.dem
       const errorTrigger = prompt.match(ERROR_TRIGGER);
       if (errorTrigger) throw simulatedErrorFor(errorTrigger[1]);
 
-      const answer = fixtureAnswerFor(prompt);
+      const answer = data.answerFor?.(prompt) ?? fixtureAnswerFor(prompt);
       const fullText = answer.blocks.map((b) => b.markdown).join('');
       const words = fullText.split(' ');
       let deliveredText = '';

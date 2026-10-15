@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { PendingAnswer } from '@/components/composer';
 import { InteractionRow } from '@/components/interaction-row';
@@ -66,11 +66,66 @@ it('lets a short Answer hug its text, up to 85% of the column', () => {
 it.each([
   ['a table', '| A | B |\n|---|---|\n| 1 | 2 |'],
   ['a code block', '```\ncode\n```'],
+  ['several paragraphs', 'First paragraph.\n\nSecond paragraph.'],
 ])('gives an Answer with %s the full column', (_, markdown) => {
   const renderer = render(<InteractionRow interaction={interaction(markdown)} />);
 
   expect(style(bubble(renderer)).maxWidth).toBeUndefined();
   expect(style(bubble(renderer)).alignSelf).toBe('stretch');
+});
+
+it('says when there is no Answer, and offers no Feedback for it', () => {
+  const stopped = { ...interaction(''), answer: { blocks: [{ kind: 'text' as const, markdown: '' }], citations: [] } };
+  const renderer = render(<InteractionRow interaction={stopped} />);
+
+  expect(bubble(renderer).findAll((node) => node.props.children === 'No Answer was given. It may have been stopped before it started.').length).toBeGreaterThan(0);
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Helpful' })).toHaveLength(0);
+});
+
+const WIDE_TABLE = [
+  '| Office | Per diem (SGD) | Approver |',
+  '|---|---|---|',
+  '| Jakarta | 1,284,500.00 IDR | Regional Head of People & Culture |',
+].join('\n');
+
+it('sizes each table column to its longest cell, the same width in every row', () => {
+  const renderer = render(<InteractionRow interaction={interaction(WIDE_TABLE)} />);
+  const widthOf = (text: string) =>
+    style(renderer.root.findAll((node) => node.props.testID === 'table-cell' && node.findAll((n) => n.props.children === text).length > 0)[0]).width;
+
+  expect(widthOf('Office')).toBe(widthOf('Jakarta'));
+  expect(widthOf('Approver')).toBe(widthOf('Regional Head of People & Culture'));
+  expect(widthOf('Approver')).toBeGreaterThan(widthOf('Office') as number);
+});
+
+it('shows the scroll bar and says how many columns there are when a table is wider than the bubble', () => {
+  const renderer = render(<InteractionRow interaction={interaction(WIDE_TABLE)} />);
+  const table = renderer.root.findByProps({ testID: 'table-scroll' });
+  expect(table.props.showsHorizontalScrollIndicator).toBe(true);
+
+  act(() => {
+    table.props.onLayout({ nativeEvent: { layout: { width: 200, height: 100, x: 0, y: 0 } } });
+  });
+
+  expect(renderer.root.findAll((node) => node.props.children === 'Scroll sideways to see all 3 columns').length).toBeGreaterThan(0);
+});
+
+it('says nothing about scrolling when the whole table is in view', () => {
+  const renderer = render(<InteractionRow interaction={interaction('| Aspect | Description |\n|---|---|\n| Nature | Small changes |')} />);
+
+  act(() => {
+    renderer.root.findByProps({ testID: 'table-scroll' }).props.onLayout({ nativeEvent: { layout: { width: 440, height: 100, x: 0, y: 0 } } });
+  });
+
+  expect(renderer.root.findAll((node) => typeof node.props.children === 'string' && node.props.children.startsWith('Scroll sideways'))).toHaveLength(0);
+});
+
+it('scrolls a code block sideways instead of wrapping its lines', () => {
+  const renderer = render(<InteractionRow interaction={interaction('```\nSum({<Year={2026}>}Amount)\n```')} />);
+  const scroller = renderer.root.findAllByType(ScrollView).find((node) => node.findAll((n) => n.props.children === 'Sum({<Year={2026}>}Amount)').length > 0);
+
+  expect(scroller?.props.horizontal).toBe(true);
+  expect(scroller?.props.showsHorizontalScrollIndicator).toBe(true);
 });
 
 it('sets Answer headings in the body size, in semibold', () => {
