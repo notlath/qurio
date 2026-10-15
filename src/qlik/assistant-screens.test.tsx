@@ -79,6 +79,7 @@ it('greets the Qlik User and offers the starters as chips, with the selector lef
   await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><NewThreadScreen /></AnswersScope>); });
 
   expect(renderer.root.findAll((node) => node.props.children === 'What can I help with?').length).toBeGreaterThan(0);
+  expect(renderer.root.findAll((node) => node.props.children === 'QURIO')).toHaveLength(0);
   expect(renderer.root.findAllByProps({ accessibilityLabel: 'Ask: a starter' }).length).toBeGreaterThan(0);
   await act(async () => { renderer.unmount(); });
 });

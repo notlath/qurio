@@ -1,10 +1,12 @@
-import { ActivityIndicator, StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
+import { StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
 import { KeyboardChatScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnswerContent } from '@/components/answer-content';
+import { hasWideBlock } from '@/components/answer-markdown';
 import { tapHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
+import { AnswerBubble } from '@/components/interaction-row';
 import { IconButton } from '@/components/pressable';
 import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -91,7 +93,11 @@ export function ChatScrollView(props: ScrollViewProps) {
   return <KeyboardChatScrollView {...props} offset={bottom} keyboardLiftBehavior="whenAtEnd" />;
 }
 
-/** The in-flight turn: the question already committed, and the answer as it streams in. */
+/**
+ * The in-flight Interaction: the question already committed, and the Answer in the same bubble the
+ * finished Answer uses, from the first moment. The same renderer too, so lists and bold do not jump
+ * into place at the end.
+ */
 export function PendingAnswer({ question, partialAnswer }: { question: string; partialAnswer: string }) {
   const theme = useTheme();
 
@@ -100,17 +106,21 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
       <ThemedView type="backgroundSelected" style={[styles.pendingQuestion, Shape.continuous]}>
         <ThemedText type="question">{question}</ThemedText>
       </ThemedView>
-      {partialAnswer ? (
-        // The same renderer as the finished answer, so lists and bold do not jump into place at the end.
-        <AnswerContent markdown={partialAnswer} />
-      ) : (
-        <View style={styles.thinking} accessibilityLiveRegion="polite">
-          <ActivityIndicator size="small" color={theme.primary} />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
-            Searching your knowledge base&hellip;
-          </ThemedText>
-        </View>
-      )}
+      <AnswerBubble wide={!!partialAnswer && hasWideBlock(partialAnswer)}>
+        {partialAnswer ? (
+          <AnswerContent markdown={partialAnswer} />
+        ) : (
+          <View style={styles.thinking} accessibilityLiveRegion="polite">
+            {/* Static for now: the animated typing indicator comes with the motion pass. */}
+            <ThemedText testID="typing-dots" type="smallBold" style={[styles.dots, { color: theme.primary }]}>
+              &bull;&bull;&bull;
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
+              Searching your knowledge base&hellip;
+            </ThemedText>
+          </View>
+        )}
+      </AnswerBubble>
     </View>
   );
 }
@@ -145,5 +155,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.card,
   },
   thinking: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  dots: { letterSpacing: 2 },
   thinkingText: { flex: 1 },
 });

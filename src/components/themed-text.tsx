@@ -13,7 +13,6 @@ export type ThemedTextProps = TextProps & {
     | 'small'
     | 'smallBold'
     | 'subtitle'
-    | 'link'
     | 'linkPrimary'
     | 'code'
     | 'caption';
@@ -38,7 +37,6 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
         type === 'small' && styles.small,
         type === 'smallBold' && styles.smallBold,
         type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
         type === 'linkPrimary' && styles.linkPrimary,
         type === 'code' && styles.code,
         type === 'caption' && styles.caption,
@@ -57,11 +55,12 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
  * the design system. `allowFontScaling` is deliberately left on so Dynamic Type still works.
  */
 const styles = StyleSheet.create({
+  // The display size: iOS's Title 1. Used once per screen, for a first-screen heading.
   title: {
     fontFamily: Fonts.bold,
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.8,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
   },
   subtitle: {
     fontFamily: Fonts.bold,
@@ -86,9 +85,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
+  // The Qlik User's question: the same size as the Answer, so the Answer is never outranked. The
+  // bubble's colour and side already say whose words these are.
   question: {
-    fontFamily: Fonts.semibold,
-    fontSize: 18,
+    fontFamily: Fonts.regular,
+    fontSize: 16,
     lineHeight: 24,
   },
   small: {
@@ -107,11 +108,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 0.2,
   },
-  link: {
-    fontFamily: Fonts.medium,
-    fontSize: 15,
-    lineHeight: 20,
-  },
   linkPrimary: {
     fontFamily: Fonts.semibold,
     fontSize: 15,
@@ -119,7 +115,7 @@ const styles = StyleSheet.create({
   },
   code: {
     fontFamily: Fonts.mono,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 20,
   },
 });

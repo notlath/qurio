@@ -1,4 +1,4 @@
-import { parseAnswerMarkdown } from './answer-markdown';
+import { hasWideBlock, parseAnswerMarkdown } from './answer-markdown';
 
 // Sanitised examples below are copied from docs/poc-tickets/fixtures/10-answer-rendering-subset/CATALOGUE.md
 // — real markdown syntax as captured from the tenant, invented placeholder prose (the source is a
@@ -227,5 +227,16 @@ describe('parseAnswerMarkdown', () => {
       const last = prefix.trim().slice(-1);
       if (/[a-z0-9]/i.test(last)) expect(text).toContain(last);
     }
+  });
+});
+
+describe('hasWideBlock', () => {
+  it('is true for an Answer with a table or a code block, which need the whole column', () => {
+    expect(hasWideBlock('Intro\n\n| A | B |\n|---|---|\n| 1 | 2 |')).toBe(true);
+    expect(hasWideBlock('```\nconst x = 1;\n```')).toBe(true);
+  });
+
+  it('is false for prose, lists and headings', () => {
+    expect(hasWideBlock('# Title\n\nSome **bold** text.\n\n- one\n- two')).toBe(false);
   });
 });

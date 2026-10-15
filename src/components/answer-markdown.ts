@@ -106,3 +106,8 @@ function chunkToBlocks(chunk: string): AnswerRenderBlock[] {
 export function parseAnswerMarkdown(markdown: string): AnswerRenderBlock[] {
   return splitIntoChunks(markdown).flatMap(chunkToBlocks);
 }
+
+/** True when an Answer holds a table or a code block, which need the whole column to stay readable. */
+export function hasWideBlock(markdown: string): boolean {
+  return parseAnswerMarkdown(markdown).some((block) => block.kind === 'table' || block.kind === 'code');
+}

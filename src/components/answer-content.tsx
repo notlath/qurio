@@ -1,4 +1,4 @@
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View, type TextStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -7,21 +7,27 @@ import { useTheme } from '@/hooks/use-theme';
 
 import { parseAnswerMarkdown, type AnswerRenderBlock, type InlineSpan } from './answer-markdown';
 
-function Spans({ spans }: { spans: InlineSpan[] }) {
+/**
+ * Each span is its own ThemedText, which sets the body font again. So the block's own style (a
+ * heading's weight) is passed down to every span: set only on the outer text, headings rendered in
+ * the regular weight. A link keeps the size of the text around it and adds only colour and underline.
+ */
+function Spans({ spans, style, header }: { spans: InlineSpan[]; style?: TextStyle; header?: boolean }) {
+  const theme = useTheme();
+
   return (
-    <ThemedText selectable>
+    <ThemedText selectable accessibilityRole={header ? 'header' : undefined} style={style}>
       {spans.map((span, index) =>
         span.href ? (
           <ThemedText
             key={index}
-            type="linkPrimary"
             accessibilityRole="link"
-            style={styles.link}
+            style={[style, styles.link, { color: theme.primary }]}
             onPress={() => Linking.openURL(span.href!)}>
             {span.text}
           </ThemedText>
         ) : (
-          <ThemedText key={index} style={[span.bold && styles.bold, span.italic && styles.italic]}>
+          <ThemedText key={index} style={[style, span.bold && styles.bold, span.italic && styles.italic]}>
             {span.text}
           </ThemedText>
         ),
@@ -60,11 +66,7 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
     case 'paragraph':
       return <Spans spans={block.spans} />;
     case 'heading':
-      return (
-        <ThemedText accessibilityRole="header" style={HEADING_LEVEL_STYLE[block.level]}>
-          <Spans spans={block.spans} />
-        </ThemedText>
-      );
+      return <Spans spans={block.spans} style={styles.heading} header />;
     case 'numberedListItem':
       return (
         <View style={styles.listItem}>
@@ -122,6 +124,9 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
 const styles = StyleSheet.create({
   container: { gap: Spacing.two },
   bold: { fontFamily: Fonts.bold },
+  // Every heading level is the body size in semibold: inside an Answer, weight marks a heading.
+  // At 20pt, headings outshouted the text they introduce.
+  heading: { fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24 },
   italic: { fontStyle: 'italic' },
   link: { textDecorationLine: 'underline' },
   listItem: { flexDirection: 'row', gap: Spacing.two },
@@ -134,9 +139,3 @@ const styles = StyleSheet.create({
   tableCell: { flex: 1, minWidth: 120, paddingHorizontal: Spacing.two, paddingVertical: Spacing.two },
   codeBlock: { padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.small },
 });
-
-const HEADING_LEVEL_STYLE = {
-  1: { fontFamily: Fonts.bold, fontSize: 20, lineHeight: 28 },
-  2: { fontFamily: Fonts.bold, fontSize: 18, lineHeight: 26 },
-  3: { fontFamily: Fonts.semibold, fontSize: 16, lineHeight: 24 },
-};

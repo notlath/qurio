@@ -9,7 +9,6 @@ import { Icon } from '@/components/icon';
 import { InteractionRow } from '@/components/interaction-row';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { Starter, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
@@ -126,12 +125,6 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
         ListEmptyComponent={
           asking ? null : (
             <View style={styles.emptyState}>
-              <View style={styles.kicker}>
-                <ThemedView type="primary" style={styles.kickerMark} />
-                <ThemedText type="caption" themeColor="primary">
-                  QURIO
-                </ThemedText>
-              </View>
               <ThemedText type="title" style={styles.welcomeTitle}>
                 What can I help with?
               </ThemedText>
@@ -173,8 +166,6 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
-  kicker: { alignItems: 'center', flexDirection: 'row', gap: Spacing.two },
-  kickerMark: { width: 9, height: 9, borderRadius: Radius.pill },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },
   welcomeCopy: { maxWidth: 480, textAlign: 'center' },
   startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },
