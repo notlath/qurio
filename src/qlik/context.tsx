@@ -7,6 +7,7 @@ import type { AppError } from '@/domain';
 import { createAnswersPort } from './adapter';
 import { AssistantSelectionProvider } from './assistant-selection';
 import { createFixtureAnswersPort } from './fixtures/port';
+import { fixtureDataSets, type FixtureDataName } from './fixtures/worst-case';
 import type { AnswersPort } from './port';
 
 const AnswersPortContext = createContext<AnswersPort | null>(null);
@@ -39,13 +40,25 @@ function createUnconfiguredPort(): AnswersPort {
 }
 
 /**
+ * Dev-only: `?data=worst` (or `empty`, `one`, `many`) on the web preview URL swaps the fixture data,
+ * so a screen can be checked against its worst case (FixtureDataSwitch). Release builds always use `demo`.
+ */
+export function fixtureDataName(): FixtureDataName {
+  // React Native defines `window` without `location`, and static web rendering has no `window`.
+  const search = __DEV__ ? globalThis.location?.search : undefined;
+  if (!search) return 'demo';
+  const name = new URLSearchParams(search).get('data');
+  return name && name in fixtureDataSets ? (name as FixtureDataName) : 'demo';
+}
+
+/**
  * Web has no Qlik transport at all (ADR-0005) and keeps the fixture port so the
  * layout stays previewable; native talks to the real tenant as soon as a config
  * resolves. Resolving is async, so children mount once — with the port they will
  * keep — rather than starting against a placeholder.
  */
 export async function resolveAnswersPort(): Promise<AnswersPort> {
-  if (Platform.OS === 'web') return createFixtureAnswersPort();
+  if (Platform.OS === 'web') return createFixtureAnswersPort(fixtureDataSets[fixtureDataName()]);
   const config = await resolveCurrentTenantConfig();
   return config ? createAnswersPort(config) : createUnconfiguredPort();
 }

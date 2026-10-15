@@ -35,14 +35,21 @@ function isFor(state: Search | null, search: Search): boolean {
   return state?.port === search.port && state.name === search.name;
 }
 
+/** The update time to show, and the row's spoken label. An app with no valid date shows no time. */
+function appSummary(app: AnalyticsApp): { updated: string; label: string } {
+  const updated = formatRelativeTime(app.updatedAt);
+  return { updated, label: updated ? `${app.name}, updated ${updated}` : app.name };
+}
+
 function AppRow({ app }: { app: AnalyticsApp }) {
   const theme = useTheme();
+  const { updated, label } = appSummary(app);
 
   // PoC: opening an Analytics App is ticket 20, not yet hardened.
   return (
     <Link href={{ pathname: '/apps/[id]', params: { id: app.id, name: app.name } }} asChild>
       <AppPressable
-        accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
+        accessibilityLabel={label}
         feedback="scale"
         // Flattened: `Link asChild` throws in development if its child's style is an array.
         style={StyleSheet.flatten([
@@ -57,9 +64,11 @@ function AppRow({ app }: { app: AnalyticsApp }) {
           <ThemedText type="smallBold" numberOfLines={2}>
             {app.name}
           </ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">
-            {formatRelativeTime(app.updatedAt)}
-          </ThemedText>
+          {!!updated && (
+            <ThemedText type="caption" themeColor="textSecondary">
+              {updated}
+            </ThemedText>
+          )}
         </View>
         <Icon ios="chevron.right" android="chevron_right" size={14} color="textSecondary" />
       </AppPressable>
@@ -86,11 +95,12 @@ function AppRowSkeleton() {
 /** A grid tile: the app's cover on top, its name and last update below. */
 function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
   const theme = useTheme();
+  const { updated, label } = appSummary(app);
 
   return (
     <Link href={{ pathname: '/apps/[id]', params: { id: app.id, name: app.name } }} asChild>
       <AppPressable
-        accessibilityLabel={`${app.name}, updated ${formatRelativeTime(app.updatedAt)}`}
+        accessibilityLabel={label}
         feedback="scale"
         // Flattened: `Link asChild` throws in development if its child's style is an array.
         style={StyleSheet.flatten([
@@ -103,9 +113,11 @@ function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
           <ThemedText type="smallBold" numberOfLines={2}>
             {app.name}
           </ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">
-            {formatRelativeTime(app.updatedAt)}
-          </ThemedText>
+          {!!updated && (
+            <ThemedText type="caption" themeColor="textSecondary">
+              {updated}
+            </ThemedText>
+          )}
         </View>
       </AppPressable>
     </Link>

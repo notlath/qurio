@@ -175,6 +175,34 @@ it('has nothing to open when the only choice is the one Legacy Assistant already
   expect(renderer.root.findByProps({ accessibilityLabel: 'Choose Assistant' }).props.disabled).toBe(true);
 });
 
+describe('the open selector with worst-case data', () => {
+  const render = async (selection: object) => {
+    useAssistantSelection.mockReturnValue({ assistants: [], agentic: [], selected: null, loading: false, error: null, choose: jest.fn(), ...selection });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<AssistantChooser includeAgentic={false} />); });
+    return renderer;
+  };
+
+  it('gives a long Assistant name two lines, so similar names stay apart', async () => {
+    const name = 'Kebijakan Sumber Daya Manusia dan Tunjangan Karyawan Wilayah Asia Pasifik';
+    const renderer = await render({ assistants: [{ id: 'k', name, description: '' }] });
+
+    expect(renderer.root.findAll((node) => node.props.children === name && node.props.numberOfLines === 2).length).toBeGreaterThan(0);
+  });
+
+  it('says why the list is empty instead of showing a blank sheet', async () => {
+    const renderer = await render({});
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('No Assistants available');
+  });
+
+  it('shows that the list is loading instead of a blank sheet', async () => {
+    const renderer = await render({ loading: true });
+
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Loading Assistants' }).length).toBeGreaterThan(0);
+  });
+});
+
 describe('in a navigator header', () => {
   const render = (selection: object) => {
     useAssistantSelection.mockReturnValue({ assistants: [], agentic: [], selected: null, loading: false, error: null, choose: jest.fn(), ...selection });

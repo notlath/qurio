@@ -92,3 +92,13 @@ it('drops an earlier search that answers after the latest one', async () => {
   expect(shown('Sales overview')).toBe(false);
   await act(async () => { renderer.unmount(); });
 });
+
+it('leaves out the update time when an Analytics App has none, instead of an empty line', async () => {
+  const undated = { ...SALES, updatedAt: '' };
+  const { renderer, text } = await render(portWith(jest.fn(async () => ({ items: [undated] }))));
+
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Sales overview' }).length).toBeGreaterThan(0);
+  expect(renderer.root.findAll((node) => node.props.children === '').length).toBe(0);
+  expect(text()).toContain('Sales overview');
+  await act(async () => { renderer.unmount(); });
+});

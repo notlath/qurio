@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
-import { ThemedText } from '@/components/themed-text';
+import { TextStyles, ThemedText } from '@/components/themed-text';
 import { Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { errorMessageFor } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
@@ -111,7 +111,7 @@ function ChooserWithAgentic() {
 }
 
 function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
-  const { assistants, selected, choose } = useAssistantSelection();
+  const { assistants, selected, choose, loading } = useAssistantSelection();
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
   const [failure, setFailure] = useState(false);
@@ -132,6 +132,12 @@ function Chooser({ offered }: { offered: ReturnType<typeof useAgenticRows> }) {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.sheetContent, { paddingBottom: Spacing.four + (Platform.OS === 'ios' ? 0 : bottom) }]}>
+        {/* The trigger hides itself with nothing to choose, but a link can still open the sheet. */}
+        {loading ? (
+          <ActivityIndicator accessibilityLabel="Loading Assistants" />
+        ) : assistants.length === 0 && !hasAgentic ? (
+          <AssistantProblem />
+        ) : null}
         {assistants.length > 0 && (
           <Group title="Legacy Assistants">
             {assistants.map((assistant) => (
@@ -218,15 +224,31 @@ function Option({ kind, label, title, subtitle, current, onPress }: {
       onPress={onPress}
       feedback="highlight"
       style={[styles.option, Shape.continuous, current ? { backgroundColor: theme.backgroundSelected } : {}]}>
-      <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={20} color={current ? 'primary' : 'textSecondary'} />
+      <FirstLine>
+        <Icon ios={KIND[kind].ios} android={KIND[kind].android} size={20} color={current ? 'primary' : 'textSecondary'} />
+      </FirstLine>
       <View style={styles.optionText}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>{title}</ThemedText>
+        {/* Two lines: the name is how one Assistant is told from another, so it is not cut to one. */}
+        <ThemedText type="defaultSemiBold" numberOfLines={2}>{title}</ThemedText>
         {!!subtitle && <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>{subtitle}</ThemedText>}
       </View>
-      {current && <Icon ios="checkmark" android="check" size={18} color="primary" />}
-      {kind === 'agentic' && <Icon ios="arrow.up.right" android="north_east" size={16} color="textSecondary" />}
+      {current && (
+        <FirstLine>
+          <Icon ios="checkmark" android="check" size={18} color="primary" />
+        </FirstLine>
+      )}
+      {kind === 'agentic' && (
+        <FirstLine>
+          <Icon ios="arrow.up.right" android="north_east" size={16} color="textSecondary" />
+        </FirstLine>
+      )}
     </AppPressable>
   );
+}
+
+/** Centres an icon on the name's first line, so it stays beside the name however many lines follow. */
+function FirstLine({ children }: { children: ReactNode }) {
+  return <View style={styles.firstLine}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -266,14 +288,16 @@ const styles = StyleSheet.create({
   },
   groupNote: { paddingHorizontal: Spacing.three },
   // Nested inside the sheet, so it takes the small radius step (outer radius minus padding).
+  // Top-aligned, because a row grows to a two-line name and a two-line description. A one-line row
+  // is 54pt: the name's line height inside the vertical padding.
   option: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.three,
-    minHeight: 56,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     borderRadius: Radius.small,
   },
+  firstLine: { height: TextStyles.defaultSemiBold.lineHeight, justifyContent: 'center' },
   optionText: { flex: 1, gap: Spacing.half },
 });

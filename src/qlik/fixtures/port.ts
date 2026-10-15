@@ -2,14 +2,13 @@ import type { AppError } from '@/domain';
 
 import type { AnswersPort } from '../port';
 import {
-  fixtureAnalyticsApps,
   fixtureAnswerFor,
-  fixtureAssistants,
   fixtureInteractionsByThreadId,
   fixtureStarters,
   fixtureThreads,
 } from './data';
 import { paginate } from './pagination';
+import { fixtureDataSets, type FixtureData } from './worst-case';
 
 let nextThreadId = 1;
 let nextInteractionId = 1;
@@ -25,7 +24,7 @@ function simulatedErrorFor(kind: string): AppError {
   return { kind } as AppError;
 }
 
-export function createFixtureAnswersPort(): AnswersPort {
+export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.demo): AnswersPort {
   const threads = [...fixtureThreads];
   const interactionsByThreadId = { ...fixtureInteractionsByThreadId };
 
@@ -112,12 +111,12 @@ export function createFixtureAnswersPort(): AnswersPort {
     },
 
     async listAssistants() {
-      return fixtureAssistants;
+      return data.assistants;
     },
 
     async listAnalyticsApps(opts) {
       const name = opts?.name?.toLowerCase();
-      const apps = name ? fixtureAnalyticsApps.filter((app) => app.name.toLowerCase().includes(name)) : fixtureAnalyticsApps;
+      const apps = name ? data.apps.filter((app) => app.name.toLowerCase().includes(name)) : data.apps;
       return paginate(apps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
 
