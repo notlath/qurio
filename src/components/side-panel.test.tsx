@@ -5,6 +5,9 @@ jest.mock('@/global.css', () => ({}));
 // The drawer loads Reanimated, whose worklets do not load under Jest, so each library's own mock stands in.
 jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/lib/module/mock'));
 jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 // A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has one.
 function drawerRoute(name: string, stack?: string[]) {
@@ -25,6 +28,8 @@ describe('edgeSwipeEnabled', () => {
     ['a Thread', drawerRoute('assistant', ['index', 'history', 'thread/[id]'])],
     ['the Agentic Assistant', drawerRoute('assistant', ['index', 'agentic'])],
     ['the Assistant chooser sheet', drawerRoute('assistant', ['index', 'choose'])],
+    ['an Analytics App', drawerRoute('apps', ['index', '[id]'])],
+    ['Settings, which pushes over the destinations', drawerRoute('settings', ['index'])],
   ])('leaves the left edge to swipe-to-go-back on %s', (_, route) => {
     expect(edgeSwipeEnabled(route)).toBe(false);
   });

@@ -4,9 +4,11 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, StyleSheet, useColorScheme } from 'react-native';
@@ -52,6 +54,14 @@ export default function RootLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    // Phones stay portrait (app.json). An Android tablet rotates to every orientation. Android has no
+    // per-idiom setting in app.json, as iOS has for iPad, so the app removes the lock at start.
+    if (Platform.OS === 'android' && Device.deviceType === Device.DeviceType.TABLET) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.ALL).catch(() => {});
+    }
+  }, []);
+
   if (!fontsLoaded && !fontError) return null;
 
   return (
@@ -68,10 +78,6 @@ export default function RootLayout() {
                 <TenantEntryGate>
                   <Stack screenOptions={screenOptions}>
                     <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-                    {/* Pushed over the side panel, so the left edge stays swipe-to-go-back. */}
-                    <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
-                    <Stack.Screen name="settings/index" options={{ title: 'Settings', headerLargeTitle: true }} />
-                    <Stack.Screen name="settings/change-tenant" options={{ title: 'Change tenant' }} />
                   </Stack>
                 </TenantEntryGate>
               </LockGate>

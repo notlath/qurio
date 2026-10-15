@@ -19,6 +19,7 @@
     "expo-local-authentication": "~57.0.3",
     "expo-router": "~57.0.27",
     "expo-screen-capture": "~57.0.3",
+    "expo-screen-orientation": "~57.0.3",
     "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.10",
     "expo-symbols": "~57.0.3",
