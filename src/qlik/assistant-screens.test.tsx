@@ -13,7 +13,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ dismissTo: mockDismissTo }), Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => ({ id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' }) }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
-jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => null, AssistantProblem: () => null }));
+jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => jest.requireActual('react').createElement('AssistantSwitcher'), AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 // Reanimated's worklets do not load under Jest. The swipe itself needs a device, so the row passes through.
@@ -213,4 +213,28 @@ it('History deletes a conversation only after confirmation, from a long press or
     alert.mockRestore();
     await act(async () => { renderer.unmount(); });
   }
+});
+
+describe('History under the iOS large-title header (translucent, so content starts at the top of the screen)', () => {
+  // Only a scroll view that adjusts its insets moves its content below a translucent header.
+  const insideInsetScroll = (renderer: TestRenderer.ReactTestRenderer) => {
+    let node: TestRenderer.ReactTestInstance | null = renderer.root.findByType('AssistantSwitcher' as never);
+    while (node) {
+      if (node.props.contentInsetAdjustmentBehavior === 'automatic') return true;
+      node = node.parent;
+    }
+    return false;
+  };
+
+  it.each([
+    ['with Threads to list', { selected: { id: 'a' }, assistants: [{ id: 'a' }, { id: 'b' }] }],
+    ['with no Assistant to choose', { selected: null, assistants: [] }],
+  ])('keeps the Assistant chip below the header %s', async (_, selection) => {
+    useAssistantSelection.mockReturnValue(selection);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><HistoryScreen /></AnswersScope>); });
+
+    expect(insideInsetScroll(renderer)).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
 });

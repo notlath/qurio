@@ -1,6 +1,6 @@
 import { Link, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { AssistantSwitcher } from '@/components/assistant-switcher';
@@ -109,15 +109,20 @@ export default function HistoryScreen() {
   // With no Assistant to choose, the switcher already says why. Loading History would only add
   // "No Assistant chosen", which tells the Qlik User to pick from nothing (#22).
   const nothingToChoose = !selected && assistants.length === 0;
-  return (
-    <View style={{ flex: 1 }}>
-      <AssistantSwitcher />
-      {nothingToChoose ? null : <AssistantHistory key={selected?.id ?? 'none'} />}
-    </View>
-  );
+  // On iOS the large-title header is translucent, so content starts at the top of the screen. Only
+  // a scroll view that adjusts its insets moves below it: the chip must sit inside one, or it is
+  // drawn under the status bar.
+  if (nothingToChoose) {
+    return (
+      <ScrollView contentInsetAdjustmentBehavior="automatic">
+        <AssistantSwitcher />
+      </ScrollView>
+    );
+  }
+  return <AssistantHistory key={selected?.id ?? 'none'} header={<AssistantSwitcher />} />;
 }
 
-function AssistantHistory() {
+function AssistantHistory({ header }: { header: ReactElement }) {
   const port = useAnswersPort();
   const router = useRouter();
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -179,6 +184,7 @@ function AssistantHistory() {
 
   return (
     <FlatList
+      ListHeaderComponent={header}
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[styles.listContent, ContentColumn]}
       data={initialLoad || error ? [] : threads}
