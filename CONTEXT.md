@@ -59,11 +59,11 @@ A reference from an answer back to the specific source material it was drawn fro
 _Avoid_: Source, reference, footnote
 
 **Answer**:
-The content an Assistant returns for one Interaction — prose, and for an Agentic Assistant also analytics-derived insight and chart content. Modelled in our own terms, never as Qlik's response JSON.
+The content an Assistant returns for one Interaction — prose, structured content, or an Analytics Insight — together with its Citations. Modelled in our own terms, never as Qlik's response JSON. It is never stored on the device.
 _Avoid_: Response, result, output
 
 **Analytics Insight**:
-A finding an Agentic Assistant derives from a Qlik analytics app rather than from a Knowledge Base document. A classic Assistant never produces one.
+Answer content that an Agentic Assistant derives from an Analytics App rather than from a Knowledge Base document. A Legacy Assistant never produces one. The domain models it even while the Legacy adapter cannot produce it.
 
 **Feedback**:
 A Qlik User's rating of a single Interaction, sent back to the Tenant. Attached to an Interaction, never to a Thread.
@@ -75,17 +75,6 @@ _Avoid_: Settings, environment, tenant info, workspace connection
 **Tenant Approval**:
 A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User.
 _Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
-
-**Answer**:
-The content Qlik returns for a single Interaction, in whatever form that takes — prose, structured content, or an Analytics Insight — together with its Citations. It is never stored on the device.
-_Avoid_: Response, result, output
-
-**Analytics Insight**:
-Answer content derived from a Qlik analytics app rather than from documents, produced only by an Agentic Assistant. The domain models it even while the classic adapter cannot produce it.
-
-**Feedback**:
-A Qlik User's rating of a single Interaction. Attached to an Interaction, never to a Thread.
-
 
 **Starter**:
 A suggested opening question configured on an Assistant, shown before a Thread has any Interactions.
