@@ -23,18 +23,14 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useRoute
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');
 const knowledge: Assistant = { kind: 'classic', id: 'assistant-knowledge', name: 'Knowledge', description: '' };
 
-// The drawer hands its content the drawer's navigation and state. The state's history says whether the panel is open.
-// `openThread` puts a Thread screen on top of the Assistant's stack.
-function drawerProps(open: boolean, openThread?: string) {
+// The drawer hands its content the drawer's navigation and state. The state's history says whether the
+// panel is open. `assistantStack` is the Assistant's stack, once it has state. `params` go to its top screen.
+function drawerProps(open: boolean, assistantStack?: string[], params?: object) {
   const navigation = { closeDrawer: jest.fn(), navigate: jest.fn() };
-  const assistantStack = openThread && {
-    index: 1,
-    routes: [{ key: 'index', name: 'index' }, { key: 'thread', name: 'thread/[id]', params: { id: openThread } }],
-  };
   const state = {
     key: 'drawer',
     index: 0,
-    routes: [{ key: 'assistant', name: 'assistant', state: assistantStack }, { key: 'apps', name: 'apps' }],
+    routes: [drawerRoute('assistant', assistantStack, params), { key: 'apps', name: 'apps' }],
     history: open ? [{ type: 'route', key: 'assistant' }, { type: 'drawer', status: 'open' }] : [{ type: 'route', key: 'assistant' }],
   };
   return { navigation, state, descriptors: {} } as unknown as DrawerContentComponentProps & { navigation: typeof navigation };
@@ -217,7 +213,7 @@ describe('SidePanelContent', () => {
 
     it('returns the Assistant view to a new chat when the deleted Thread is open', async () => {
       const port = deletablePort();
-      const { renderer, props } = await renderPanel(port, drawerProps(true, 'thread-1'));
+      const { renderer, props } = await renderPanel(port, drawerProps(true, ['index', 'thread/[id]'], { id: 'thread-1' }));
 
       await act(async () => {
         row(renderer).props.onLongPress();
@@ -252,6 +248,23 @@ describe('SidePanelContent', () => {
     expect(props.navigation.navigate).toHaveBeenCalledWith('apps');
   });
 
+  it('says where Agentic Assistant chats are kept while an Agentic Assistant is in use, and shows History again after a Legacy one', async () => {
+    const port = createFixtureAnswersPort();
+    const { renderer, props } = await renderPanel(port, drawerProps(true, ['index', 'agentic']));
+
+    expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(true);
+    expect(hasText(renderer, 'History · Knowledge')).toBe(false);
+    expect(threadLabels(renderer)).toEqual([]);
+
+    // Back from the Agentic Assistant returns to the Legacy Assistant.
+    await act(async () => {
+      renderer.update(panel(port, { ...drawerProps(true, ['index']), navigation: props.navigation }));
+    });
+    expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(false);
+    expect(hasText(renderer, 'History · Knowledge')).toBe(true);
+    expect(threadLabels(renderer)).toHaveLength(5);
+  });
+
   it("shows the Qlik User's Profile, and its gear pushes Settings", async () => {
     const { renderer, props } = await renderPanel();
 
@@ -263,8 +276,9 @@ describe('SidePanelContent', () => {
 });
 
 // A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has one.
-function drawerRoute(name: string, stack?: string[]) {
-  return { key: name, name, state: stack && { index: stack.length - 1, routes: stack.map((screen) => ({ key: screen, name: screen })) } };
+function drawerRoute(name: string, stack?: string[], params?: object) {
+  const routes = stack?.map((screen, i) => ({ key: screen, name: screen, params: i === stack.length - 1 ? params : undefined }));
+  return { key: name, name, state: routes && { index: routes.length - 1, routes } };
 }
 
 describe('edgeSwipeEnabled', () => {
@@ -281,6 +295,8 @@ describe('edgeSwipeEnabled', () => {
     ['a Thread', drawerRoute('assistant', ['index', 'history', 'thread/[id]'])],
     ['the Agentic Assistant', drawerRoute('assistant', ['index', 'agentic'])],
     ['the Assistant chooser sheet', drawerRoute('assistant', ['index', 'choose'])],
+    ['an Analytics App', drawerRoute('apps', ['index', '[id]'])],
+    ['Settings beside the docked panel, after the window narrows', drawerRoute('docked-settings', ['index'])],
   ])('leaves the left edge to swipe-to-go-back on %s', (_, route) => {
     expect(edgeSwipeEnabled(route)).toBe(false);
   });

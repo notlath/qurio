@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
+import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { ProfileAvatar, useProfile } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, TouchTarget } from '@/constants/theme';
@@ -28,20 +29,33 @@ const LOGO = require('../../assets/images/logo.svg');
  * The left edge opens the side panel on a top-level screen only: the first screen of a drawer
  * screen's stack. On a pushed screen the left edge stays swipe-to-go-back. The drawer reads this
  * option from its focused screen, which holds the whole stack, so the stack's focused route decides.
+ * Settings beside the docked panel is a drawer screen. It counts as pushed when the window narrows.
  */
 export function edgeSwipeEnabled(route: RouteProp<Record<string, object | undefined>>): boolean {
+  if (route.name === 'docked-settings') return false;
   const focused = getFocusedRouteNameFromRoute(route);
   return focused === undefined || focused === 'index';
 }
 
-/** The header button that opens the side panel, at the left of a top-level screen. */
+/**
+ * True while an Agentic Assistant is the one in use: the Assistant's stack shows the `agentic` screen.
+ * The Assistant selection holds Legacy Assistants only. An Agentic Assistant is opened as a screen and
+ * never selected, so the stack is the signal. It stays true while Apps is open over it.
+ */
+export function agenticInUse(state: DrawerContentComponentProps['state']): boolean {
+  const assistant = state.routes.find(({ name }) => name === 'assistant');
+  return assistant !== undefined && getFocusedRouteNameFromRoute(assistant) === 'agentic';
+}
+
+/** The header button at the left of a top-level screen. It opens the overlay panel, or collapses and shows the docked panel. */
 export function SidePanelButton() {
   const navigation = useNavigation();
+  const { docked, collapsed, toggleCollapsed } = useSidePanelLayout();
 
   return (
     <IconButton
-      accessibilityLabel="Open side panel"
-      onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+      accessibilityLabel={!docked ? 'Open side panel' : collapsed ? 'Show side panel' : 'Hide side panel'}
+      onPress={() => (docked ? toggleCollapsed() : navigation.dispatch(DrawerActions.openDrawer()))}
       icon={<Icon ios="line.3.horizontal" android="menu" size={22} color="primary" />}
     />
   );
@@ -78,6 +92,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selected } = useAssistantSelection();
+  const { docked } = useSidePanelLayout();
   const open = getDrawerStatusFromState(state) === 'open';
 
   function closeThen(action: () => void) {
@@ -111,14 +126,28 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
             Qurio
           </ThemedText>
         </View>
-        <IconButton
-          accessibilityLabel="Close side panel"
-          onPress={() => navigation.closeDrawer()}
-          icon={<Icon ios="xmark" android="close" size={20} color="text" />}
-        />
+        {/* The docked panel collapses from the header's menu button instead. */}
+        {!docked && (
+          <IconButton
+            accessibilityLabel="Close side panel"
+            onPress={() => navigation.closeDrawer()}
+            icon={<Icon ios="xmark" android="close" size={20} color="text" />}
+          />
+        )}
       </View>
-      {/* With no Assistant there is no History. The header's Assistant switcher says why. */}
-      {selected ? (
+      {/* The app cannot list an Agentic Assistant's chats (ADR-0009), so the panel says where they are.
+          With no Assistant there is no History. The header's Assistant switcher says why. */}
+      {agenticInUse(state) ? (
+        <View style={[styles.flex, styles.list]}>
+          {items}
+          <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header" style={styles.section}>
+            History
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
+            Agentic Assistant chats are kept in the Assistant view.
+          </ThemedText>
+        </View>
+      ) : selected ? (
         <PanelHistory
           // A new Assistant has its own History, so its list starts again from the first page.
           key={selected.id}
@@ -141,7 +170,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
       ) : (
         <View style={styles.flex}>{items}</View>
       )}
-      <ProfileFooter onSettings={() => closeThen(() => router.push('/settings'))} />
+      <ProfileFooter onSettings={() => closeThen(() => router.push(settingsHref(docked)))} />
     </View>
   );
 }
@@ -288,6 +317,7 @@ const styles = StyleSheet.create({
   row: { paddingHorizontal: Spacing.three, borderRadius: Radius.pill, overflow: 'hidden' },
   itemContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   section: { paddingHorizontal: Spacing.three, paddingTop: Spacing.four, paddingBottom: Spacing.two },
+  note: { paddingHorizontal: Spacing.three },
   skeletonLine: { width: '70%', height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.three },
   footer: {
