@@ -1,12 +1,12 @@
 import { Link, useRouter } from 'expo-router';
 import { useRef, type ReactElement } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { AssistantSwitcher } from '@/components/assistant-switcher';
+import { confirmDeleteThread } from '@/components/confirm-delete-thread';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
-import { warningHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
@@ -44,23 +44,7 @@ function ThreadRow({ thread, onDelete }: { thread: Thread; onDelete: (id: string
   // where a stray tap destroyed a conversation.
   function confirmDelete() {
     const close = () => swipeable.current?.close();
-    Alert.alert(
-      'Delete conversation?',
-      `"${thread.name}" and its answers will be permanently removed.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: close },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            warningHaptic();
-            onDelete(thread.id);
-          },
-        },
-      ],
-      // Android: a tap outside the dialog cancels it, so the row must close then as well.
-      { cancelable: true, onDismiss: close },
-    );
+    confirmDeleteThread(thread, () => onDelete(thread.id), close);
   }
 
   return (
