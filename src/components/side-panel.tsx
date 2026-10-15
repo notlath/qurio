@@ -36,6 +36,16 @@ export function edgeSwipeEnabled(route: RouteProp<Record<string, object | undefi
   return focused === undefined || focused === 'index';
 }
 
+/**
+ * True while an Agentic Assistant is the one in use: the Assistant's stack shows the `agentic` screen.
+ * The Assistant selection holds Legacy Assistants only. An Agentic Assistant is opened as a screen and
+ * never selected, so the stack is the signal. It stays true while Apps is open over it.
+ */
+export function agenticInUse(state: DrawerContentComponentProps['state']): boolean {
+  const assistant = state.routes.find(({ name }) => name === 'assistant');
+  return assistant !== undefined && getFocusedRouteNameFromRoute(assistant) === 'agentic';
+}
+
 /** The header button at the left of a top-level screen. It opens the overlay panel, or collapses and shows the docked panel. */
 export function SidePanelButton() {
   const navigation = useNavigation();
@@ -110,8 +120,19 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
           />
         )}
       </View>
-      {/* With no Assistant there is no History. The header's Assistant switcher says why. */}
-      {selected ? (
+      {/* The app cannot list an Agentic Assistant's chats (ADR-0009), so the panel says where they are.
+          With no Assistant there is no History. The header's Assistant switcher says why. */}
+      {agenticInUse(state) ? (
+        <View style={[styles.flex, styles.list]}>
+          {items}
+          <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header" style={styles.section}>
+            History
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
+            Agentic Assistant chats are kept in the Assistant view.
+          </ThemedText>
+        </View>
+      ) : selected ? (
         <PanelHistory
           // A new Assistant has its own History, so its list starts again from the first page.
           key={selected.id}
@@ -261,6 +282,7 @@ const styles = StyleSheet.create({
   row: { paddingHorizontal: Spacing.three, borderRadius: Radius.pill, overflow: 'hidden' },
   itemContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   section: { paddingHorizontal: Spacing.three, paddingTop: Spacing.four, paddingBottom: Spacing.two },
+  note: { paddingHorizontal: Spacing.three },
   skeletonLine: { width: '70%', height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.three },
   footer: {

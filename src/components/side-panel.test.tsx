@@ -23,13 +23,14 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useRoute
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');
 const knowledge: Assistant = { kind: 'classic', id: 'assistant-knowledge', name: 'Knowledge', description: '' };
 
-// The drawer hands its content the drawer's navigation and state. The state's history says whether the panel is open.
-function drawerProps(open: boolean) {
+// The drawer hands its content the drawer's navigation and state. The state's history says whether the
+// panel is open. `assistantStack` is the Assistant's stack, once it has state.
+function drawerProps(open: boolean, assistantStack?: string[]) {
   const navigation = { closeDrawer: jest.fn(), navigate: jest.fn() };
   const state = {
     key: 'drawer',
     index: 0,
-    routes: [{ key: 'assistant', name: 'assistant' }, { key: 'apps', name: 'apps' }],
+    routes: [drawerRoute('assistant', assistantStack), { key: 'apps', name: 'apps' }],
     history: open ? [{ type: 'route', key: 'assistant' }, { type: 'drawer', status: 'open' }] : [{ type: 'route', key: 'assistant' }],
   };
   return { navigation, state, descriptors: {} } as unknown as DrawerContentComponentProps & { navigation: typeof navigation };
@@ -164,6 +165,23 @@ describe('SidePanelContent', () => {
     await press(renderer, 'Apps');
     expect(props.navigation.closeDrawer).toHaveBeenCalled();
     expect(props.navigation.navigate).toHaveBeenCalledWith('apps');
+  });
+
+  it('says where Agentic Assistant chats are kept while an Agentic Assistant is in use, and shows History again after a Legacy one', async () => {
+    const port = createFixtureAnswersPort();
+    const { renderer, props } = await renderPanel(port, drawerProps(true, ['index', 'agentic']));
+
+    expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(true);
+    expect(hasText(renderer, 'History · Knowledge')).toBe(false);
+    expect(threadLabels(renderer)).toEqual([]);
+
+    // Back from the Agentic Assistant returns to the Legacy Assistant.
+    await act(async () => {
+      renderer.update(panel(port, { ...drawerProps(true, ['index']), navigation: props.navigation }));
+    });
+    expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(false);
+    expect(hasText(renderer, 'History · Knowledge')).toBe(true);
+    expect(threadLabels(renderer)).toHaveLength(5);
   });
 
   it("shows the Qlik User's Profile, and its gear pushes Settings", async () => {
