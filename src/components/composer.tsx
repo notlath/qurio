@@ -194,9 +194,13 @@ const styles = StyleSheet.create({
     paddingVertical: (TouchTarget - TextStyles.default.lineHeight) / 2,
   },
   pendingRow: { gap: Spacing.three },
-  thinking: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  // On the text baseline, not the line box: the dots' middle then meets the lowercase letters' middle.
+  // Centred on the line box, they sat about 2pt above the letters, more on iOS, which adds leading on top.
+  thinking: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
   dots: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   dot: { width: 6, height: 6, borderRadius: 3 },
   dotStill: { opacity: 0.6 },
-  thinkingText: { flex: 1 },
+  // Shrink, never flex: the bubble hugs its content, and on native flex: 1 gave the text a 0 basis, so
+  // the bubble shrank to the dots and the text vanished. Shrinking still wraps a long line inside 85%.
+  thinkingText: { flexShrink: 1 },
 });
