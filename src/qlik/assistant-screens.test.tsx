@@ -1,24 +1,20 @@
 import React from 'react';
-import { Alert, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
-import HistoryScreen from '@/app/(drawer)/assistant/history';
-import NewThreadScreen from '@/app/(drawer)/assistant';
-import ThreadDetailScreen from '@/app/(drawer)/assistant/thread/[id]';
+import ChatScreen from '@/app/(drawer)/assistant';
 import { AnswersScope } from './context';
 import type { AnswersPort } from './port';
 
-const mockDismissTo = jest.fn();
+// The chat screen's search params. setParams merges into them, as the router does. A test re-renders to apply them.
+let mockParams: Record<string, string | undefined> = {};
+const mockSetParams = jest.fn((params: Record<string, string | undefined>) => { mockParams = { ...mockParams, ...params }; });
 jest.mock('@/global.css', () => ({}));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ dismissTo: mockDismissTo }), Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => mockParams }));
-let mockParams: Record<string, string> = { id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' };
+jest.mock('expo-router', () => ({ useNavigation: () => ({ setParams: mockSetParams }), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => mockParams }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
-jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => jest.requireActual('react').createElement('AssistantSwitcher'), AssistantProblem: () => null }));
+jest.mock('@/components/assistant-switcher', () => ({ AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
-// Reanimated's worklets do not load under Jest. The swipe itself needs a device, so the row passes through.
-jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({ __esModule: true, default: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
 jest.setTimeout(30000);
 
@@ -31,19 +27,25 @@ const makePort = (id: string) => ({
   getThread: jest.fn(async () => ({ id: 'old-thread', name: 'Old', interactions: [] })),
 }) as unknown as AnswersPort;
 const composer = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByType('Composer' as never);
+const actions = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByType('Header' as never).props.options.headerRight();
+const greets = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findAll((node) => node.props.children === 'What can I help with?').length > 0;
+beforeEach(() => {
+  mockParams = {};
+  mockSetParams.mockClear();
+});
 
 it('creates a Thread only on the first question and resets for another Assistant', async () => {
   const a = makePort('a');
   const b = makePort('b');
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
   expect(a.createThread).not.toHaveBeenCalled();
   await act(async () => { composer(renderer).props.setQuestion('Question'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(a.createThread).toHaveBeenCalledTimes(1);
   useAssistantSelection.mockReturnValue({ selected: { id: 'b' } });
-  await act(async () => { renderer.update(<AnswersScope port={b}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer.update(<AnswersScope port={b}><ChatScreen /></AnswersScope>); });
   expect(composer(renderer).props.question).toBe('');
   expect(b.createThread).not.toHaveBeenCalled();
   expect(renderer.root.findAllByProps({ accessibilityLabel: 'Ask: b starter' }).length).toBeGreaterThan(0);
@@ -57,16 +59,15 @@ it('offers a new conversation once one has started, and the next question starts
   const a = makePort('a');
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
-  const actions = () => renderer.root.findByType('Header' as never).props.options.headerRight();
-
-  expect(actions().props.canStartNew).toBe(false);
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(actions(renderer).props.canStartNew).toBe(false);
   await act(async () => { composer(renderer).props.setQuestion('First'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
-  expect(actions().props.canStartNew).toBe(true);
+  expect(actions(renderer).props.canStartNew).toBe(true);
 
-  await act(async () => { actions().props.onNew(); });
-  expect(actions().props.canStartNew).toBe(false);
+  await act(async () => { actions(renderer).props.onNew(); });
+  await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(actions(renderer).props.canStartNew).toBe(false);
   expect(composer(renderer).props.question).toBe('');
   await act(async () => { composer(renderer).props.setQuestion('Second'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
@@ -78,23 +79,22 @@ it("starts a new conversation on the side panel's New chat", async () => {
   const a = makePort('a');
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
   await act(async () => { composer(renderer).props.setQuestion('First'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
 
   mockParams = { chat: '1' };
-  await act(async () => { renderer.update(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
   await act(async () => { composer(renderer).props.setQuestion('Second'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(a.createThread).toHaveBeenCalledTimes(2);
-  mockParams = { id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' };
   await act(async () => { renderer.unmount(); });
 });
 
 it('greets the Qlik User and offers the starters as chips, with the selector left to the header', async () => {
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><ChatScreen /></AnswersScope>); });
 
   expect(renderer.root.findAll((node) => node.props.children === 'What can I help with?').length).toBeGreaterThan(0);
   expect(renderer.root.findAll((node) => node.props.children === 'QURIO')).toHaveLength(0);
@@ -102,38 +102,75 @@ it('greets the Qlik User and offers the starters as chips, with the selector lef
   await act(async () => { renderer.unmount(); });
 });
 
-it('resumes through its own Assistant port and names it in the header', async () => {
-  const resumed = makePort('a');
-  const selected = makePort('b');
-  useAssistantSelection.mockReturnValue({ portFor: () => resumed, selected: { id: 'b' } });
+it('marks the Thread a new chat creates as started, so the side panel can highlight it', async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={selected}><ThreadDetailScreen /></AnswersScope>); });
-  expect(renderer.root.findByType('Header' as never).props.options.title).toBe('Knowledge');
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(mockParams.started).toBeUndefined();
+  await act(async () => { composer(renderer).props.setQuestion('First'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(mockSetParams).toHaveBeenCalledWith({ started: 'a-thread' });
+
+  // The started Thread stays the current chat: the new param does not reload it.
+  await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(actions(renderer).props.canStartNew).toBe(true);
+  expect(a.getThread).not.toHaveBeenCalled();
+  await act(async () => { renderer.unmount(); });
+});
+
+it('resumes a Thread from History through its own Assistant port', async () => {
+  const resumed = makePort('a');
+  const selected = makePort('selected');
+  const portFor = jest.fn(() => resumed);
+  useAssistantSelection.mockReturnValue({ portFor, selected: { id: 'a' } });
+  mockParams = { thread: 'old-thread', assistantId: 'a' };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={selected}><ChatScreen /></AnswersScope>); });
+  expect(portFor).toHaveBeenCalledWith('a');
+  expect(resumed.getThread).toHaveBeenCalledWith('old-thread');
+  expect(greets(renderer)).toBe(false);
   await act(async () => { composer(renderer).props.setQuestion('Continue'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(resumed.ask).toHaveBeenCalledWith('old-thread', 'Continue', expect.any(Object));
   expect(selected.ask).not.toHaveBeenCalled();
+  expect(resumed.createThread).not.toHaveBeenCalled();
   await act(async () => { renderer.unmount(); });
 });
 
+it('leaves a resumed Thread for a new chat on New conversation', async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ portFor: () => a, selected: { id: 'a' } });
+  mockParams = { thread: 'old-thread', assistantId: 'a' };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  await act(async () => { composer(renderer).props.setQuestion('Continue'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
 
-it('History lists Threads for the selected Assistant and switches without creating Threads', async () => {
+  await act(async () => { actions(renderer).props.onNew(); });
+  await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(mockParams.thread).toBeUndefined();
+  expect(greets(renderer)).toBe(true);
+  await act(async () => { composer(renderer).props.setQuestion('New'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(a.createThread).toHaveBeenCalledTimes(1);
+  await act(async () => { renderer.unmount(); });
+});
+
+it('starts a new chat when another Assistant is selected while a Thread is open', async () => {
   const a = makePort('a');
   const b = makePort('b');
-  useAssistantSelection.mockReturnValue({ selected: { id: 'a', name: 'Knowledge' } });
+  useAssistantSelection.mockReturnValue({ portFor: () => a, selected: { id: 'a' } });
+  mockParams = { thread: 'old-thread', assistantId: 'a' };
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><HistoryScreen /></AnswersScope>); });
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Open a history' }).length).toBeGreaterThan(0);
-  expect(renderer.root.findByType('Link' as never).props.href.params.assistantId).toBe('a');
-  useAssistantSelection.mockReturnValue({ selected: { id: 'b', name: 'Operations' } });
-  await act(async () => { renderer.update(<AnswersScope port={b}><HistoryScreen /></AnswersScope>); });
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Open b history' }).length).toBeGreaterThan(0);
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Open a history' }).length).toBe(0);
-  expect(a.createThread).not.toHaveBeenCalled();
-  expect(b.createThread).not.toHaveBeenCalled();
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  expect(greets(renderer)).toBe(false);
+
+  useAssistantSelection.mockReturnValue({ portFor: () => b, selected: { id: 'b' } });
+  await act(async () => { renderer.update(<AnswersScope port={b}><ChatScreen /></AnswersScope>); });
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Ask: b starter' }).length).toBeGreaterThan(0);
   await act(async () => { renderer.unmount(); });
 });
-
 
 it('aborts a pending question when another Assistant replaces the new Thread screen', async () => {
   const a = makePort('a');
@@ -146,12 +183,12 @@ it('aborts a pending question when another Assistant replaces the new Thread scr
   });
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
   await act(async () => { composer(renderer).props.setQuestion('Pending'); });
   await act(async () => { composer(renderer).props.onAsk(); });
   const signal = (a.ask as jest.Mock).mock.calls[0][2].signal as AbortSignal;
   useAssistantSelection.mockReturnValue({ selected: { id: 'b' } });
-  await act(async () => { renderer.update(<AnswersScope port={b}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { renderer.update(<AnswersScope port={b}><ChatScreen /></AnswersScope>); });
   try {
     expect(signal.aborted).toBe(true);
   } finally {
@@ -159,100 +196,3 @@ it('aborts a pending question when another Assistant replaces the new Thread scr
   }
 });
 
-describe('History when no Assistant is selected (#22)', () => {
-  const notChosen = () =>
-    ({ listThreads: jest.fn(async () => { throw { kind: 'AssistantNotChosen' }; }) }) as unknown as AnswersPort & { listThreads: jest.Mock };
-  const show = async (port: AnswersPort) => {
-    let renderer!: TestRenderer.ReactTestRenderer;
-    await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
-    // Some props are objects with cycles, so keep each one once instead of using plain stringify.
-    const seen = new WeakSet();
-    const text = JSON.stringify(renderer.toJSON(), (_key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        if (seen.has(value)) return undefined;
-        seen.add(value);
-      }
-      return value;
-    });
-    await act(async () => { renderer.unmount(); });
-    return text;
-  };
-
-  it('does not ask the Qlik User to choose an Assistant when there is none to choose', async () => {
-    const port = notChosen();
-    useAssistantSelection.mockReturnValue({ selected: null, assistants: [] });
-
-    const text = await show(port);
-
-    expect(text).not.toContain('No Assistant chosen');
-    expect(port.listThreads).not.toHaveBeenCalled();
-  });
-
-  it('still asks the Qlik User to choose when there are Assistants and none is chosen', async () => {
-    const port = notChosen();
-    useAssistantSelection.mockReturnValue({ selected: null, assistants: [{ id: 'a' }, { id: 'b' }] });
-
-    expect(await show(port)).toContain('No Assistant chosen');
-  });
-});
-
-it('History with no conversations offers one action: ask a question', async () => {
-  const port = { ...makePort('a'), listThreads: jest.fn(async () => ({ items: [] })) } as unknown as AnswersPort;
-  useAssistantSelection.mockReturnValue({ selected: { id: 'a' }, assistants: [{ id: 'a' }] });
-  let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
-
-  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Ask a question' }).props.onPress(); });
-
-  expect(mockDismissTo).toHaveBeenCalledWith('/assistant');
-  await act(async () => { renderer.unmount(); });
-});
-
-it('History deletes a conversation only after confirmation, from a long press or the Delete action', async () => {
-  const port = { ...makePort('a'), deleteThread: jest.fn(async () => undefined) } as unknown as AnswersPort & { deleteThread: jest.Mock };
-  useAssistantSelection.mockReturnValue({ selected: { id: 'a' }, assistants: [{ id: 'a' }] });
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={port}><HistoryScreen /></AnswersScope>); });
-  const row = () => renderer.root.findByProps({ accessibilityLabel: 'Open a history' });
-  try {
-    expect(row().props.accessibilityActions).toEqual([{ name: 'delete', label: 'Delete' }]);
-    await act(async () => { row().props.onLongPress(); });
-    expect(alert).toHaveBeenLastCalledWith('Delete conversation?', expect.any(String), expect.any(Array), expect.any(Object));
-    expect(port.deleteThread).not.toHaveBeenCalled();
-
-    await act(async () => { row().props.onAccessibilityAction({ nativeEvent: { actionName: 'delete' } }); });
-    const buttons = alert.mock.calls[1][2] as AlertButton[];
-    await act(async () => { buttons.find((button) => button.style === 'destructive')!.onPress!(); });
-
-    expect(port.deleteThread).toHaveBeenCalledWith('a-old');
-    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Open a history' }).length).toBe(0);
-  } finally {
-    alert.mockRestore();
-    await act(async () => { renderer.unmount(); });
-  }
-});
-
-describe('History under the iOS large-title header (translucent, so content starts at the top of the screen)', () => {
-  // Only a scroll view that adjusts its insets moves its content below a translucent header.
-  const insideInsetScroll = (renderer: TestRenderer.ReactTestRenderer) => {
-    let node: TestRenderer.ReactTestInstance | null = renderer.root.findByType('AssistantSwitcher' as never);
-    while (node) {
-      if (node.props.contentInsetAdjustmentBehavior === 'automatic') return true;
-      node = node.parent;
-    }
-    return false;
-  };
-
-  it.each([
-    ['with Threads to list', { selected: { id: 'a' }, assistants: [{ id: 'a' }, { id: 'b' }] }],
-    ['with no Assistant to choose', { selected: null, assistants: [] }],
-  ])('keeps the Assistant chip below the header %s', async (_, selection) => {
-    useAssistantSelection.mockReturnValue(selection);
-    let renderer!: TestRenderer.ReactTestRenderer;
-    await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><HistoryScreen /></AnswersScope>); });
-
-    expect(insideInsetScroll(renderer)).toBe(true);
-    await act(async () => { renderer.unmount(); });
-  });
-});

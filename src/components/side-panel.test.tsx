@@ -24,13 +24,14 @@ const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection')
 const knowledge: Assistant = { kind: 'classic', id: 'assistant-knowledge', name: 'Knowledge', description: '' };
 
 // The drawer hands its content the drawer's navigation and state. The state's history says whether the
-// panel is open. `assistantStack` is the Assistant's stack, once it has state.
-function drawerProps(open: boolean, assistantStack?: string[]) {
+// panel is open. `assistantStack` is the Assistant's stack, once it has state. `chat` is the chat
+// screen's search params: which Thread it shows, if any.
+function drawerProps(open: boolean, assistantStack?: string[], chat?: Record<string, string>) {
   const navigation = { closeDrawer: jest.fn(), navigate: jest.fn() };
   const state = {
     key: 'drawer',
     index: 0,
-    routes: [drawerRoute('assistant', assistantStack), { key: 'apps', name: 'apps' }],
+    routes: [drawerRoute('assistant', assistantStack, chat), { key: 'apps', name: 'apps' }],
     history: open ? [{ type: 'route', key: 'assistant' }, { type: 'drawer', status: 'open' }] : [{ type: 'route', key: 'assistant' }],
   };
   return { navigation, state, descriptors: {} } as unknown as DrawerContentComponentProps & { navigation: typeof navigation };
@@ -64,6 +65,9 @@ const press = async (renderer: TestRenderer.ReactTestRenderer, label: string) =>
     renderer.root.findAllByProps({ accessibilityLabel: label })[0].props.onPress();
   });
 };
+const selectedRows = (renderer: TestRenderer.ReactTestRenderer) => [
+  ...new Set(renderer.root.findAll((node) => node.props.accessibilityState?.selected === true).map((node) => node.props.accessibilityLabel)),
+];
 const threadLabels = (renderer: TestRenderer.ReactTestRenderer) => [
   ...new Set(
     renderer.root
@@ -103,15 +107,53 @@ describe('SidePanelContent', () => {
     expect(threadLabels(renderer)).toHaveLength(10);
   });
 
-  it('opens a Thread with its Assistant and closes the panel', async () => {
+  it('opens a Thread with its Assistant as the current chat and closes the panel', async () => {
     const { renderer, props } = await renderPanel();
 
     await press(renderer, 'Open Q3 policy changes');
     expect(props.navigation.closeDrawer).toHaveBeenCalled();
-    expect(mockRouter.push).toHaveBeenCalledWith({
-      pathname: '/assistant/thread/[id]',
-      params: { id: 'thread-1', assistantId: 'assistant-knowledge', assistantName: 'Knowledge' },
+    expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
+      screen: 'index',
+      params: { thread: 'thread-1', assistantId: 'assistant-knowledge' },
+      pop: true,
     });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['opened from History', { thread: 'thread-2', assistantId: 'assistant-knowledge' }],
+    ['started by a new chat', { chat: '1', started: 'thread-2' }],
+  ])('highlights the open Thread %s, and only closes the panel when it is tapped', async (_, chat) => {
+    const { renderer, props } = await renderPanel(createFixtureAnswersPort(), drawerProps(true, ['index'], chat));
+
+    expect(selectedRows(renderer)).toEqual(['Open Onboarding checklist']);
+    await press(renderer, 'Open Onboarding checklist');
+    expect(props.navigation.closeDrawer).toHaveBeenCalled();
+    expect(props.navigation.navigate).not.toHaveBeenCalled();
+  });
+
+  it('highlights nothing for a new chat with no question yet', async () => {
+    const { renderer } = await renderPanel(createFixtureAnswersPort(), drawerProps(true, ['index'], { chat: '1' }));
+
+    expect(threadLabels(renderer)).toHaveLength(5);
+    expect(selectedRows(renderer)).toEqual([]);
+  });
+
+  // The docked panel never goes from closed to open, so the open Thread is what tells it to reload.
+  it('loads History again when the first question starts a Thread, so the open panel lists it', async () => {
+    const port = createFixtureAnswersPort();
+    const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { chat: '1' }));
+
+    let fresh!: { id: string };
+    await act(async () => {
+      fresh = await port.createThread('Fresh question');
+    });
+    expect(threadLabels(renderer)).not.toContain('Open Fresh question');
+    await act(async () => {
+      renderer.update(panel(port, { ...drawerProps(true, ['index'], { chat: '1', started: fresh.id }), navigation: props.navigation }));
+    });
+    expect(threadLabels(renderer)[0]).toBe('Open Fresh question');
+    expect(selectedRows(renderer)).toEqual(['Open Fresh question']);
   });
 
   it('says so when the Assistant has no History', async () => {
@@ -194,9 +236,14 @@ describe('SidePanelContent', () => {
   });
 });
 
-// A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has one.
-function drawerRoute(name: string, stack?: string[]) {
-  return { key: name, name, state: stack && { index: stack.length - 1, routes: stack.map((screen) => ({ key: screen, name: screen })) } };
+// A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has
+// one. `params` are the stack's `index` screen's params.
+function drawerRoute(name: string, stack?: string[], params?: Record<string, string>) {
+  return {
+    key: name,
+    name,
+    state: stack && { index: stack.length - 1, routes: stack.map((screen) => ({ key: screen, name: screen, params: screen === 'index' ? params : undefined })) },
+  };
 }
 
 describe('edgeSwipeEnabled', () => {
@@ -209,8 +256,6 @@ describe('edgeSwipeEnabled', () => {
   });
 
   it.each([
-    ['History', drawerRoute('assistant', ['index', 'history'])],
-    ['a Thread', drawerRoute('assistant', ['index', 'history', 'thread/[id]'])],
     ['the Agentic Assistant', drawerRoute('assistant', ['index', 'agentic'])],
     ['the Assistant chooser sheet', drawerRoute('assistant', ['index', 'choose'])],
     ['an Analytics App', drawerRoute('apps', ['index', '[id]'])],

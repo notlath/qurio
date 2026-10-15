@@ -1,5 +1,5 @@
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { AssistantProblem } from '@/components/assistant-switcher';
@@ -8,13 +8,21 @@ import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
 import { InteractionRow } from '@/components/interaction-row';
 import { AppPressable, IconButton } from '@/components/pressable';
-import { ThemedText } from '@/components/themed-text';
+import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
-import type { Starter, Thread } from '@/domain';
+import type { AppError, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
-import { useAnswersPort } from '@/qlik/context';
+import { AnswersScope, useAnswersPort } from '@/qlik/context';
+
+/**
+ * The chat screen's search params, which the side panel also reads.
+ * - `thread`, `assistantId`: the Thread opened from History, and the Assistant it belongs to.
+ * - `chat`: a new value for each new chat.
+ * - `started`: the Thread that this new chat created with its first question.
+ */
+type ChatParams = { thread?: string; assistantId?: string; chat?: string; started?: string };
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
   const theme = useTheme();
@@ -34,7 +42,7 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
 }
 
 /**
- * The header's actions. "New conversation" shows only once there is a conversation to leave, as in
+ * The header's action. "New conversation" shows only once there is a conversation to leave, as in
  * the ChatGPT and Gemini apps: on an empty screen it would do nothing.
  */
 function HeaderActions({ canStartNew, onNew }: { canStartNew: boolean; onNew: () => void }) {
@@ -47,34 +55,38 @@ function HeaderActions({ canStartNew, onNew }: { canStartNew: boolean; onNew: ()
           icon={<Icon ios="square.and.pencil" android="edit_square" size={22} color="primary" />}
         />
       )}
-      <Link href="/assistant/history" asChild>
-        <IconButton
-          accessibilityLabel="Open conversation history"
-          icon={<Icon ios="clock.arrow.circlepath" android="history" size={22} color="primary" />}
-        />
-      </Link>
     </View>
   );
 }
 
-export default function NewThreadScreen() {
+/** The one chat screen: a new chat, or a Thread opened from the side panel's History. */
+export default function ChatScreen() {
+  const navigation = useNavigation();
   const { selected } = useAssistantSelection();
-  // The side panel's New chat sets a new `chat` value each time.
-  const { chat } = useLocalSearchParams<{ chat?: string }>();
-  // A new conversation is a fresh mount, so a pending question is aborted and nothing carries over.
-  const [conversation, setConversation] = useState(0);
+  const { thread, assistantId, chat } = useLocalSearchParams<ChatParams>();
+  // A new chat gets a new `chat` value, so it is a fresh mount: a pending question is aborted and nothing carries over.
+  const startNew = useCallback(
+    () => navigation.setParams({ thread: undefined, assistantId: undefined, started: undefined, chat: String(Date.now()) } as never),
+    [navigation],
+  );
+  // A Thread keeps its Assistant. When the Qlik User selects another Assistant, they leave the Thread
+  // for a new chat with that Assistant, as the header's switcher now shows.
+  const resumed = thread !== undefined && assistantId !== undefined && assistantId === selected?.id;
+
   return (
     <View style={styles.flex}>
       <AssistantProblem />
-      <NewThreadConversation
-        key={`${selected?.id ?? 'none'}:${chat ?? ''}:${conversation}`}
-        onNew={() => setConversation((n) => n + 1)}
-      />
+      {resumed ? (
+        <ResumedThread key={thread} id={thread} assistantId={assistantId} onNew={startNew} />
+      ) : (
+        <NewChat key={`${selected?.id ?? 'none'}:${chat ?? ''}`} onNew={startNew} />
+      )}
     </View>
   );
 }
 
-function NewThreadConversation({ onNew }: { onNew: () => void }) {
+function NewChat({ onNew }: { onNew: () => void }) {
+  const navigation = useNavigation();
   const port = useAnswersPort();
   const [starters, setStarters] = useState<Starter[]>([]);
   const threadRef = useRef<Promise<Thread> | null>(null);
@@ -82,14 +94,97 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
   // however many questions follow. A failed creation is forgotten rather than cached, so
   // retrying after signing in works instead of replaying the same rejection forever.
   const ensureThreadId = useCallback(async () => {
+    const isNew = threadRef.current === null;
     const pending = (threadRef.current ??= port.createThread('New thread'));
     try {
-      return (await pending).id;
+      const { id } = await pending;
+      // The side panel highlights this Thread and loads History again, so it is listed.
+      if (isNew) navigation.setParams({ started: id } as never);
+      return id;
     } catch (e) {
       if (threadRef.current === pending) threadRef.current = null;
       throw e;
     }
+  }, [port, navigation]);
+
+  // A new chat has started no Thread yet, also after the Qlik User selects another Assistant.
+  useEffect(() => {
+    navigation.setParams({ started: undefined } as never);
+  }, [navigation]);
+
+  useEffect(() => {
+    // Starters are a nicety — a tenant that cannot serve them still answers questions.
+    port.listStarters().then(setStarters, () => setStarters([]));
   }, [port]);
+
+  return <Conversation thread={ensureThreadId} starters={starters} onNew={onNew} />;
+}
+
+function isAppError(value: unknown): value is AppError {
+  return typeof value === 'object' && value !== null && 'kind' in value;
+}
+
+function ResumedThread({ id, assistantId, onNew }: { id: string; assistantId: string; onNew: () => void }) {
+  const { portFor } = useAssistantSelection();
+  // Resuming a Thread always continues with its own Assistant (CONTEXT.md, Thread).
+  const scoped = useMemo(() => portFor(assistantId), [portFor, assistantId]);
+  return (
+    <AnswersScope port={scoped}>
+      <LoadedThread id={id} onNew={onNew} />
+    </AnswersScope>
+  );
+}
+
+function LoadedThread({ id, onNew }: { id: string; onNew: () => void }) {
+  const port = useAnswersPort();
+  const [detail, setDetail] = useState<ThreadDetail | null>(null);
+  // A failed load used to leave the spinner up forever.
+  const [failure, setFailure] = useState<{ error: AppError; at: number } | null>(null);
+
+  const load = useCallback(() => {
+    port.getThread(id).then(setDetail, (e) =>
+      setFailure({ error: isAppError(e) ? e : { kind: 'ServiceUnavailable' }, at: Date.now() }),
+    );
+  }, [port, id]);
+
+  useEffect(load, [load]);
+
+  if (failure) {
+    return (
+      <View style={styles.failureState}>
+        <ErrorState
+          error={failure.error}
+          erroredAt={failure.at}
+          onRetry={() => {
+            setFailure(null);
+            load();
+          }}
+          // Dismissing leaves nothing to show here, so it starts a new chat.
+          onDismiss={onNew}
+        />
+      </View>
+    );
+  }
+
+  if (!detail) return <ThreadSkeleton />;
+
+  // Mounted only once `detail` is loaded, so useThreadConversation seeds itself from the real
+  // interactions: a useState initial value is only read on a component's first render.
+  return <Conversation thread={detail.id} initialInteractions={detail.interactions} onNew={onNew} />;
+}
+
+/** The list and the Composer. With `starters`, it is a new chat and greets the Qlik User. */
+function Conversation({
+  thread,
+  initialInteractions,
+  starters,
+  onNew,
+}: {
+  thread: string | (() => Promise<string>);
+  initialInteractions?: Interaction[];
+  starters?: Starter[];
+  onNew: () => void;
+}) {
   const {
     interactions,
     question,
@@ -102,12 +197,7 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
     ask,
     stop,
     dismissError,
-  } = useThreadConversation(ensureThreadId);
-
-  useEffect(() => {
-    // Starters are a nicety — a tenant that cannot serve them still answers questions.
-    port.listStarters().then(setStarters, () => setStarters([]));
-  }, [port]);
+  } = useThreadConversation(thread, initialInteractions);
 
   return (
     <View style={styles.flex}>
@@ -126,7 +216,7 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
         contentInsetAdjustmentBehavior="automatic"
         renderScrollComponent={(props) => <ChatScrollView {...props} />}
         ListEmptyComponent={
-          asking ? null : (
+          asking ? null : starters ? (
             <View style={styles.emptyState}>
               <ThemedText type="title" style={styles.welcomeTitle}>
                 What can I help with?
@@ -141,6 +231,12 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
                   ))}
                 </View>
               )}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <ThemedText type="small" themeColor="textSecondary">
+                No messages in this thread yet.
+              </ThemedText>
             </View>
           )
         }
@@ -164,6 +260,25 @@ function NewThreadConversation({ onNew }: { onNew: () => void }) {
   );
 }
 
+/** A question bubble and an answer's lines, where the conversation will land, so nothing reflows. */
+function ThreadSkeleton() {
+  const theme = useTheme();
+  const fill = { backgroundColor: theme.backgroundSelected };
+
+  return (
+    <View accessible accessibilityLabel="Loading conversation" style={[styles.listContent, ContentColumn]}>
+      <View style={styles.skeletonTurn}>
+        <View style={[styles.skeletonQuestion, Shape.continuous, fill]} />
+        <View style={styles.skeletonAnswer}>
+          {(['100%', '92%', '60%'] as const).map((width) => (
+            <View key={width} style={[styles.skeletonLine, { width }, fill]} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
@@ -182,4 +297,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   starterText: { flexShrink: 1 },
+  skeletonTurn: { gap: Spacing.three },
+  // A one-line question bubble: the question line height inside the bubble's vertical padding.
+  skeletonQuestion: {
+    alignSelf: 'flex-end',
+    width: '60%',
+    height: TextStyles.question.lineHeight + Spacing.two * 2,
+    borderRadius: Radius.card,
+  },
+  skeletonAnswer: { gap: Spacing.three },
+  skeletonLine: { height: 12, borderRadius: Radius.pill },
+  failureState: { flex: 1, justifyContent: 'center', padding: Spacing.three },
 });

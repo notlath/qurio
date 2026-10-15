@@ -46,6 +46,16 @@ export function agenticInUse(state: DrawerContentComponentProps['state']): boole
   return assistant !== undefined && getFocusedRouteNameFromRoute(assistant) === 'agentic';
 }
 
+/**
+ * The Thread the chat screen shows: one opened from History, or one a new chat started with its first
+ * question. None for a new chat with no question yet.
+ */
+export function openThreadId(state: DrawerContentComponentProps['state']): string | undefined {
+  const stack = state.routes.find(({ name }) => name === 'assistant')?.state;
+  const params = stack?.routes.find(({ name }) => name === 'index')?.params as { thread?: string; started?: string } | undefined;
+  return params?.thread ?? params?.started;
+}
+
 /** The header button at the left of a top-level screen. It opens the overlay panel, or collapses and shows the docked panel. */
 export function SidePanelButton() {
   const navigation = useNavigation();
@@ -83,6 +93,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
   const { selected } = useAssistantSelection();
   const { docked } = useSidePanelLayout();
   const open = getDrawerStatusFromState(state) === 'open';
+  const openThread = openThreadId(state);
 
   function closeThen(action: () => void) {
     navigation.closeDrawer();
@@ -138,13 +149,13 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
           key={selected.id}
           assistant={selected}
           open={open}
+          openThread={openThread}
           header={items}
           onOpenThread={(thread) =>
+            // The open Thread is already the current chat. Opening it again would reload it.
             closeThen(() =>
-              router.push({
-                pathname: '/assistant/thread/[id]',
-                params: { id: thread.id, assistantId: selected.id, assistantName: selected.name },
-              }),
+              thread.id !== openThread &&
+              navigation.navigate('assistant', { screen: 'index', params: { thread: thread.id, assistantId: selected.id }, pop: true }),
             )
           }
         />
@@ -159,14 +170,17 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
 function PanelHistory({
   assistant,
   open,
+  openThread,
   header,
   onOpenThread,
 }: {
   assistant: Assistant;
   open: boolean;
+  openThread: string | undefined;
   header: ReactElement;
   onOpenThread: (thread: Thread) => void;
 }) {
+  const theme = useTheme();
   const { threads, initialLoad, error, erroredAt, loadingMore, refresh, retry, loadMore, dismissError } = useThreadHistory();
 
   // The panel stays mounted while it is closed. Each time it opens, it loads the first page again,
@@ -176,6 +190,14 @@ function PanelHistory({
     if (open && !wasOpen.current) refresh();
     wasOpen.current = open;
   }, [open, refresh]);
+
+  // The docked panel never goes from closed to open. A Thread that a new chat starts, or one opened
+  // from elsewhere, tells it to load the first page again, so the open Thread is listed.
+  const listedOpen = useRef(openThread);
+  useEffect(() => {
+    if (openThread !== listedOpen.current && openThread !== undefined) refresh();
+    listedOpen.current = openThread;
+  }, [openThread, refresh]);
 
   return (
     <FlatList
@@ -198,8 +220,9 @@ function PanelHistory({
           accessibilityLabel={`Open ${item.name}`}
           accessibilityHint={`Last updated ${formatRelativeTime(item.updatedAt)}`}
           onPress={() => onOpenThread(item)}
+          accessibilityState={{ selected: item.id === openThread }}
           feedback="highlight"
-          style={styles.row}>
+          style={[styles.row, { backgroundColor: item.id === openThread ? theme.backgroundSelected : 'transparent' }]}>
           <ThemedText numberOfLines={1}>{item.name}</ThemedText>
         </AppPressable>
       )}

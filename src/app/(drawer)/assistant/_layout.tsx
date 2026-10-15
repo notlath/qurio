@@ -22,8 +22,8 @@ function AssistantTrigger() {
 // a transparent header there would cover the first message.
 const CHAT_HEADER = { headerTransparent: Platform.OS === 'ios' };
 
-// The Assistant area owns its own stack so a Thread opened from History keeps the Assistant
-// selected in the side panel and Back returns through History.
+// The Assistant area owns its own stack: the chat screen, with the Agentic Assistant and the
+// Assistant chooser pushed over it.
 export default function AssistantLayout() {
   const screenOptions = useStackScreenOptions();
   const theme = useTheme();
@@ -32,8 +32,6 @@ export default function AssistantLayout() {
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ ...CHAT_HEADER, title: 'Assistant', headerTitle: '', headerLeft: AssistantTrigger }} />
       <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant' }} />
-      <Stack.Screen name="history" options={{ title: 'History', headerLargeTitle: true }} />
-      <Stack.Screen name="thread/[id]" options={{ ...CHAT_HEADER, title: 'Thread' }} />
       <Stack.Screen
         name="choose"
         options={{

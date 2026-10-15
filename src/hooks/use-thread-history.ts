@@ -9,8 +9,8 @@ function isAppError(value: unknown): value is AppError {
 }
 
 /**
- * The selected Assistant's History, one page at a time, newest first. The History screen and the
- * side panel show the same list, so they load, page, delete and recover through this one hook.
+ * The selected Assistant's History, one page at a time, newest first, as the side panel lists it:
+ * load, page, delete and recover.
  */
 export function useThreadHistory() {
   const port = useAnswersPort();
