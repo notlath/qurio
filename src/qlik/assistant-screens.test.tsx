@@ -19,6 +19,7 @@ jest.mock('@/components/icon', () => ({ Icon: () => null }));
 // Reanimated's worklets do not load under Jest. The swipe itself needs a device, so the row passes through.
 jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => ({ __esModule: true, default: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
+jest.mock('@/components/side-panel.prototype', () => ({ SidePanelPrototype: ({ children }: { children: unknown }) => children })); // PROTOTYPE (prototype/side-panel)
 jest.setTimeout(30000);
 
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');

@@ -15,6 +15,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { useAnswersPort } from '@/qlik/context';
+// PROTOTYPE (prototype/side-panel): the side panel variants host on this screen.
+import { SidePanelPrototype } from '@/components/side-panel.prototype';
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
   const theme = useTheme();
@@ -62,13 +64,15 @@ export default function NewThreadScreen() {
   // A new conversation is a fresh mount, so a pending question is aborted and nothing carries over.
   const [conversation, setConversation] = useState(0);
   return (
-    <View style={styles.flex}>
-      <AssistantProblem />
-      <NewThreadConversation
-        key={`${selected?.id ?? 'none'}:${conversation}`}
-        onNew={() => setConversation((n) => n + 1)}
-      />
-    </View>
+    <SidePanelPrototype onNew={() => setConversation((n) => n + 1)}>
+      <View style={styles.flex}>
+        <AssistantProblem />
+        <NewThreadConversation
+          key={`${selected?.id ?? 'none'}:${conversation}`}
+          onNew={() => setConversation((n) => n + 1)}
+        />
+      </View>
+    </SidePanelPrototype>
   );
 }
 
