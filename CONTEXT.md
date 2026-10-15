@@ -51,8 +51,12 @@ A governed collection of indexed source documents an Assistant draws answers fro
 _Avoid_: KB (in prose), corpus, index
 
 **Thread**:
-One continuous conversation with one Assistant, owned by a Qlik User and persisted in the Tenant. The Qlik User chooses the Assistant when the Thread starts, and the Thread keeps it for its whole life: resuming a Thread always continues with that Assistant. The app's History is a list of Threads.
+One continuous conversation with one Assistant, owned by a Qlik User and persisted in the Tenant. The Qlik User chooses the Assistant when the Thread starts, and the Thread keeps it for its whole life: resuming a Thread always continues with that Assistant.
 _Avoid_: Conversation, session, chat
+
+**History**:
+The Qlik User's Threads with the selected Assistant, newest first. An Agentic Assistant has no History in the app: Qlik keeps its chats inside its own Assistant view.
+_Avoid_: Recents, chats, conversations
 
 **Interaction**:
 A single question-and-answer exchange inside a Thread. Feedback is attached to an Interaction, not to a Thread.
