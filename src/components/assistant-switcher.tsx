@@ -86,8 +86,9 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
         onPress={() => router.push(includeAgentic ? '/assistant/choose?agentic=1' : '/assistant/choose')}
         // In the header it is a bar button, so it dims. On History it is a chip, so it scales.
         feedback={placement === 'header' ? 'opacity' : 'scale'}
-        // A header gives its left item no width limit, so keep room for the header's right buttons.
-        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget * 2 - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
+        // A header gives its left item no width limit, so keep room for the side panel button on its
+        // left and the header's right buttons.
+        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget * 3 - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
         <ThemedText type={placement === 'header' ? 'headline' : 'smallBold'} numberOfLines={1} style={styles.triggerText}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>

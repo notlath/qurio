@@ -1,9 +1,9 @@
 import React from 'react';
 import { Alert, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
-import HistoryScreen from '@/app/(tabs)/assistant/history';
-import NewThreadScreen from '@/app/(tabs)/assistant';
-import ThreadDetailScreen from '@/app/(tabs)/assistant/thread/[id]';
+import HistoryScreen from '@/app/(drawer)/assistant/history';
+import NewThreadScreen from '@/app/(drawer)/assistant';
+import ThreadDetailScreen from '@/app/(drawer)/assistant/thread/[id]';
 import { AnswersScope } from './context';
 import type { AnswersPort } from './port';
 

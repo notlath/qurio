@@ -1,7 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
-import AppsScreen from '@/app/(tabs)/(home)/index';
+import AppsScreen from '@/app/(drawer)/apps/index';
 import type { AnalyticsApp } from '@/domain';
 import { AnswersScope } from '@/qlik/context';
 import type { AnswersPort } from '@/qlik/port';

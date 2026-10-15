@@ -57,17 +57,21 @@ export default function RootLayout() {
   return (
     // Gesture Handler needs one root view above every gesture, such as History's swipe to delete.
     <GestureHandlerRootView style={styles.root}>
-      {/* iOS only: Android already lifts the chat above the keyboard natively (NativeTabs'
-          tabBarRespectsIMEInsets); letting the library take the IME insets too would double the offset. */}
-      <KeyboardProvider enabled={process.env.EXPO_OS === 'ios'}>
+      {/* Lifts the chat and the Composer above the keyboard on iOS and Android. Android: the app draws
+          edge to edge under both system bars, so both are translucent to the library. It then reports
+          the full keyboard height and does not resize the screen for the keyboard. */}
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <ThemeProvider value={navigationTheme(colorScheme === 'dark' ? 'dark' : 'light')}>
           <TenantConfigProvider>
             <AnswersPortProvider>
               <LockGate>
                 <TenantEntryGate>
                   <Stack screenOptions={screenOptions}>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+                    {/* Pushed over the side panel, so the left edge stays swipe-to-go-back. */}
                     <Stack.Screen name="apps/[id]" options={{ title: 'Analytics App' }} />
+                    <Stack.Screen name="settings/index" options={{ title: 'Settings', headerLargeTitle: true }} />
+                    <Stack.Screen name="settings/change-tenant" options={{ title: 'Change tenant' }} />
                   </Stack>
                 </TenantEntryGate>
               </LockGate>

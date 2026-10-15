@@ -40,9 +40,9 @@ export function Composer({
   }
 
   return (
-    // Rides the keyboard frame by frame (iOS interactive dismiss included). The bottom inset —
-    // home indicator plus tab bar inside the tabs — is handed back once the keyboard is up, so the
-    // composer sits on the keyboard rather than a tab bar's height above it.
+    // Rides the keyboard frame by frame (iOS interactive dismiss included). The bottom inset (home
+    // indicator, or Android's navigation bar) is handed back once the keyboard is up, so the
+    // composer sits on the keyboard rather than that inset's height above it.
     <KeyboardStickyView offset={{ opened: bottom }} style={[styles.dock, { paddingBottom: Spacing.two + bottom }]}>
       <ThemedView
         type="backgroundElement"
