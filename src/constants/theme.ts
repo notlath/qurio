@@ -92,7 +92,8 @@ export const Duration = {
 
 /**
  * Shape lock: actions (buttons, chips, the composer) are pills; cards and grouped lists use
- * `Radius.card`; inputs use `Radius.control`; inline blocks (code, icon tiles) use `Radius.small`.
+ * `Radius.card`; inputs and chat bubbles use `Radius.control`; inline blocks (code, icon tiles) use
+ * `Radius.small`.
  * Every rounded surface also takes `Shape.continuous` so its corners read as squircles on iOS.
  */
 export const Shape = { continuous: { borderCurve: 'continuous' } } as const;

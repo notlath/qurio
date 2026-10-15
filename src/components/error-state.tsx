@@ -61,7 +61,7 @@ export function ErrorState({
       <View style={styles.actions}>
         {canRetry && (
           <AppPressable onPress={onRetry} disabled={retryBlocked} accessibilityLabel="Retry" style={styles.action}>
-            <ThemedText type={retryBlocked ? 'small' : 'linkPrimary'}>
+            <ThemedText type={retryBlocked ? 'small' : 'smallBold'} themeColor={retryBlocked ? undefined : 'primary'}>
               {retryBlocked ? `Retry in ${secondsRemaining}s` : 'Retry'}
             </ThemedText>
           </AppPressable>

@@ -90,7 +90,8 @@ function Block({ block, numberedIndex }: { block: AnswerRenderBlock; numberedInd
       return <Table rows={block.rows} />;
     case 'code':
       return (
-        <ThemedView type="backgroundElement" style={[styles.codeBlock, Shape.continuous, { borderColor: theme.border }]}>
+        // The page colour, not the bubble's: on the same fill only a hairline showed where the code began.
+        <ThemedView testID="code-block" type="background" style={[styles.codeBlock, Shape.continuous, { borderColor: theme.border }]}>
           {/* Sideways, never wrapped: a wrapped expression split inside tokens and could not be read as written. */}
           <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.codeScroll}>
             <ThemedText type="code" selectable>

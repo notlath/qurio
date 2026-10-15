@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { ErrorState } from '@/components/error-state';
 import { errorMessageFor } from '@/domain';
@@ -30,4 +30,10 @@ it('is announced as an alert when it appears', () => {
   const alert = render().root.findAll((node) => node.props.accessibilityRole === 'alert');
 
   expect(alert.length).toBeGreaterThan(0);
+});
+
+it('sets Retry at the 14pt secondary size, like the other actions in the conversation', () => {
+  const retry = render().root.findAllByType(Text).find((node) => node.props.children === 'Retry');
+
+  expect(StyleSheet.flatten(retry?.props.style).fontSize).toBe(14);
 });

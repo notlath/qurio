@@ -6,11 +6,11 @@ import { AnswerContent } from '@/components/answer-content';
 import { needsFullColumn } from '@/components/answer-markdown';
 import { tapHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
-import { AnswerBubble } from '@/components/interaction-row';
+import { AnswerBubble, QuestionBubble } from '@/components/interaction-row';
 import { IconButton } from '@/components/pressable';
 import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ContentColumn, Elevation, Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
+import { ContentColumn, Elevation, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -103,9 +103,7 @@ export function PendingAnswer({ question, partialAnswer }: { question: string; p
 
   return (
     <View style={styles.pendingRow}>
-      <ThemedView type="backgroundSelected" style={[styles.pendingQuestion, Shape.continuous]}>
-        <ThemedText type="question">{question}</ThemedText>
-      </ThemedView>
+      <QuestionBubble text={question} />
       <AnswerBubble wide={!!partialAnswer && needsFullColumn(partialAnswer)}>
         {partialAnswer ? (
           <AnswerContent markdown={partialAnswer} />
@@ -147,13 +145,6 @@ const styles = StyleSheet.create({
     paddingVertical: (TouchTarget - TextStyles.default.lineHeight) / 2,
   },
   pendingRow: { gap: Spacing.three },
-  pendingQuestion: {
-    alignSelf: 'flex-end',
-    maxWidth: '88%',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Radius.card,
-  },
   thinking: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   dots: { letterSpacing: 2 },
   thinkingText: { flex: 1 },

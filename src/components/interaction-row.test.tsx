@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { PendingAnswer } from '@/components/composer';
 import { InteractionRow } from '@/components/interaction-row';
-import { Fonts } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import type { Feedback, Interaction } from '@/domain';
 
 jest.mock('@/global.css', () => ({}));
@@ -163,4 +163,55 @@ it('streams the partial Answer into that same bubble', () => {
   const renderer = render(<PendingAnswer question="Question text" partialAnswer="Partial answer" />);
 
   expect(bubble(renderer).findAll((node) => node.props.children === 'Partial answer').length).toBeGreaterThan(0);
+});
+
+describe('the polish pass', () => {
+  const question = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByProps({ testID: 'question-bubble' });
+
+  it('gives the question and Answer bubbles one padding, one corner radius and one width cap', () => {
+    const renderer = render(<InteractionRow interaction={interaction('Answer text')} />);
+    const q = style(question(renderer));
+    const a = style(bubble(renderer));
+
+    expect(q.paddingVertical).toBe(a.paddingVertical);
+    expect(q.paddingHorizontal).toBe(a.paddingHorizontal);
+    expect(q.borderRadius).toBe(a.borderRadius);
+    expect(q.maxWidth).toBe('85%');
+    expect(a.maxWidth).toBe('85%');
+  });
+
+  it('draws the waiting question with the same bubble as a sent one', () => {
+    const pending = render(<PendingAnswer question="Question text" partialAnswer="" />);
+    const sent = render(<InteractionRow interaction={interaction('Answer text')} />);
+
+    expect(style(question(pending))).toEqual(style(question(sent)));
+  });
+
+  it('puts the Sources toggle and the Feedback buttons in one row under the Answer', () => {
+    const renderer = render(<InteractionRow interaction={interaction('Answer text')} />);
+    const actions = renderer.root.findByProps({ testID: 'answer-actions' });
+
+    expect(style(actions).flexDirection).toBe('row');
+    expect(actions.findAllByProps({ accessibilityLabel: 'Show 1 source' }).length).toBeGreaterThan(0);
+    expect(actions.findAllByProps({ accessibilityLabel: 'Helpful' }).length).toBeGreaterThan(0);
+  });
+
+  it('opens the Sources below that row', () => {
+    const renderer = render(<InteractionRow interaction={interaction('Answer text')} />);
+    act(() => {
+      renderer.root.findAllByProps({ accessibilityLabel: 'Show 1 source' })[0].props.onPress();
+    });
+
+    expect(textNode(renderer, 'Handbook.pdf')).toBeDefined();
+    expect(renderer.root.findByProps({ testID: 'answer-actions' }).findAll((node) => node.props.children === 'Handbook.pdf')).toHaveLength(0);
+  });
+
+  it('sets a code block on the page colour, so it reads as a well inside the bubble', () => {
+    const renderer = render(<InteractionRow interaction={interaction('```\ncode\n```')} />);
+
+    // The innermost node with the test ID is the View that ThemedView paints.
+    const block = renderer.root.findAll((node) => node.props.testID === 'code-block').pop();
+
+    expect(style(block).backgroundColor).toBe(Colors.light.background);
+  });
 });
