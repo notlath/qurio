@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { FixtureDataSwitch } from '@/components/fixture-data-switch';
+import { BubbleVariantSwitcher } from '@/components/prototype-bubble-variant';
 import { LockGate } from '@/components/lock-gate';
 import { TenantEntryGate } from '@/components/tenant-entry';
 import { TenantConfigProvider } from '@/config/context';
@@ -76,6 +77,7 @@ export default function RootLayout() {
         </ThemeProvider>
       </KeyboardProvider>
       <FixtureDataSwitch />
+      <BubbleVariantSwitcher />
     </GestureHandlerRootView>
   );
 }

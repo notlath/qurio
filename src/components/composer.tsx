@@ -1,8 +1,10 @@
-import { ActivityIndicator, StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
+import { StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
 import { KeyboardChatScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnswerContent } from '@/components/answer-content';
+import { AnswerSurface, PrototypeQuestion } from '@/components/interaction-row';
+import { useBubbleVariant } from '@/components/prototype-bubble-variant';
 import { tapHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { IconButton } from '@/components/pressable';
@@ -94,23 +96,24 @@ export function ChatScrollView(props: ScrollViewProps) {
 /** The in-flight turn: the question already committed, and the answer as it streams in. */
 export function PendingAnswer({ question, partialAnswer }: { question: string; partialAnswer: string }) {
   const theme = useTheme();
+  const variant = useBubbleVariant();
 
   return (
     <View style={styles.pendingRow}>
-      <ThemedView type="backgroundSelected" style={[styles.pendingQuestion, Shape.continuous]}>
-        <ThemedText type="question">{question}</ThemedText>
-      </ThemedView>
-      {partialAnswer ? (
-        // The same renderer as the finished answer, so lists and bold do not jump into place at the end.
-        <AnswerContent markdown={partialAnswer} />
-      ) : (
-        <View style={styles.thinking} accessibilityLiveRegion="polite">
-          <ActivityIndicator size="small" color={theme.primary} />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
-            Searching your knowledge base&hellip;
-          </ThemedText>
-        </View>
-      )}
+      <PrototypeQuestion text={question} />
+      {/* PROTOTYPE: the same surface from the first moment. Static dots stand in for the animation. */}
+      <AnswerSurface variant={variant}>
+        {partialAnswer ? (
+          <AnswerContent markdown={partialAnswer} />
+        ) : (
+          <View style={styles.thinking} accessibilityLiveRegion="polite">
+            <ThemedText type="smallBold" style={{ color: theme.primary, letterSpacing: 2 }}>&bull;&bull;&bull;</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
+              Searching your knowledge base&hellip;
+            </ThemedText>
+          </View>
+        )}
+      </AnswerSurface>
     </View>
   );
 }

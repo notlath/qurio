@@ -7,6 +7,7 @@ import { Icon } from '@/components/icon';
 import { AppPressable, Chip, IconButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useBubbleVariant, type BubbleVariant } from '@/components/prototype-bubble-variant';
 import { Radius, Shape, Spacing, TouchTarget } from '@/constants/theme';
 import type { Citation, Feedback, FeedbackReason, Interaction } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
@@ -207,29 +208,54 @@ function FeedbackControl({ threadId, interactionId, initial }: { threadId: strin
   );
 }
 
+/** PROTOTYPE: the question at Body 16 regular, as settled, in every variant. */
+export function PrototypeQuestion({ text }: { text: string }) {
+  return (
+    <ThemedView type="backgroundSelected" style={[styles.question, Shape.continuous]}>
+      <ThemedText selectable>{text}</ThemedText>
+    </ThemedView>
+  );
+}
+
+/** PROTOTYPE: where the Answer text sits in each variant. Sources and Feedback stay outside it. */
+export function AnswerSurface({ variant, children }: { variant: BubbleVariant; children: React.ReactNode }) {
+  const theme = useTheme();
+  if (variant === 'A') return <View style={styles.answerBody}>{children}</View>;
+  return (
+    <View
+      style={[
+        styles.answerBody,
+        variant === 'B' ? styles.answerBubble : styles.answerCard,
+        Shape.continuous,
+        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+      ]}>
+      {children}
+    </View>
+  );
+}
+
 /**
  * The question is a bubble; the answer sits unboxed on the page, as the thing being read. A card
  * around every answer added a border, a shadow and 16pt of inset to the longest text on screen.
  */
 export function InteractionRow({ interaction }: { interaction: Interaction }) {
+  const variant = useBubbleVariant();
   return (
     <View style={styles.interactionRow}>
-      <ThemedView type="backgroundSelected" style={[styles.question, Shape.continuous]}>
-        <ThemedText type="question" selectable>
-          {interaction.question}
-        </ThemedText>
-      </ThemedView>
+      <PrototypeQuestion text={interaction.question} />
 
       <View style={styles.answer}>
-        {interaction.answer.blocks.map((block, index) =>
-          block.kind === 'text' ? (
-            <AnswerContent key={index} markdown={block.markdown} />
-          ) : (
-            <ThemedText key={index} selectable>
-              {block.insight.narrative}
-            </ThemedText>
-          ),
-        )}
+        <AnswerSurface variant={variant}>
+          {interaction.answer.blocks.map((block, index) =>
+            block.kind === 'text' ? (
+              <AnswerContent key={index} markdown={block.markdown} />
+            ) : (
+              <ThemedText key={index} selectable>
+                {block.insight.narrative}
+              </ThemedText>
+            ),
+          )}
+        </AnswerSurface>
 
         {interaction.answer.citations.length > 0 && <Sources citations={interaction.answer.citations} />}
 
@@ -253,6 +279,23 @@ const styles = StyleSheet.create({
     borderRadius: Radius.card,
   },
   answer: { gap: Spacing.two },
+  answerBody: { gap: Spacing.two },
+  // B: a messaging bubble on the left, as wide as its text up to 85%.
+  answerBubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + Spacing.one,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.card,
+  },
+  // C: a full-width card, so tables and code keep the whole column.
+  answerCard: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.card,
+  },
   sources: { gap: Spacing.two },
   sourcesToggle: {
     alignSelf: 'flex-start',
