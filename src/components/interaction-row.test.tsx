@@ -11,6 +11,10 @@ jest.mock('@/global.css', () => ({}));
 jest.mock('@/qlik/context', () => ({
   useAnswersPort: () => ({ submitFeedback: jest.fn() }),
 }));
+// Reanimated's worklets do not load under Jest, so each library's own mock stands in.
+jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/lib/module/mock'));
+// Its mock has no useReducedMotion, so the tests run with Reduce Motion off.
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: () => false }));
 jest.mock('react-native-keyboard-controller', () => ({
   KeyboardChatScrollView: () => null,
   KeyboardStickyView: () => null,
@@ -213,5 +217,27 @@ describe('the polish pass', () => {
     const block = renderer.root.findAll((node) => node.props.testID === 'code-block').pop();
 
     expect(style(block).backgroundColor).toBe(Colors.light.background);
+  });
+});
+
+describe('motion', () => {
+  it('pulses three dots while the Answer is on its way, hidden from screen readers, which hear the text', () => {
+    const renderer = render(<PendingAnswer question="Question text" partialAnswer="" />);
+    const dots = renderer.root.findAll((node) => node.props.testID === 'typing-dot');
+
+    expect(dots.length).toBeGreaterThanOrEqual(3);
+    expect(renderer.root.findAll((node) => node.props.testID === 'typing-dots').pop()?.props.importantForAccessibility).toBe('no-hide-descendants');
+  });
+
+  it('brings the sent question in with an entrance', () => {
+    const renderer = render(<PendingAnswer question="Question text" partialAnswer="" />);
+
+    expect(renderer.root.findByProps({ testID: 'pending-question' }).props.entering).toBeDefined();
+  });
+
+  it('gives a streaming Answer the full column from its first word, so it never widens mid-sentence', () => {
+    const renderer = render(<PendingAnswer question="Question text" partialAnswer="Yes" />);
+
+    expect(style(bubble(renderer)).alignSelf).toBe('stretch');
   });
 });
