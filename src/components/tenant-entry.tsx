@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { BackHandler, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
@@ -84,13 +85,8 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void
       </View>
     );
   }
-  return (
+  const form = (
     <View style={styles.form}>
-      {replacing?.onBack && (
-        <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack}>
-          <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
-        </AppPressable>
-      )}
       <ThemedText type="title">Connect to your Tenant</ThemedText>
       <ThemedText>Tenant hostname</ThemedText>
       <TextInput
@@ -122,10 +118,21 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void
       )}
     </View>
   );
+  if (!replacing?.onBack) return form;
+  // Back belongs at the top of the screen, as a navigator header would put it, not centered with the form.
+  return (
+    <View style={styles.page}>
+      <AppPressable accessibilityLabel="Back" disabled={busy} onPress={replacing.onBack} style={styles.back}>
+        <ThemedText type="linkPrimary" themeColor="primary">Back</ThemedText>
+      </AppPressable>
+      <View style={styles.centered}>{form}</View>
+    </View>
+  );
 }
 
 export function TenantEntryGate({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { config, managed } = useTenantConfig();
   const [signedIn, setSignedIn] = useState<boolean | undefined>();
   useEffect(() => {
@@ -150,15 +157,21 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
     // Painted here: the gate replaces the navigator, which otherwise paints the screen background.
     <ScrollView
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, ContentColumn]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three }, ContentColumn]}
       keyboardShouldPersistTaps="handled">
       {config ? (
-        <>
+        managed ? (
           <SignInSection config={config} onSignedIn={async () => {
             setSignedIn(true);
           }} />
-          {!managed && <ChangeTenant config={config} />}
-        </>
+        ) : (
+          // Keyed by Tenant, so connecting to a new Tenant closes the form and shows its sign-in.
+          <ChangeTenant key={config.tenantHost} config={config}>
+            <SignInSection config={config} onSignedIn={async () => {
+              setSignedIn(true);
+            }} />
+          </ChangeTenant>
+        )
       ) : (
         <HostnameEntry />
       )}
@@ -166,22 +179,28 @@ export function TenantEntryGate({ children }: { children: ReactNode }) {
   );
 }
 
-export function ChangeTenant({ config }: { config: TenantConfig }) {
+/** `children` (the current Tenant's sign-in, which names the Tenant) hides while the user picks another Tenant. */
+export function ChangeTenant({ config, children }: { config: TenantConfig; children?: ReactNode }) {
   const { signOut } = useQlikAuth(config);
   const [changing, setChanging] = useState(false);
   if (changing) return <HostnameEntry replacing={{ onBack: () => setChanging(false), signOut }} />;
   return (
-    <View style={styles.form}>
-      <ThemedText>{config.tenantHost}</ThemedText>
-      <AppPressable accessibilityLabel="Change tenant" onPress={() => setChanging(true)}>
-        <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
-      </AppPressable>
-    </View>
+    <>
+      {children}
+      <View style={styles.form}>
+        <AppPressable accessibilityLabel="Change tenant" onPress={() => setChanging(true)}>
+          <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
+        </AppPressable>
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'center', padding: Spacing.three },
   form: { gap: Spacing.three, padding: Spacing.three },
+  page: { flexGrow: 1 },
+  back: { alignSelf: 'flex-start', paddingHorizontal: Spacing.three },
+  centered: { flexGrow: 1, justifyContent: 'center' },
   input: { fontSize: 16, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.control, padding: Spacing.three },
 });

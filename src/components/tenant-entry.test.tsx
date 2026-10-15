@@ -21,6 +21,7 @@ jest.mock('@/config', () => ({
   loadDevConfig: jest.fn().mockResolvedValue(undefined),
   IS_INTERNAL_BUILD: false,
 }));
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('@/auth/session', () => ({ useQlikAuth: () => ({ signOut: mockSignOut, signIn: jest.fn(), ready: true }) }));
 
 it('explains a custom domain before attempting sign-in', async () => {
@@ -165,4 +166,35 @@ it('paints the theme background behind the sign-in gate', async () => {
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => { renderer = TestRenderer.create(<TenantEntryGate><TextInput /></TenantEntryGate>); });
   expect(StyleSheet.flatten(renderer.root.findByType(ScrollView).props.style)).toMatchObject({ backgroundColor: Colors.light.background });
+});
+
+it('shows only the Tenant form after Change tenant on the sign-in gate', async () => {
+  mockConfig = { tenantHost: 'acme.ap.qlikcloud.com', clientId: 'client' };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<TenantEntryGate><TextInput /></TenantEntryGate>); });
+  await act(async () => {
+    renderer.root.findAllByType(AppPressable).find((button) => button.props.accessibilityLabel === 'Change tenant')!.props.onPress();
+  });
+  const text = JSON.stringify(renderer.toJSON());
+  expect(text).toContain('Connect to your Tenant');
+  expect(text).not.toContain('Not signed in');
+  mockConfig = null;
+});
+
+it('leaves the Tenant form once the gate connects to a new Tenant', async () => {
+  mockConfig = { tenantHost: 'acme.ap.qlikcloud.com', clientId: 'client' };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<TenantEntryGate><TextInput /></TenantEntryGate>); });
+  await act(async () => {
+    renderer.root.findAllByType(AppPressable).find((button) => button.props.accessibilityLabel === 'Change tenant')!.props.onPress();
+  });
+  await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Tenant hostname' }).props.onChangeText('other.sg.qlikcloud.com'); });
+  await act(async () => { await renderer.root.findAllByType(PrimaryButton).find((button) => button.props.label === 'Continue')!.props.onPress(); });
+  mockConfig = { tenantHost: 'other.sg.qlikcloud.com', clientId: 'client' };
+  await act(async () => { renderer.update(<TenantEntryGate><TextInput /></TenantEntryGate>); });
+
+  const text = JSON.stringify(renderer.toJSON());
+  expect(text).toContain('other.sg.qlikcloud.com');
+  expect(text).not.toContain('Connect to your Tenant');
+  mockConfig = null;
 });
