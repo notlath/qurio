@@ -75,6 +75,24 @@ describe('createAnswersPort', () => {
     }));
   });
 
+  // iOS URLSession drops the Authorization header when it follows a redirect itself; Qlik answers
+  // users/me with a 301. This double behaves like iOS: an automatic follow arrives without a token.
+  it('follows the users/me redirect itself, so the token reaches the Qlik User resource on iOS', async () => {
+    const fetch = jest.fn(async (url: string, init: { headers: Record<string, string>; redirect?: string }) => {
+      if (url.endsWith('/api/v1/users/me')) {
+        if (init.redirect !== 'manual') return jsonResponse({}, 401);
+        return { ok: false, status: 301, headers: { get: (name: string) => (name.toLowerCase() === 'location' ? '/api/v1/users/user-1' : null) }, json: async () => ({}) };
+      }
+      if (url === `https://${config.tenantHost}/api/v1/users/user-1` && init.headers.Authorization === 'Bearer access-1') {
+        return jsonResponse({ id: 'user-1', name: 'Alex Morgan' });
+      }
+      return jsonResponse({}, 401);
+    });
+    const port = createAnswersPort(config, { fetch, getToken: async () => 'access-1' });
+
+    await expect(port.getCurrentUser()).resolves.toEqual({ id: 'user-1', name: 'Alex Morgan' });
+  });
+
   it.each([undefined, '', 'http://images.example.com/alex.jpg', 'file:///private/avatar.jpg'])(
     'omits an unavailable or insecure picture (%s)', async (picture) => {
       const fetch = jest.fn().mockResolvedValue(jsonResponse({ id: 'user-1', name: 'Alex', picture }));

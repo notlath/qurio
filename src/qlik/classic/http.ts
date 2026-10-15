@@ -16,10 +16,12 @@ export type HttpInit = {
   body?: unknown; // serialised here, so callers pass plain objects
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** 'manual' returns a 3xx response instead of following it, so the caller can follow it with the token. */
+  redirect?: 'follow' | 'manual';
 };
 
 export type HttpDeps<R extends HttpResponse = HttpResponse> = {
-  fetch(url: string, init: { method?: string; body?: string; headers: Record<string, string>; signal?: AbortSignal }): Promise<R>;
+  fetch(url: string, init: { method?: string; body?: string; headers: Record<string, string>; signal?: AbortSignal; redirect?: 'follow' | 'manual' }): Promise<R>;
   getToken(): Promise<string | null>;
 };
 
@@ -79,6 +81,7 @@ export async function qlikFetch<R extends HttpResponse>(
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       headers: { ...authHeaders(token), ...init.headers },
       signal: init.signal,
+      redirect: init.redirect,
     });
   } catch (error) {
     const domainError = classifyFetchFailure(error);
@@ -86,7 +89,8 @@ export async function qlikFetch<R extends HttpResponse>(
     throw domainError;
   }
 
-  if (!response.ok) throw toDomainError(response, scope);
+  const redirected = init.redirect === 'manual' && response.status >= 300 && response.status < 400;
+  if (!response.ok && !redirected) throw toDomainError(response, scope);
   return response;
 }
 

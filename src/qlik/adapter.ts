@@ -57,8 +57,12 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
     capabilities: { streaming: true, analyticsInsights: false },
 
     async getCurrentUser() {
-      // Fetch follows Qlik's redirect to this Qlik User's resource. No Assistant selection is needed.
-      return toQlikUser(await json<QlikUserRecord>('/api/v1/users/me'));
+      // Qlik answers users/me with a 301 to this Qlik User's resource. iOS drops the Authorization
+      // header when it follows a redirect, so the redirect is followed here, with the token.
+      // No Assistant selection is needed.
+      const me = await qlikFetch(deps, config, '/api/v1/users/me', { redirect: 'manual' });
+      const location = me.headers.get('location');
+      return toQlikUser(location ? await json<QlikUserRecord>(location) : await me.json() as QlikUserRecord);
     },
 
     async listThreads(opts) {
