@@ -7,7 +7,9 @@ import { SignInSection } from '@/components/sign-in-section';
 
 jest.mock('@/global.css', () => ({}));
 jest.mock('@/config', () => ({ IS_INTERNAL_BUILD: false }));
-jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn() }));
+const mockPort = { getCurrentUser: jest.fn().mockResolvedValue({ id: 'user-1', name: 'Alex Morgan' }) };
+jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn(), useAnswersPort: () => mockPort }));
+jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('expo-auth-session', () => ({
   useAuthRequest: () => [{ codeVerifier: 'verifier' }, null, mockPromptAsync],
   exchangeCodeAsync: jest.fn(),

@@ -1,5 +1,13 @@
 /** Qlik's own JSON shapes, as captured in docs/poc-tickets/fixtures/01-verify-assistants-api/. Never imported above the adapter (ADR-0006). */
 
+/** Published Users API fields. Optional identity fields depend on the Tenant's identity provider. */
+export type QlikUserRecord = {
+  id: string;
+  name: string;
+  email?: string;
+  picture?: string;
+};
+
 export type QlikThread = {
   id: string;
   name: string;

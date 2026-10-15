@@ -1,13 +1,80 @@
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
+import { Icon } from '@/components/icon';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { type TenantConfig } from '@/config';
-import { Spacing } from '@/constants/theme';
-import { useReloadAnswersPort } from '@/qlik/context';
+import { Radius, Spacing } from '@/constants/theme';
+import type { QlikUser } from '@/domain';
+import { useTheme } from '@/hooks/use-theme';
+import { useAnswersPort, useReloadAnswersPort } from '@/qlik/context';
+import type { AnswersPort } from '@/qlik/port';
+
+function ProfileDetails() {
+  const port = useAnswersPort();
+  const theme = useTheme();
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{ port: AnswersPort; attempt: number; user?: QlikUser; error?: string } | null>(null);
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    port.getCurrentUser().then(
+      (user) => current && setResult({ port, attempt, user }),
+      (error: unknown) => {
+        const expired = typeof error === 'object' && error !== null && 'kind' in error && error.kind === 'SessionExpired';
+        if (current) setResult({ port, attempt, error: expired
+          ? 'Your session expired. Sign out, then sign in again.'
+          : 'Could not load your profile.' });
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [port, attempt]);
+
+  const profile = result?.port === port && result.attempt === attempt ? result : null;
+  const user = profile?.user;
+  return (
+    <View style={styles.profile}>
+      <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
+        <Icon ios="person.fill" android="person" size={Spacing.five} color="textSecondary" />
+        {user?.pictureUrl && failedPicture !== user.pictureUrl && (
+          <Image
+            source={{ uri: user.pictureUrl }}
+            cachePolicy="none"
+            contentFit="cover"
+            recyclingKey={`${user.id}:${user.pictureUrl}`}
+            onError={() => setFailedPicture(user.pictureUrl!)}
+            style={StyleSheet.absoluteFill}
+            accessible={false}
+          />
+        )}
+      </View>
+      <View style={styles.status}>
+        {user ? (
+          <>
+            <ThemedText type="headline" selectable>{user.name || 'Qlik User'}</ThemedText>
+            {user.email && <ThemedText type="small" themeColor="textSecondary" selectable>{user.email}</ThemedText>}
+          </>
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+            {profile?.error ?? 'Loading profile…'}
+          </ThemedText>
+        )}
+        {profile?.error && (
+          <AppPressable accessibilityLabel="Retry loading profile" onPress={() => setAttempt((n) => n + 1)}>
+            <ThemedText type="linkPrimary">Retry</ThemedText>
+          </AppPressable>
+        )}
+      </View>
+    </View>
+  );
+}
 
 /** One settings row: session state on the left, the one action that changes it on the right. */
 export function SignInSection({ config, onSignedIn, onSignedOut }: { config: TenantConfig; onSignedIn?: () => Promise<void>; onSignedOut?: () => Promise<void> }) {
@@ -69,10 +136,11 @@ ${message}`)) void handlePress();
 
   return (
     <View style={styles.container}>
+      {signedIn && <ProfileDetails />}
       <View style={styles.row}>
         <View style={styles.status}>
           <ThemedText>{signedIn ? 'Signed in' : 'Not signed in'}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
+          <ThemedText type="small" themeColor="textSecondary" selectable>
             {config.tenantHost}
           </ThemedText>
         </View>
@@ -98,7 +166,9 @@ ${message}`)) void handlePress();
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.two, padding: Spacing.three },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingBottom: Spacing.two },
+  avatar: { width: Spacing.six, height: Spacing.six, borderRadius: Radius.pill, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  status: { flex: 1, gap: Spacing.half },
+  status: { flex: 1, minWidth: 0, gap: Spacing.half },
   signIn: { paddingVertical: Spacing.two },
 });

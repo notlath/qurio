@@ -1,4 +1,4 @@
-import type { AnalyticsApp, Assistant, Feedback, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
+import type { AnalyticsApp, Assistant, Feedback, Interaction, QlikUser, Starter, Thread, ThreadDetail } from '@/domain';
 
 export type Capabilities = {
   streaming: boolean;
@@ -12,6 +12,8 @@ export type AskHandlers = {
 
 export interface AnswersPort {
   readonly capabilities: Capabilities;
+
+  getCurrentUser(): Promise<QlikUser>;
 
   listThreads(opts?: { limit?: number; cursor?: string }): Promise<{ items: Thread[]; next?: string }>;
   createThread(name: string): Promise<Thread>;

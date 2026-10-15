@@ -77,7 +77,7 @@ function AccountSection({ resolved, onSignedOut }: { resolved: TenantConfig | nu
       ) : Platform.OS === 'web' ? (
         <Row title="Sign-in unavailable" detail="Sign-in is native-only (ADR-0005) — not available in the web preview." />
       ) : (
-        <SignInSection config={resolved} onSignedOut={onSignedOut} />
+        <SignInSection key={`${resolved.tenantHost}:${resolved.clientId}`} config={resolved} onSignedOut={onSignedOut} />
       )}
     </Section>
   );

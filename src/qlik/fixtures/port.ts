@@ -31,6 +31,10 @@ export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.dem
   return {
     capabilities: { streaming: false, analyticsInsights: false },
 
+    async getCurrentUser() {
+      return { id: 'fixture-user', name: 'Alex Morgan', email: 'alex@example.com' };
+    },
+
     async listThreads(opts) {
       return paginate(threads, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },

@@ -51,6 +51,7 @@ describe('resolveAnswersPort', () => {
     });
     await expect(port.listAnalyticsApps()).rejects.toEqual({ kind: 'ConfigMissing' });
     await expect(port.listAssistants()).rejects.toEqual({ kind: 'ConfigMissing' });
+    await expect(port.getCurrentUser()).rejects.toEqual({ kind: 'ConfigMissing' });
   });
 
   it('keeps the fixture port on web, which has no Qlik transport at all (ADR-0005)', async () => {

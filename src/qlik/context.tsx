@@ -25,6 +25,7 @@ const fail = async (): Promise<never> => {
 function createUnconfiguredPort(): AnswersPort {
   return {
     capabilities: { streaming: false, analyticsInsights: false },
+    getCurrentUser: fail,
     listThreads: fail,
     createThread: fail,
     getThread: fail,

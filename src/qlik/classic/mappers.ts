@@ -1,5 +1,14 @@
-import type { AnalyticsApp, Answer, Assistant, Citation, Interaction, Thread } from '@/domain';
-import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread } from './wire-types';
+import type { AnalyticsApp, Answer, Assistant, Citation, Interaction, QlikUser, Thread } from '@/domain';
+import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread, QlikUserRecord } from './wire-types';
+
+export function toQlikUser(wire: QlikUserRecord): QlikUser {
+  return {
+    id: wire.id,
+    name: wire.name,
+    email: wire.email || undefined,
+    pictureUrl: wire.picture?.startsWith('https://') ? wire.picture : undefined,
+  };
+}
 
 export function toAssistant(wire: QlikAssistant): Assistant {
   return { id: wire.id, name: wire.name, description: wire.description, kind: wire.appIds?.length ? 'agentic' : 'classic' };

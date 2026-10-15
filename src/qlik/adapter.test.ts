@@ -61,6 +61,32 @@ const wireInteraction = {
 };
 
 describe('createAnswersPort', () => {
+  it('retrieves the signed-in Qlik User before an Assistant is chosen', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({
+      id: 'user-1', name: 'Alex Morgan', email: 'alex@example.com', picture: 'https://images.example.com/alex.jpg',
+      assignedRoles: [{ name: 'TenantAdmin' }],
+    }));
+    const port = createAnswersPort({ tenantHost: config.tenantHost, clientId: config.clientId }, { fetch, getToken: async () => 'access-1' });
+    await expect(port.getCurrentUser()).resolves.toEqual({
+      id: 'user-1', name: 'Alex Morgan', email: 'alex@example.com', pictureUrl: 'https://images.example.com/alex.jpg',
+    });
+    expect(fetch).toHaveBeenCalledWith(`https://${config.tenantHost}/api/v1/users/me`, expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer access-1' }),
+    }));
+  });
+
+  it.each([undefined, '', 'http://images.example.com/alex.jpg', 'file:///private/avatar.jpg'])(
+    'omits an unavailable or insecure picture (%s)', async (picture) => {
+      const fetch = jest.fn().mockResolvedValue(jsonResponse({ id: 'user-1', name: 'Alex', picture }));
+      await expect(portWith(fetch).getCurrentUser()).resolves.toEqual({ id: 'user-1', name: 'Alex' });
+    },
+  );
+
+  it.each([[401, 'SessionExpired'], [403, 'AccessDenied']])('maps profile HTTP %s without assuming an Answers Entitlement failure', async (status, kind) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status as number));
+    await expect(portWith(fetch).getCurrentUser()).rejects.toEqual({ kind });
+  });
+
   it('declares streaming, which is what separates it from the fixture port', () => {
     expect(portWith(jest.fn()).capabilities).toEqual({ streaming: true, analyticsInsights: false });
   });

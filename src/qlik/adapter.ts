@@ -6,9 +6,9 @@ import type { AppError, Interaction, Starter } from '@/domain';
 
 import { classifyFetchFailure } from './classic/errors';
 import { qlikFetch, qlikJson, qlikUrl, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
-import { toAnalyticsApp, toAnswer, toAssistant, toInteraction, toThread } from './classic/mappers';
+import { toAnalyticsApp, toAnswer, toAssistant, toInteraction, toQlikUser, toThread } from './classic/mappers';
 import { consumeStream, type StreamReader } from './classic/stream-session';
-import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread } from './classic/wire-types';
+import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread, QlikUserRecord } from './classic/wire-types';
 import type { AnswersPort } from './port';
 
 /** An `expo/fetch` response, whose `body` is a real ReadableStream on native. */
@@ -55,6 +55,11 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
 
   return {
     capabilities: { streaming: true, analyticsInsights: false },
+
+    async getCurrentUser() {
+      // Fetch follows Qlik's redirect to this Qlik User's resource. No Assistant selection is needed.
+      return toQlikUser(await json<QlikUserRecord>('/api/v1/users/me'));
+    },
 
     async listThreads(opts) {
       const path =

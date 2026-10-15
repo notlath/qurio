@@ -20,6 +20,10 @@ _Avoid_: End user, app user, member
 **Answers Entitlement**:
 The per-Qlik-User license allocation that grants access to Qlik Answers. Without it a Qlik User can authenticate but cannot use an Assistant.
 
+**Profile**:
+The signed-in Qlik User's identity details within the active Tenant: name, email address, and picture when available.
+_Avoid_: App account, Customer account
+
 ### Qlik Answers concepts
 
 **Assistant**:
