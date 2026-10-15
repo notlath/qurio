@@ -26,7 +26,16 @@ export function sidePanelOptions({ windowWidth, collapsed, topLevel }: { windowW
   };
 }
 
-type SidePanelLayout = { docked: boolean; collapsed: boolean; toggleCollapsed: () => void };
+/**
+ * Where Settings opens. While the panel overlays, Settings pushes over the whole window on the root
+ * stack, with swipe-to-go-back. While it is docked, Settings opens in a drawer screen beside the panel.
+ * A Settings screen that is already open stays where it is when the window changes size. Each one has Back.
+ */
+export function settingsHref(docked: boolean) {
+  return docked ? ('/docked-settings' as const) : ('/settings' as const);
+}
+
+type SidePanelLayout ={ docked: boolean; collapsed: boolean; toggleCollapsed: () => void };
 
 const SidePanelLayoutContext = createContext<SidePanelLayout>({ docked: false, collapsed: false, toggleCollapsed: () => {} });
 

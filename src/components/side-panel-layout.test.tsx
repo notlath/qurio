@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, create } from 'react-test-renderer';
 
-import { sidePanelOptions, SidePanelLayoutProvider, useSidePanelLayout } from '@/components/side-panel-layout';
+import { settingsHref, sidePanelOptions, SidePanelLayoutProvider, useSidePanelLayout } from '@/components/side-panel-layout';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -34,6 +34,16 @@ describe('sidePanelOptions', () => {
       drawerStyle: { width: 320, display: 'none' },
       swipeEnabled: false,
     });
+  });
+});
+
+describe('settingsHref', () => {
+  it('pushes Settings over the whole window while the panel overlays, so phones keep swipe-to-go-back', () => {
+    expect(settingsHref(false)).toBe('/settings');
+  });
+
+  it('opens Settings in the content area beside the docked panel', () => {
+    expect(settingsHref(true)).toBe('/docked-settings');
   });
 });
 

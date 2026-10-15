@@ -5,6 +5,9 @@ import { bottomInsetScript } from './page';
 import { QlikEmbedHost } from './qlik-embed-host';
 
 jest.mock('@/global.css', () => ({}));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 jest.mock('@/config', () => ({ IS_INTERNAL_BUILD: false }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'session-1' }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ navigate: jest.fn() }) }));

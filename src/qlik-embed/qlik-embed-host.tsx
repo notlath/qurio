@@ -7,6 +7,7 @@ import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTyp
 
 import { getAccessTokenWithExpiry } from '@/auth/access-token';
 import { AppPressable } from '@/components/pressable';
+import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -43,6 +44,7 @@ export function QlikEmbedHost(props: QlikEmbedHostProps) {
 
 function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
   const router = useRouter();
+  const { docked } = useSidePanelLayout();
   const webView = useRef<WebView>(null);
   const [session] = useState(() => randomUUID());
   const [failure, setFailure] = useState<HostFailure | null>(null);
@@ -142,7 +144,7 @@ function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: 
         <ThemedText type="smallBold">{title}</ThemedText>
         <ThemedText type="small">{message}</ThemedText>
         <ThemedView style={styles.actions}>
-          <AppPressable accessibilityLabel="Open Settings" onPress={() => router.navigate('/settings')}>
+          <AppPressable accessibilityLabel="Open Settings" onPress={() => router.navigate(settingsHref(docked))}>
             <ThemedText type="linkPrimary">Open Settings</ThemedText>
           </AppPressable>
           <AppPressable accessibilityLabel="Try again" onPress={onRetry}>

@@ -11,7 +11,8 @@ const mockDismissTo = jest.fn();
 jest.mock('@/global.css', () => ({}));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ dismissTo: mockDismissTo }), Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => ({ id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ dismissTo: mockDismissTo }), Link: (props: unknown) => jest.requireActual('react').createElement('Link', props as object), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => mockParams }));
+let mockParams: Record<string, string> = { id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' };
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
 jest.mock('@/components/assistant-switcher', () => ({ AssistantSwitcher: () => jest.requireActual('react').createElement('AssistantSwitcher'), AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
@@ -70,6 +71,23 @@ it('offers a new conversation once one has started, and the next question starts
   await act(async () => { composer(renderer).props.setQuestion('Second'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
   expect(a.createThread).toHaveBeenCalledTimes(2);
+  await act(async () => { renderer.unmount(); });
+});
+
+it("starts a new conversation on the side panel's New chat", async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { composer(renderer).props.setQuestion('First'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+
+  mockParams = { chat: '1' };
+  await act(async () => { renderer.update(<AnswersScope port={a}><NewThreadScreen /></AnswersScope>); });
+  await act(async () => { composer(renderer).props.setQuestion('Second'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(a.createThread).toHaveBeenCalledTimes(2);
+  mockParams = { id: 'old-thread', assistantId: 'a', assistantName: 'Knowledge' };
   await act(async () => { renderer.unmount(); });
 });
 

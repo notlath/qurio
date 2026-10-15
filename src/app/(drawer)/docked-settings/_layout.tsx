@@ -4,8 +4,8 @@ import { Icon } from '@/components/icon';
 import { IconButton } from '@/components/pressable';
 import { useStackScreenOptions } from '@/hooks/use-stack-options';
 
-// Settings is a drawer screen, so its first screen has no back stack of its own. Back returns to the
-// destination that Settings opened over. A deep link to Settings has none, so Back opens the Assistant.
+// Settings beside the docked side panel (settingsHref). A drawer screen has no back stack of its own, so Back
+// returns through the drawer history to the destination that Settings opened over, else to the Assistant.
 function SettingsBackButton() {
   const router = useRouter();
 

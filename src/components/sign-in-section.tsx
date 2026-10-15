@@ -14,12 +14,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAnswersPort, useReloadAnswersPort } from '@/qlik/context';
 import type { AnswersPort } from '@/qlik/port';
 
-function ProfileDetails() {
+/** The signed-in Qlik User's Profile, loaded again for each port. Settings and the side panel show it. */
+export function useProfile(): { user?: QlikUser; error?: string; retry: () => void } {
   const port = useAnswersPort();
-  const theme = useTheme();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ port: AnswersPort; attempt: number; user?: QlikUser; error?: string } | null>(null);
-  const [failedPicture, setFailedPicture] = useState<string | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -38,23 +37,37 @@ function ProfileDetails() {
   }, [port, attempt]);
 
   const profile = result?.port === port && result.attempt === attempt ? result : null;
-  const user = profile?.user;
+  return { user: profile?.user, error: profile?.error, retry: () => setAttempt((n) => n + 1) };
+}
+
+/** The Profile picture over the person icon. The icon stays when there is no picture or it fails to load. */
+export function ProfileAvatar({ user, size }: { user?: QlikUser; size: number }) {
+  const theme = useTheme();
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
+
+  return (
+    <View style={[styles.avatar, { width: size, height: size, backgroundColor: theme.backgroundSelected }]}>
+      <Icon ios="person.fill" android="person" size={size / 2} color="textSecondary" />
+      {user?.pictureUrl && failedPicture !== user.pictureUrl && (
+        <Image
+          source={{ uri: user.pictureUrl }}
+          cachePolicy="none"
+          contentFit="cover"
+          recyclingKey={`${user.id}:${user.pictureUrl}`}
+          onError={() => setFailedPicture(user.pictureUrl!)}
+          style={StyleSheet.absoluteFill}
+          accessible={false}
+        />
+      )}
+    </View>
+  );
+}
+
+function ProfileDetails() {
+  const { user, error, retry } = useProfile();
   return (
     <View style={styles.profile}>
-      <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
-        <Icon ios="person.fill" android="person" size={Spacing.five} color="textSecondary" />
-        {user?.pictureUrl && failedPicture !== user.pictureUrl && (
-          <Image
-            source={{ uri: user.pictureUrl }}
-            cachePolicy="none"
-            contentFit="cover"
-            recyclingKey={`${user.id}:${user.pictureUrl}`}
-            onError={() => setFailedPicture(user.pictureUrl!)}
-            style={StyleSheet.absoluteFill}
-            accessible={false}
-          />
-        )}
-      </View>
+      <ProfileAvatar user={user} size={Spacing.six} />
       <View style={styles.status}>
         {user ? (
           <>
@@ -63,11 +76,11 @@ function ProfileDetails() {
           </>
         ) : (
           <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-            {profile?.error ?? 'Loading profile…'}
+            {error ?? 'Loading profile…'}
           </ThemedText>
         )}
-        {profile?.error && (
-          <AppPressable accessibilityLabel="Retry loading profile" onPress={() => setAttempt((n) => n + 1)}>
+        {error && (
+          <AppPressable accessibilityLabel="Retry loading profile" onPress={retry}>
             <ThemedText type="linkPrimary">Retry</ThemedText>
           </AppPressable>
         )}
@@ -167,7 +180,7 @@ ${message}`)) void handlePress();
 const styles = StyleSheet.create({
   container: { gap: Spacing.two, padding: Spacing.three },
   profile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingBottom: Spacing.two },
-  avatar: { width: Spacing.six, height: Spacing.six, borderRadius: Radius.pill, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  avatar: { borderRadius: Radius.pill, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   status: { flex: 1, minWidth: 0, gap: Spacing.half },
   signIn: { paddingVertical: Spacing.two },

@@ -78,6 +78,10 @@ export default function RootLayout() {
                 <TenantEntryGate>
                   <Stack screenOptions={screenOptions}>
                     <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+                    {/* Pushed over the overlay side panel, so the left edge stays swipe-to-go-back. Beside the
+                        docked panel, Settings opens in (drawer)/docked-settings instead (settingsHref). */}
+                    <Stack.Screen name="settings/index" options={{ title: 'Settings', headerLargeTitle: true }} />
+                    <Stack.Screen name="settings/change-tenant" options={{ title: 'Change tenant' }} />
                   </Stack>
                 </TenantEntryGate>
               </LockGate>

@@ -1,4 +1,4 @@
-import { Link, Stack } from 'expo-router';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -59,13 +59,15 @@ function HeaderActions({ canStartNew, onNew }: { canStartNew: boolean; onNew: ()
 
 export default function NewThreadScreen() {
   const { selected } = useAssistantSelection();
+  // The side panel's New chat sets a new `chat` value each time.
+  const { chat } = useLocalSearchParams<{ chat?: string }>();
   // A new conversation is a fresh mount, so a pending question is aborted and nothing carries over.
   const [conversation, setConversation] = useState(0);
   return (
     <View style={styles.flex}>
       <AssistantProblem />
       <NewThreadConversation
-        key={`${selected?.id ?? 'none'}:${conversation}`}
+        key={`${selected?.id ?? 'none'}:${chat ?? ''}:${conversation}`}
         onNew={() => setConversation((n) => n + 1)}
       />
     </View>
