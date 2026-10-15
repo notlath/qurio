@@ -1,5 +1,5 @@
 import type { DrawerContentComponentProps } from 'expo-router/drawer';
-import { FlatList } from 'react-native';
+import { Alert, FlatList, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import OpeningScreen from '@/app/index';
@@ -24,14 +24,13 @@ const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection')
 const knowledge: Assistant = { kind: 'classic', id: 'assistant-knowledge', name: 'Knowledge', description: '' };
 
 // The drawer hands its content the drawer's navigation and state. The state's history says whether the
-// panel is open. `assistantStack` is the Assistant's stack, once it has state. `chat` is the chat
-// screen's search params: which Thread it shows, if any.
-function drawerProps(open: boolean, assistantStack?: string[], chat?: Record<string, string>) {
+// panel is open. `assistantStack` is the Assistant's stack, once it has state. `params` go to its top screen.
+function drawerProps(open: boolean, assistantStack?: string[], params?: object) {
   const navigation = { closeDrawer: jest.fn(), navigate: jest.fn() };
   const state = {
     key: 'drawer',
     index: 0,
-    routes: [drawerRoute('assistant', assistantStack, chat), { key: 'apps', name: 'apps' }],
+    routes: [drawerRoute('assistant', assistantStack, params), { key: 'apps', name: 'apps' }],
     history: open ? [{ type: 'route', key: 'assistant' }, { type: 'drawer', status: 'open' }] : [{ type: 'route', key: 'assistant' }],
   };
   return { navigation, state, descriptors: {} } as unknown as DrawerContentComponentProps & { navigation: typeof navigation };
@@ -189,6 +188,87 @@ describe('SidePanelContent', () => {
     expect(threadLabels(renderer)[0]).toBe('Open Fresh question');
   });
 
+  describe('deleting a Thread', () => {
+    let alert: jest.SpyInstance;
+    beforeEach(() => {
+      alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    });
+    afterEach(() => alert.mockRestore());
+
+    const row = (renderer: TestRenderer.ReactTestRenderer) =>
+      renderer.root.findAllByProps({ accessibilityLabel: 'Open Q3 policy changes' })[0];
+    const answer = async (text: string) => {
+      const buttons = alert.mock.calls.at(-1)[2] as AlertButton[];
+      await act(async () => {
+        buttons.find((button) => button.text === text)!.onPress?.();
+      });
+    };
+    function deletablePort() {
+      const fixture = createFixtureAnswersPort();
+      return { ...fixture, deleteThread: jest.fn(fixture.deleteThread) };
+    }
+
+    it('asks first on a long press, and keeps the Thread on Cancel', async () => {
+      const port = deletablePort();
+      const { renderer } = await renderPanel(port);
+
+      await act(async () => {
+        row(renderer).props.onLongPress();
+      });
+      expect(alert).toHaveBeenLastCalledWith(
+        'Delete conversation?',
+        '"Q3 policy changes" and its answers will be permanently removed.',
+        expect.any(Array),
+        expect.any(Object),
+      );
+      await answer('Cancel');
+      expect(port.deleteThread).not.toHaveBeenCalled();
+      expect(threadLabels(renderer)).toContain('Open Q3 policy changes');
+    });
+
+    it('deletes the Thread on Delete, and leaves the Assistant view as it is', async () => {
+      const port = deletablePort();
+      const { renderer, props } = await renderPanel(port);
+
+      await act(async () => {
+        row(renderer).props.onLongPress();
+      });
+      await answer('Delete');
+      expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
+      expect(threadLabels(renderer)).not.toContain('Open Q3 policy changes');
+      expect(props.navigation.navigate).not.toHaveBeenCalled();
+    });
+
+    it("asks the same from the screen reader's Delete action", async () => {
+      const port = deletablePort();
+      const { renderer } = await renderPanel(port);
+
+      expect(row(renderer).props.accessibilityActions).toEqual([{ name: 'delete', label: 'Delete' }]);
+      await act(async () => {
+        row(renderer).props.onAccessibilityAction({ nativeEvent: { actionName: 'delete' } });
+      });
+      expect(alert).toHaveBeenLastCalledWith('Delete conversation?', expect.any(String), expect.any(Array), expect.any(Object));
+      await answer('Delete');
+      expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
+    });
+
+    it('returns the Assistant view to a new chat when the deleted Thread is open', async () => {
+      const port = deletablePort();
+      const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { thread: 'thread-1', assistantId: 'assistant-knowledge' }));
+
+      await act(async () => {
+        row(renderer).props.onLongPress();
+      });
+      await answer('Delete');
+      expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
+      expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
+        screen: 'index',
+        params: { chat: expect.any(String) },
+        pop: true,
+      });
+    });
+  });
+
   it('starts a new chat on the Assistant', async () => {
     const { renderer, props } = await renderPanel();
 
@@ -236,14 +316,10 @@ describe('SidePanelContent', () => {
   });
 });
 
-// A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has
-// one. `params` are the stack's `index` screen's params.
-function drawerRoute(name: string, stack?: string[], params?: Record<string, string>) {
-  return {
-    key: name,
-    name,
-    state: stack && { index: stack.length - 1, routes: stack.map((screen) => ({ key: screen, name: screen, params: screen === 'index' ? params : undefined })) },
-  };
+// A drawer route as React Navigation hands it to `screenOptions`: the nested stack's state, once it has one.
+function drawerRoute(name: string, stack?: string[], params?: object) {
+  const routes = stack?.map((screen, i) => ({ key: screen, name: screen, params: i === stack.length - 1 ? params : undefined }));
+  return { key: name, name, state: routes && { index: routes.length - 1, routes } };
 }
 
 describe('edgeSwipeEnabled', () => {

@@ -7,6 +7,7 @@ import { useEffect, useRef, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { confirmDeleteThread } from '@/components/confirm-delete-thread';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -100,14 +101,18 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
     action();
   }
 
+  function newChat() {
+    // A new value every time, so the Assistant screen starts a new Thread even when it is already open.
+    navigation.navigate('assistant', { screen: 'index', params: { chat: String(Date.now()) }, pop: true });
+  }
+
   const items = (
     <View style={styles.items}>
       <PanelItem
         ios="square.and.pencil"
         android="edit_square"
         label="New chat"
-        // A new value every time, so the Assistant screen starts a new Thread even when it is already open.
-        onPress={() => closeThen(() => navigation.navigate('assistant', { screen: 'index', params: { chat: String(Date.now()) }, pop: true }))}
+        onPress={() => closeThen(newChat)}
       />
       <PanelItem ios="square.grid.2x2" android="apps" label="Apps" onPress={() => closeThen(() => navigation.navigate('apps'))} />
     </View>
@@ -158,6 +163,10 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
               navigation.navigate('assistant', { screen: 'index', params: { thread: thread.id, assistantId: selected.id }, pop: true }),
             )
           }
+          // The panel stays open, but the Assistant view must not show a deleted Thread.
+          onDeletedThread={(thread) => {
+            if (thread.id === openThread) newChat();
+          }}
         />
       ) : (
         <View style={styles.flex}>{items}</View>
@@ -173,15 +182,26 @@ function PanelHistory({
   openThread,
   header,
   onOpenThread,
+  onDeletedThread,
 }: {
   assistant: Assistant;
   open: boolean;
   openThread: string | undefined;
   header: ReactElement;
   onOpenThread: (thread: Thread) => void;
+  onDeletedThread: (thread: Thread) => void;
 }) {
   const theme = useTheme();
-  const { threads, initialLoad, error, erroredAt, loadingMore, refresh, retry, loadMore, dismissError } = useThreadHistory();
+  const { threads, initialLoad, error, erroredAt, loadingMore, refresh, retry, loadMore, dismissError, remove } = useThreadHistory();
+
+  // A long press and the screen reader's Delete action ask first. No swipe-to-delete: in the panel a
+  // left swipe closes the panel.
+  function confirmDelete(thread: Thread) {
+    confirmDeleteThread(thread, () => {
+      void remove(thread.id);
+      onDeletedThread(thread);
+    });
+  }
 
   // The panel stays mounted while it is closed. Each time it opens, it loads the first page again,
   // so a Thread started since the last time is listed.
@@ -221,6 +241,11 @@ function PanelHistory({
           accessibilityHint={`Last updated ${formatRelativeTime(item.updatedAt)}`}
           onPress={() => onOpenThread(item)}
           accessibilityState={{ selected: item.id === openThread }}
+          onLongPress={() => confirmDelete(item)}
+          accessibilityActions={[{ name: 'delete', label: 'Delete' }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'delete') confirmDelete(item);
+          }}
           feedback="highlight"
           style={[styles.row, { backgroundColor: item.id === openThread ? theme.backgroundSelected : 'transparent' }]}>
           <ThemedText numberOfLines={1}>{item.name}</ThemedText>
