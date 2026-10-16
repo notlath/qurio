@@ -4,11 +4,9 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, StyleSheet, useColorScheme } from 'react-native';
@@ -20,6 +18,7 @@ import { LockGate } from '@/components/lock-gate';
 import { TenantEntryGate } from '@/components/tenant-entry';
 import { TenantConfigProvider } from '@/config/context';
 import { applyScreenCapture } from '@/config/screen-capture';
+import { unlockTabletRotation } from '@/config/tablet-orientation';
 import { Colors } from '@/constants/theme';
 import { useStackScreenOptions } from '@/hooks/use-stack-options';
 import { AnswersPortProvider } from '@/qlik/context';
@@ -55,11 +54,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    // Phones stay portrait (app.json). An Android tablet rotates to every orientation. Android has no
-    // per-idiom setting in app.json, as iOS has for iPad, so the app removes the lock at start.
-    if (Platform.OS === 'android' && Device.deviceType === Device.DeviceType.TABLET) {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.ALL).catch(() => {});
-    }
+    void unlockTabletRotation();
   }, []);
 
   if (!fontsLoaded && !fontError) return null;
