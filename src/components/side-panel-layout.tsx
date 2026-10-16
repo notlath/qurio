@@ -35,7 +35,7 @@ export function settingsHref(docked: boolean) {
   return docked ? ('/docked-settings' as const) : ('/settings' as const);
 }
 
-type SidePanelLayout ={ docked: boolean; collapsed: boolean; toggleCollapsed: () => void };
+type SidePanelLayout = { docked: boolean; collapsed: boolean; toggleCollapsed: () => void };
 
 const SidePanelLayoutContext = createContext<SidePanelLayout>({ docked: false, collapsed: false, toggleCollapsed: () => {} });
 

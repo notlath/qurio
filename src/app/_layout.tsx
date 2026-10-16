@@ -77,7 +77,8 @@ export default function RootLayout() {
               <LockGate>
                 <TenantEntryGate>
                   <Stack screenOptions={screenOptions}>
-                    <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+                    {/* No header, but the title names the Back button of Settings for screen readers. */}
+                    <Stack.Screen name="(drawer)" options={{ headerShown: false, title: 'Qurio' }} />
                     {/* Pushed over the overlay side panel, so the left edge stays swipe-to-go-back. Beside the
                         docked panel, Settings opens in (drawer)/docked-settings instead (settingsHref). */}
                     <Stack.Screen name="settings/index" options={{ title: 'Settings', headerLargeTitle: true }} />
