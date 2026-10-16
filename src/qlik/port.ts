@@ -15,11 +15,13 @@ export interface AnswersPort {
 
   getCurrentUser(): Promise<QlikUser>;
 
-  listThreads(opts?: { limit?: number; cursor?: string }): Promise<{ items: Thread[]; next?: string }>;
+  // `pinned` limits the list to pinned Threads. Qlik cannot sort pinned Threads first, so History asks for them in a separate query.
+  listThreads(opts?: { limit?: number; cursor?: string; pinned?: boolean }): Promise<{ items: Thread[]; next?: string }>;
   createThread(name: string): Promise<Thread>;
   getThread(id: string): Promise<ThreadDetail>;
   deleteThread(id: string): Promise<void>;
   renameThread(id: string, name: string): Promise<void>;
+  setThreadPinned(id: string, pinned: boolean): Promise<void>;
 
   ask(threadId: string, prompt: string, h: AskHandlers): Promise<Interaction>;
   listInteractions(threadId: string): Promise<Interaction[]>;

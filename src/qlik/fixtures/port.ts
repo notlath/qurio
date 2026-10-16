@@ -36,7 +36,8 @@ export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.dem
     },
 
     async listThreads(opts) {
-      return paginate(threads, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
+      const listed = opts?.pinned ? threads.filter((t) => t.pinned) : threads;
+      return paginate(listed, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
 
     async createThread(name) {
@@ -65,6 +66,13 @@ export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.dem
       if (index === -1) throw new Error(`Fixture thread not found: ${id}`);
       // A new object: the list shares its Thread objects with the fixture data that other ports use.
       threads[index] = { ...threads[index], name };
+    },
+
+    async setThreadPinned(id, pinned) {
+      const index = threads.findIndex((t) => t.id === id);
+      if (index === -1) throw new Error(`Fixture thread not found: ${id}`);
+      // Like Qlik, a change of the flag also changes `updatedAt`.
+      threads[index] = { ...threads[index], pinned, updatedAt: new Date().toISOString() };
     },
 
     async ask(threadId, prompt, handlers) {

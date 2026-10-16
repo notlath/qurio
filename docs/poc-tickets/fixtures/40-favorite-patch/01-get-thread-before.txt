@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "thread": {
+    "id": "<uuid-1>",
+    "ownerId": "<id>",
+    "name": "New thread",
+    "createdAt": "2026-10-04T23:38:09Z",
+    "updatedAt": "2026-10-04T23:38:09Z",
+    "hasFeedback": false,
+    "favorite": false,
+    "useUserPreferredLanguage": false,
+    "summaryStats": {
+      "likes": 0,
+      "dislikes": 0,
+      "interactions": 1,
+      "reviews": 0,
+      "unanswered": 0,
+      "inaccurate": 0,
+      "irrelevant": 0,
+      "repetitive": 0,
+      "unhelpful": 0,
+      "other": 0
+    }
+  }
+}

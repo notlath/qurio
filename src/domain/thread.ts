@@ -5,6 +5,8 @@ export type Thread = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  /** Pinned to the top of History. Qlik calls this flag `favorite`. */
+  pinned?: boolean;
 };
 
 const MAX_NAME_LENGTH = 60;

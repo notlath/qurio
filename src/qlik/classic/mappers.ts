@@ -15,7 +15,7 @@ export function toAssistant(wire: QlikAssistant): Assistant {
 }
 
 export function toThread(wire: QlikThread): Thread {
-  return { id: wire.id, name: wire.name, createdAt: wire.createdAt, updatedAt: wire.updatedAt };
+  return { id: wire.id, name: wire.name, createdAt: wire.createdAt, updatedAt: wire.updatedAt, pinned: wire.favorite === true };
 }
 
 export function toAnalyticsApp(wire: QlikItem): AnalyticsApp {
