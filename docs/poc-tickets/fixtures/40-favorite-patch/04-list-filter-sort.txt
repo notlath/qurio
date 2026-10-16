@@ -1,0 +1,18 @@
+# GET .../threads?limit=100&<query>  (9 Threads, one pinned; ids redacted)
+# First run (lowercase names):
+filter=favorite eq true -> 200, 0 threads
+filter=favorite eq false -> 200, 0 threads
+sort=-favorite | sort=favorite | sort=-favorite,-updatedAt -> 400 unsupported sort field: favorite
+sort=-updatedAt -> 400 unsupported sort field: updatedat
+# Second run (the app's uppercase sort names; the pinned Thread was the oldest):
+sort=-UPDATED -> 200 9 threads, favorite at [0]
+sort=-FAVORITE -> 400 {"traceId":"<traceId>","errors":[{"code":"HTTP-400","title":"Bad Request","detail":"unsupported sort field: favorite"}]} 
+sort=FAVORITE -> 400 {"traceId":"<traceId>","errors":[{"code":"HTTP-400","title":"Bad Request","detail":"unsupported sort field: favorite"}]} 
+sort=-FAVORITE,-UPDATED -> 400 {"traceId":"<traceId>","errors":[{"code":"HTTP-400","title":"Bad Request","detail":"unsupported sort field: favorite"}]} 
+sort=-CREATED -> 200 9 threads, favorite at [7]
+sort=-NAME -> 200 9 threads, favorite at [7]
+filter=favorite eq true -> 200 0 threads, favorite at []
+filter=favorite eq %22true%22 -> 200 1 threads, favorite at [0]
+filter=favorite%3D%3Dtrue -> 400 {"traceId":"<traceId>","errors":[{"code":"HTTP-400","title":"Bad Request","detail":"could not parse query: parse conflict [00:001]: expected op.Or or[func func 
+favorite=true -> 200 9 threads, favorite at [1]
+filter=FAVORITE eq true -> 200 0 threads, favorite at []
