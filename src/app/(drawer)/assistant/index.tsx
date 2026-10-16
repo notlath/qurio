@@ -12,6 +12,7 @@ import { InteractionRow } from '@/components/interaction-row';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
+import { threadNameFor } from '@/domain';
 import type { AppError, Interaction, Starter, Thread, ThreadDetail } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
@@ -87,9 +88,9 @@ function NewChat({ onNew }: { onNew: () => void }) {
   // The Thread is created by the first question, not by opening the screen — and only once,
   // however many questions follow. A failed creation is forgotten rather than cached, so
   // retrying after signing in works instead of replaying the same rejection forever.
-  const ensureThreadId = useCallback(async () => {
+  const ensureThreadId = useCallback(async (question: string) => {
     const isNew = threadRef.current === null;
-    const pending = (threadRef.current ??= port.createThread('New thread'));
+    const pending = (threadRef.current ??= port.createThread(threadNameFor(question)));
     try {
       const { id } = await pending;
       // The side panel highlights this Thread and loads History again, so it is listed.
@@ -174,7 +175,7 @@ function Conversation({
   starters,
   onNew,
 }: {
-  thread: string | (() => Promise<string>);
+  thread: string | ((question: string) => Promise<string>);
   initialInteractions?: Interaction[];
   starters?: Starter[];
   onNew: () => void;
