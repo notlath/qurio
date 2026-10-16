@@ -7,6 +7,7 @@ import { useEffect, useRef, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { confirmDeleteThread } from '@/components/confirm-delete-thread';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
@@ -38,13 +39,20 @@ export function edgeSwipeEnabled(route: RouteProp<Record<string, object | undefi
 }
 
 /**
- * True while an Agentic Assistant is the one in use: the Assistant's stack shows the `agentic` screen.
+ * The routes of the Assistant's stack. None before the stack has state.
+ * React Navigation types nested state loosely, so the chat screen's params are cast here, once.
+ */
+function assistantRoutes(state: DrawerContentComponentProps['state']): { name: string; params?: ChatParams }[] {
+  return (state.routes.find(({ name }) => name === 'assistant')?.state?.routes ?? []) as { name: string; params?: ChatParams }[];
+}
+
+/**
+ * True while an Agentic Assistant is the one in use: the Assistant's stack holds the `agentic` screen.
  * The Assistant selection holds Legacy Assistants only. An Agentic Assistant is opened as a screen and
- * never selected, so the stack is the signal. It stays true while Apps is open over it.
+ * never selected, so the stack is the signal. It stays true while Apps or the Assistant chooser is open over it.
  */
 export function agenticInUse(state: DrawerContentComponentProps['state']): boolean {
-  const assistant = state.routes.find(({ name }) => name === 'assistant');
-  return assistant !== undefined && getFocusedRouteNameFromRoute(assistant) === 'agentic';
+  return assistantRoutes(state).some(({ name }) => name === 'agentic');
 }
 
 /**
@@ -52,8 +60,7 @@ export function agenticInUse(state: DrawerContentComponentProps['state']): boole
  * question. None for a new chat with no question yet.
  */
 export function openThreadId(state: DrawerContentComponentProps['state']): string | undefined {
-  const stack = state.routes.find(({ name }) => name === 'assistant')?.state;
-  const params = stack?.routes.find(({ name }) => name === 'index')?.params as { thread?: string; started?: string } | undefined;
+  const params = assistantRoutes(state).find(({ name }) => name === 'index')?.params;
   return params?.thread ?? params?.started;
 }
 
@@ -102,8 +109,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
   }
 
   function newChat() {
-    // A new value every time, so the Assistant screen starts a new Thread even when it is already open.
-    navigation.navigate('assistant', { screen: 'index', params: { chat: String(Date.now()) }, pop: true });
+    navigation.navigate('assistant', { screen: 'index', params: { chat: newChatKey() } satisfies ChatParams, pop: true });
   }
 
   const items = (
@@ -160,7 +166,11 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
             // The open Thread is already the current chat. Opening it again would reload it.
             closeThen(() =>
               thread.id !== openThread &&
-              navigation.navigate('assistant', { screen: 'index', params: { thread: thread.id, assistantId: selected.id }, pop: true }),
+              navigation.navigate('assistant', {
+                screen: 'index',
+                params: { thread: thread.id, assistantId: selected.id } satisfies ChatParams,
+                pop: true,
+              }),
             )
           }
           // The panel stays open, but the Assistant view must not show a deleted Thread.
@@ -192,14 +202,27 @@ function PanelHistory({
   onDeletedThread: (thread: Thread) => void;
 }) {
   const theme = useTheme();
-  const { threads, initialLoad, error, erroredAt, loadingMore, refresh, retry, loadMore, dismissError, remove } = useThreadHistory();
+  const {
+    threads,
+    initialLoad,
+    error,
+    erroredAt,
+    loadingMore,
+    refresh,
+    retry,
+    loadMore,
+    moreError,
+    retryMore,
+    dismissMoreError,
+    dismissError,
+    remove,
+  } = useThreadHistory();
 
   // A long press and the screen reader's Delete action ask first. No swipe-to-delete: in the panel a
-  // left swipe closes the panel.
+  // left swipe closes the panel. After a failed delete the row comes back and the Thread stays open.
   function confirmDelete(thread: Thread) {
     confirmDeleteThread(thread, () => {
-      void remove(thread.id);
-      onDeletedThread(thread);
+      void remove(thread.id).then((deleted) => deleted && onDeletedThread(thread));
     });
   }
 
@@ -269,7 +292,13 @@ function PanelHistory({
           />
         )
       }
-      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : null}
+      ListFooterComponent={
+        loadingMore ? (
+          <ActivityIndicator style={styles.footerLoading} />
+        ) : moreError ? (
+          <ErrorState error={moreError} erroredAt={erroredAt} onRetry={() => void retryMore()} onDismiss={dismissMoreError} />
+        ) : null
+      }
     />
   );
 }

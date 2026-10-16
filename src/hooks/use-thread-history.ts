@@ -20,6 +20,8 @@ export function useThreadHistory() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState<AppError | null>(null);
   const [erroredAt, setErroredAt] = useState(0);
+  // A failed next page. The pages already loaded stay listed above it.
+  const [moreError, setMoreError] = useState<AppError | null>(null);
 
   const load = useCallback(() => {
     port.listThreads().then(
@@ -27,6 +29,7 @@ export function useThreadHistory() {
         setThreads(items);
         setNextCursor(next);
         setError(null);
+        setMoreError(null);
         setInitialLoad(false);
       },
       (e) => {
@@ -48,27 +51,39 @@ export function useThreadHistory() {
     load();
   }
 
-  async function loadMore() {
-    if (!nextCursor || loadingMore) return;
+  async function fetchMore() {
+    setMoreError(null);
     setLoadingMore(true);
     try {
       const { items, next } = await port.listThreads({ cursor: nextCursor });
       setThreads((prev) => [...prev, ...items]);
       setNextCursor(next);
+    } catch (e) {
+      setMoreError(isAppError(e) ? e : { kind: 'ServiceUnavailable' });
+      setErroredAt(Date.now());
     } finally {
       setLoadingMore(false);
     }
   }
 
-  async function remove(id: string) {
+  // After a failure, only Retry loads the next page. Scrolling to the end does not try again.
+  function loadMore() {
+    if (!nextCursor || loadingMore || moreError) return;
+    void fetchMore();
+  }
+
+  /** Resolves true when the Thread is deleted. On a failure the row comes back and an alert says why. */
+  async function remove(id: string): Promise<boolean> {
     const previous = threads;
     setThreads((prev) => prev.filter((t) => t.id !== id)); // optimistic — restored below if it fails
     try {
       await port.deleteThread(id);
+      return true;
     } catch {
       setThreads(previous);
-      // The row reappearing on its own read as a glitch; say why it came back.
+      // A row that comes back with no message looks like a glitch. The alert says why it came back.
       Alert.alert('Could not delete conversation', 'Check your connection and try again.');
+      return false;
     }
   }
 
@@ -83,6 +98,9 @@ export function useThreadHistory() {
     refresh: load,
     retry,
     loadMore,
+    moreError,
+    retryMore: fetchMore,
+    dismissMoreError: () => setMoreError(null),
     dismissError: () => setError(null),
     remove,
   };

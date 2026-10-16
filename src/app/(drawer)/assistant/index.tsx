@@ -1,8 +1,10 @@
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
+import type { NavigationProp } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { AssistantProblem } from '@/components/assistant-switcher';
+import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
@@ -16,13 +18,8 @@ import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { AnswersScope, useAnswersPort } from '@/qlik/context';
 
-/**
- * The chat screen's search params, which the side panel also reads.
- * - `thread`, `assistantId`: the Thread opened from History, and the Assistant it belongs to.
- * - `chat`: a new value for each new chat.
- * - `started`: the Thread that this new chat created with its first question.
- */
-type ChatParams = { thread?: string; assistantId?: string; chat?: string; started?: string };
+/** This screen's navigation, so `setParams` accepts the chat params only. */
+const useChatNavigation = () => useNavigation<NavigationProp<{ index: ChatParams }, 'index'>>();
 
 function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: string) => void }) {
   const theme = useTheme();
@@ -42,31 +39,28 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
 }
 
 /**
- * The header's action. "New conversation" shows only once there is a conversation to leave, as in
+ * The header's "New conversation" button. It shows only once there is a conversation to leave, as in
  * the ChatGPT and Gemini apps: on an empty screen it would do nothing.
  */
-function HeaderActions({ canStartNew, onNew }: { canStartNew: boolean; onNew: () => void }) {
+function NewConversationButton({ canStartNew, onNew }: { canStartNew: boolean; onNew: () => void }) {
+  if (!canStartNew) return null;
   return (
-    <View style={styles.headerActions}>
-      {canStartNew && (
-        <IconButton
-          accessibilityLabel="New conversation"
-          onPress={onNew}
-          icon={<Icon ios="square.and.pencil" android="edit_square" size={22} color="primary" />}
-        />
-      )}
-    </View>
+    <IconButton
+      accessibilityLabel="New conversation"
+      onPress={onNew}
+      icon={<Icon ios="square.and.pencil" android="edit_square" size={22} color="primary" />}
+    />
   );
 }
 
 /** The one chat screen: a new chat, or a Thread opened from the side panel's History. */
 export default function ChatScreen() {
-  const navigation = useNavigation();
+  const navigation = useChatNavigation();
   const { selected } = useAssistantSelection();
   const { thread, assistantId, chat } = useLocalSearchParams<ChatParams>();
   // A new chat gets a new `chat` value, so it is a fresh mount: a pending question is aborted and nothing carries over.
   const startNew = useCallback(
-    () => navigation.setParams({ thread: undefined, assistantId: undefined, started: undefined, chat: String(Date.now()) } as never),
+    () => navigation.setParams({ thread: undefined, assistantId: undefined, started: undefined, chat: newChatKey() }),
     [navigation],
   );
   // A Thread keeps its Assistant. When the Qlik User selects another Assistant, they leave the Thread
@@ -86,7 +80,7 @@ export default function ChatScreen() {
 }
 
 function NewChat({ onNew }: { onNew: () => void }) {
-  const navigation = useNavigation();
+  const navigation = useChatNavigation();
   const port = useAnswersPort();
   const [starters, setStarters] = useState<Starter[]>([]);
   const threadRef = useRef<Promise<Thread> | null>(null);
@@ -99,7 +93,7 @@ function NewChat({ onNew }: { onNew: () => void }) {
     try {
       const { id } = await pending;
       // The side panel highlights this Thread and loads History again, so it is listed.
-      if (isNew) navigation.setParams({ started: id } as never);
+      if (isNew) navigation.setParams({ started: id });
       return id;
     } catch (e) {
       if (threadRef.current === pending) threadRef.current = null;
@@ -109,7 +103,7 @@ function NewChat({ onNew }: { onNew: () => void }) {
 
   // A new chat has started no Thread yet, also after the Qlik User selects another Assistant.
   useEffect(() => {
-    navigation.setParams({ started: undefined } as never);
+    navigation.setParams({ started: undefined });
   }, [navigation]);
 
   useEffect(() => {
@@ -203,7 +197,7 @@ function Conversation({
     <View style={styles.flex}>
       <Stack.Screen
         options={{
-          headerRight: () => <HeaderActions canStartNew={asking || interactions.length > 0} onNew={onNew} />,
+          headerRight: () => <NewConversationButton canStartNew={asking || interactions.length > 0} onNew={onNew} />,
         }}
       />
       <FlatList
@@ -281,7 +275,6 @@ function ThreadSkeleton() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },

@@ -173,6 +173,22 @@ describe('SidePanelContent', () => {
     expect(threadLabels(renderer)).toHaveLength(5);
   });
 
+  it('shows the error when the next page fails to load, and loads it on Retry', async () => {
+    const fixture = createFixtureAnswersPort();
+    const listThreads = jest.fn(fixture.listThreads);
+    const { renderer } = await renderPanel({ ...fixture, listThreads });
+
+    listThreads.mockRejectedValueOnce({ kind: 'ServiceUnavailable' });
+    await act(async () => {
+      renderer.root.findByType(FlatList).props.onEndReached();
+    });
+    expect(renderer.root.findAllByProps({ accessibilityRole: 'alert' }).length).toBeGreaterThan(0);
+    expect(threadLabels(renderer)).toHaveLength(5);
+    await press(renderer, 'Retry');
+    expect(threadLabels(renderer)).toHaveLength(10);
+    expect(renderer.root.findAllByProps({ accessibilityRole: 'alert' })).toEqual([]);
+  });
+
   it('loads History again each time the panel opens, so a new Thread is listed', async () => {
     const port = createFixtureAnswersPort();
     const closed = drawerProps(false);
@@ -267,6 +283,19 @@ describe('SidePanelContent', () => {
         pop: true,
       });
     });
+
+    it('keeps the deleted Thread open when the delete fails, and puts its row back', async () => {
+      const port = { ...createFixtureAnswersPort(), deleteThread: jest.fn().mockRejectedValue({ kind: 'ServiceUnavailable' }) };
+      const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { thread: 'thread-1', assistantId: 'assistant-knowledge' }));
+
+      await act(async () => {
+        row(renderer).props.onLongPress();
+      });
+      await answer('Delete');
+      expect(alert).toHaveBeenLastCalledWith('Could not delete conversation', expect.any(String));
+      expect(threadLabels(renderer)).toContain('Open Q3 policy changes');
+      expect(props.navigation.navigate).not.toHaveBeenCalled();
+    });
   });
 
   it('starts a new chat on the Assistant', async () => {
@@ -304,6 +333,13 @@ describe('SidePanelContent', () => {
     expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(false);
     expect(hasText(renderer, 'History · Knowledge')).toBe(true);
     expect(threadLabels(renderer)).toHaveLength(5);
+  });
+
+  it('keeps the Agentic Assistant note while the Assistant chooser is open over it', async () => {
+    const { renderer } = await renderPanel(createFixtureAnswersPort(), drawerProps(true, ['index', 'agentic', 'choose']));
+
+    expect(hasText(renderer, 'Agentic Assistant chats are kept in the Assistant view.')).toBe(true);
+    expect(hasText(renderer, 'History · Knowledge')).toBe(false);
   });
 
   it("shows the Qlik User's Profile, and its gear pushes Settings", async () => {
