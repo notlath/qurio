@@ -88,6 +88,14 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
       await qlikFetch(deps, config, `/threads/${id}`, { method: 'DELETE' });
     },
 
+    async renameThread(id, name) {
+      // Qlik answers a JSON Patch with an empty 204, so there is no body to parse.
+      await qlikFetch(deps, config, `/threads/${id}`, {
+        method: 'PATCH',
+        body: [{ op: 'replace', path: '/name', value: name }],
+      });
+    },
+
     async ask(threadId, prompt, handlers) {
       const local = (text: string): Interaction => ({
         id: `local-${Date.now()}`,

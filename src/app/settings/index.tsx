@@ -6,6 +6,7 @@ import { expireAccessTokenNow } from '@/auth/access-token';
 import { AppPressable } from '@/components/pressable';
 import { usePrivacyLock } from '@/components/lock-gate';
 import { NativeSwitch } from '@/components/native-switch';
+import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { SignInSection } from '@/components/sign-in-section';
 import { TenantConfigForm } from '@/components/tenant-config-form';
 import { ThemedText } from '@/components/themed-text';
@@ -201,6 +202,8 @@ function ExpireTokenRow() {
 export default function SettingsScreen() {
   const { config: resolved, managed, reloadConfig } = useTenantConfig();
   const native = Platform.OS !== 'web';
+  // In the same stack as this Settings screen: the root stack, or the drawer screen beside the docked panel.
+  const { docked } = useSidePanelLayout();
 
   return (
     <ScrollView
@@ -223,7 +226,7 @@ export default function SettingsScreen() {
             // Changing the Tenant signs out through useQlikAuth, which is native-only (ADR-0005).
             <Row title={resolved.tenantHost} />
           ) : (
-            <Link href="/settings/change-tenant" asChild>
+            <Link href={`${settingsHref(docked)}/change-tenant` as const} asChild>
               <AppPressable accessibilityLabel="Change tenant" accessibilityHint="Opens the Tenant screen" feedback="highlight">
                 <Row title={resolved.tenantHost} accessory={<RowAction label="Change" />} />
               </AppPressable>

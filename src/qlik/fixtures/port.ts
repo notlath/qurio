@@ -60,6 +60,13 @@ export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.dem
       delete interactionsByThreadId[id];
     },
 
+    async renameThread(id, name) {
+      const index = threads.findIndex((t) => t.id === id);
+      if (index === -1) throw new Error(`Fixture thread not found: ${id}`);
+      // A new object: the list shares its Thread objects with the fixture data that other ports use.
+      threads[index] = { ...threads[index], name };
+    },
+
     async ask(threadId, prompt, handlers) {
       if (!interactionsByThreadId[threadId]) throw new Error(`Fixture thread not found: ${threadId}`);
       await new Promise((resolve) => setTimeout(resolve, 300)); // simulated latency, so the loading state is real to see

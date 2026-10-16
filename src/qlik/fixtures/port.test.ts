@@ -71,6 +71,21 @@ describe('createFixtureAnswersPort', () => {
     await expect(port.getThread(created.id)).rejects.toThrow();
   });
 
+  it('renames a thread in memory, so listThreads and getThread show the new name', async () => {
+    const port = createFixtureAnswersPort();
+    const created = await port.createThread('Old name');
+
+    await port.renameThread(created.id, 'New name');
+
+    const { items } = await port.listThreads({ limit: 100 });
+    expect(items.find((t) => t.id === created.id)?.name).toBe('New name');
+    expect((await port.getThread(created.id)).name).toBe('New name');
+  });
+
+  it('rejects renameThread for an unknown id', async () => {
+    await expect(createFixtureAnswersPort().renameThread('does-not-exist', 'New name')).rejects.toThrow();
+  });
+
   it('submits feedback that attaches to the correct interaction, verified by re-fetching', async () => {
     const port = createFixtureAnswersPort();
     const thread = await port.createThread('Feedback thread');

@@ -86,8 +86,9 @@ function Selector({ offered, includeAgentic, placement }: { offered: ReturnType<
         onPress={() => router.push(includeAgentic ? '/assistant/choose?agentic=1' : '/assistant/choose')}
         // In the header it is a bar button, so it dims. On History it is a chip, so it scales.
         feedback={placement === 'header' ? 'opacity' : 'scale'}
-        // A header gives its left item no width limit, so keep room for the header's right buttons.
-        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget * 2 - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
+        // A header gives its left item no width limit, so keep room for the side panel button on its
+        // left and the header's right buttons.
+        style={placement === 'header' ? [styles.trigger, styles.headerTrigger, { maxWidth: width - TouchTarget * 3 - Spacing.three * 4 }] : [styles.trigger, styles.inlineTrigger, { borderColor: theme.borderStrong }]}>
         <ThemedText type={placement === 'header' ? 'headline' : 'smallBold'} numberOfLines={1} style={styles.triggerText}>
           {selected?.name ?? 'Choose an Assistant'}
         </ThemedText>
@@ -262,8 +263,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   triggerText: { flexShrink: 1 },
-  // iOS 26 wraps a header item in a glass capsule that hugs its content. Inset the text so it does not
-  // touch the capsule's rounded ends. Android draws no capsule, so it needs no inset.
+  // On iOS the header picker is the centered title, with no capsule. The inset keeps its text clear of
+  // the side panel button. Android puts a gap between them instead.
   headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
   // The sheet uses three sizes only: headline (17) for its title, defaultSemiBold (16) for each
   // Assistant name, small (14) for everything secondary. Captions (12) were too small to read here.

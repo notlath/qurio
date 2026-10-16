@@ -51,7 +51,7 @@ A governed collection of indexed source documents an Assistant draws answers fro
 _Avoid_: KB (in prose), corpus, index
 
 **Thread**:
-One continuous conversation with one Assistant, owned by a Qlik User and persisted in the Tenant. The Qlik User chooses the Assistant when the Thread starts, and the Thread keeps it for its whole life: resuming a Thread always continues with that Assistant.
+One continuous conversation with one Assistant, owned by a Qlik User and persisted in the Tenant. The Qlik User chooses the Assistant when the Thread starts, and the Thread keeps it for its whole life: resuming a Thread always continues with that Assistant. The app shows Qlik Users the word "conversation". The code and docs say Thread.
 _Avoid_: Conversation, session, chat
 
 **History**:

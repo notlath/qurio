@@ -25,6 +25,8 @@ export const Colors = {
     borderStrong: '#7C8F83',
     danger: '#B42318',
     dangerForeground: '#FFFFFF', // 6.57:1 on danger
+    // Dims the screen behind a dialog.
+    scrim: 'rgba(0, 0, 0, 0.4)',
   },
   dark: {
     text: '#F2F7F2',
@@ -38,6 +40,7 @@ export const Colors = {
     borderStrong: '#5E7566', // 3.65:1 vs background
     danger: '#FFB4AB',
     dangerForeground: '#690005', // 7.72:1 on danger
+    scrim: 'rgba(0, 0, 0, 0.6)',
   },
 } as const;
 
