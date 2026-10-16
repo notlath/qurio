@@ -318,12 +318,12 @@ describe('SidePanelContent', () => {
       await act(async () => renderer.root.findAllByProps({ accessibilityLabel: 'Save' })[0].props.onPress());
     }
 
-    it('offers Rename and Delete on a long press', async () => {
+    it('offers Pin, Rename and Delete on a long press', async () => {
       const { renderer } = await renderPanel();
 
       const menu = rowMenu(renderer, 'Q3 policy changes');
       expect(menu.props.shouldOpenOnLongPress).toBe(true);
-      expect(menu.props.actions.map((a: { title: string }) => a.title)).toEqual(['Rename', 'Delete']);
+      expect(menu.props.actions.map((a: { title: string }) => a.title)).toEqual(['Pin', 'Rename', 'Delete']);
     });
 
     it('opens the rename dialog with the current name, from the menu and from the screen reader', async () => {
@@ -371,6 +371,91 @@ describe('SidePanelContent', () => {
       expect(alert).toHaveBeenLastCalledWith('Could not rename conversation', expect.stringMatching(/connect/i));
       expect(threadLabels(renderer)[0]).toBe('Open Q3 policy changes');
       expect(dialogField(renderer).props.value).toBe('Travel policy');
+    });
+  });
+
+  describe('pinning a Thread', () => {
+    let alert: jest.SpyInstance;
+    beforeEach(() => {
+      alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    });
+    afterEach(() => alert.mockRestore());
+
+    it('offers Pin on a Thread, and Unpin on a pinned Thread, in the menu and to the screen reader', async () => {
+      const { renderer } = await renderPanel();
+
+      const titles = (name: string) => rowMenu(renderer, name).props.actions.map((a: { title: string }) => a.title);
+      expect(titles('Q3 policy changes')).toEqual(['Pin', 'Rename', 'Delete']);
+      const row = renderer.root.findAllByProps({ accessibilityLabel: 'Open Q3 policy changes' })[0];
+      expect(row.props.accessibilityActions).toContainEqual({ name: 'pin', label: 'Pin' });
+
+      await choose(renderer, 'Q3 policy changes', 'Pin');
+      expect(titles('Q3 policy changes')).toEqual(['Unpin', 'Rename', 'Delete']);
+      const pinnedRow = renderer.root.findAllByProps({ accessibilityLabel: 'Open Q3 policy changes' })[0];
+      expect(pinnedRow.props.accessibilityActions).toContainEqual({ name: 'unpin', label: 'Unpin' });
+      await act(async () => pinnedRow.props.onAccessibilityAction({ nativeEvent: { actionName: 'unpin' } }));
+      expect(titles('Q3 policy changes')).toEqual(['Pin', 'Rename', 'Delete']);
+    });
+
+    it('moves a pinned Thread into a Pinned group above the others, and Unpin moves it back', async () => {
+      const fixture = createFixtureAnswersPort();
+      const port = { ...fixture, setThreadPinned: jest.fn(fixture.setThreadPinned) };
+      const { renderer } = await renderPanel(port);
+      const before = threadLabels(renderer);
+      expect(hasText(renderer, 'Pinned')).toBe(false);
+
+      await choose(renderer, 'Onboarding checklist', 'Pin');
+      expect(port.setThreadPinned).toHaveBeenCalledWith('thread-2', true);
+      expect(hasText(renderer, 'Pinned')).toBe(true);
+      expect(threadLabels(renderer)).toEqual(['Open Onboarding checklist', ...before.filter((l) => l !== 'Open Onboarding checklist')]);
+
+      await choose(renderer, 'Onboarding checklist', 'Unpin');
+      expect(port.setThreadPinned).toHaveBeenLastCalledWith('thread-2', false);
+      expect(hasText(renderer, 'Pinned')).toBe(false);
+      expect(threadLabels(renderer)).toContain('Open Onboarding checklist');
+    });
+
+    it('lists the newest pinned Thread first in the Pinned group', async () => {
+      const { renderer } = await renderPanel();
+
+      await choose(renderer, 'Q3 policy changes', 'Pin');
+      await choose(renderer, 'Onboarding checklist', 'Pin');
+      expect(threadLabels(renderer).slice(0, 2)).toEqual(['Open Onboarding checklist', 'Open Q3 policy changes']);
+    });
+
+    it('finds a pinned Thread that is beyond the first page, and lists it once', async () => {
+      const port = createFixtureAnswersPort();
+      const { items } = await port.listThreads({ limit: 100 });
+      const last = items[items.length - 1];
+      await port.setThreadPinned(last.id, true);
+      const { renderer } = await renderPanel(port);
+
+      expect(threadLabels(renderer)[0]).toBe('Open ' + last.name);
+      expect(hasText(renderer, 'Pinned')).toBe(true);
+      expect(renderer.root.findAllByType(RowMenu).filter((m) => m.findAllByProps({ accessibilityLabel: 'Open ' + last.name }).length > 0)).toHaveLength(1);
+    });
+
+    it('puts the Thread back and says why when the pin fails', async () => {
+      const port = { ...createFixtureAnswersPort(), setThreadPinned: jest.fn().mockRejectedValue({ kind: 'Offline' }) };
+      const { renderer } = await renderPanel(port);
+      const before = threadLabels(renderer);
+
+      await choose(renderer, 'Onboarding checklist', 'Pin');
+      expect(alert).toHaveBeenLastCalledWith('Could not pin conversation', expect.stringMatching(/connect/i));
+      expect(threadLabels(renderer)).toEqual(before);
+      expect(hasText(renderer, 'Pinned')).toBe(false);
+    });
+
+    it('puts a pinned Thread back in the Pinned group when the unpin fails', async () => {
+      const fixture = createFixtureAnswersPort();
+      await fixture.setThreadPinned('thread-2', true);
+      const port = { ...fixture, setThreadPinned: jest.fn().mockRejectedValue({ kind: 'Offline' }) };
+      const { renderer } = await renderPanel(port);
+
+      await choose(renderer, 'Onboarding checklist', 'Unpin');
+      expect(alert).toHaveBeenLastCalledWith('Could not unpin conversation', expect.any(String));
+      expect(hasText(renderer, 'Pinned')).toBe(true);
+      expect(threadLabels(renderer)[0]).toBe('Open Onboarding checklist');
     });
   });
 

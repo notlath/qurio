@@ -205,6 +205,7 @@ function PanelHistory({
   onDeletedThread: (thread: Thread) => void;
 }) {
   const {
+    pinned,
     threads,
     initialLoad,
     error,
@@ -219,6 +220,7 @@ function PanelHistory({
     dismissError,
     remove,
     rename,
+    setPinned,
   } = useThreadHistory();
   const [renaming, setRenaming] = useState<Thread | null>(null);
 
@@ -231,7 +233,15 @@ function PanelHistory({
   }
 
   // What each item of ROW_ACTIONS does, by its id.
-  const rowActions: Record<string, (thread: Thread) => void> = { rename: setRenaming, delete: confirmDelete };
+  const rowActions: Record<string, (thread: Thread) => void> = {
+    pin: (thread) => void setPinned(thread.id, true),
+    unpin: (thread) => void setPinned(thread.id, false),
+    rename: setRenaming,
+    delete: confirmDelete,
+  };
+
+  // The pinned group leads. It and the other group each carry a heading, so the split is plain.
+  const rows: HistoryItem[] = pinned.length ? [{ heading: 'Pinned' }, ...pinned, { heading: 'Conversations' }, ...threads] : threads;
 
   // The panel stays mounted while it is closed. Each time it opens, it loads the first page again,
   // so a Thread started since the last time is listed.
@@ -262,18 +272,24 @@ function PanelHistory({
             </ThemedText>
           </>
         }
-        data={threads}
-        keyExtractor={(item) => item.id}
+        data={rows}
+        keyExtractor={(item) => ('heading' in item ? `heading-${item.heading}` : item.id)}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
-        renderItem={({ item }) => (
-          <HistoryRow
-            thread={item}
-            selected={item.id === openThread}
-            onOpen={() => onOpenThread(item)}
-            onAction={(id) => rowActions[id]?.(item)}
-          />
-        )}
+        renderItem={({ item }) =>
+          'heading' in item ? (
+            <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header" style={styles.group}>
+              {item.heading}
+            </ThemedText>
+          ) : (
+            <HistoryRow
+              thread={item}
+              selected={item.id === openThread}
+              onOpen={() => onOpenThread(item)}
+              onAction={(id) => rowActions[id]?.(item)}
+            />
+          )
+        }
         ListEmptyComponent={
           initialLoad ? (
             <View accessible accessibilityLabel="Loading conversations">
@@ -307,14 +323,20 @@ function PanelHistory({
   );
 }
 
+/** A History row, or the heading of its group. */
+type HistoryItem = Thread | { heading: string };
+
 /**
  * What a long press on a History row offers, in this order. The screen reader gets the same items as
- * actions on the row. Each id has its handler in `PanelHistory`.
+ * actions on the row. Each id has its handler in `PanelHistory`. Pin turns into Unpin on a pinned Thread.
  */
-const ROW_ACTIONS: MenuAction[] = [
-  { id: 'rename', title: 'Rename', image: 'pencil' },
-  { id: 'delete', title: 'Delete', image: 'trash', attributes: { destructive: true } },
-];
+function rowActionsFor(thread: Thread): MenuAction[] {
+  return [
+    thread.pinned ? { id: 'unpin', title: 'Unpin', image: 'pin.slash' } : { id: 'pin', title: 'Pin', image: 'pin' },
+    { id: 'rename', title: 'Rename', image: 'pencil' },
+    { id: 'delete', title: 'Delete', image: 'trash', attributes: { destructive: true } },
+  ];
+}
 
 /**
  * One History row. A tap opens the Thread. A long press opens a native menu: SwiftUI's context menu on
@@ -333,9 +355,10 @@ function HistoryRow({
 }) {
   const theme = useTheme();
   const menu = useRef<MenuComponentRef>(null);
+  const actions = rowActionsFor(thread);
 
   return (
-    <RowMenu ref={menu} shouldOpenOnLongPress actions={ROW_ACTIONS} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
+    <RowMenu ref={menu} shouldOpenOnLongPress actions={actions} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
       <AppPressable
         accessibilityLabel={`Open ${thread.name}`}
         accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
@@ -344,7 +367,7 @@ function HistoryRow({
         // The iOS context menu opens on a long press by itself. On Android this row takes the touch
         // before the menu's own trigger can, so the row opens the menu.
         onLongPress={process.env.EXPO_OS === 'android' ? () => menu.current?.show() : undefined}
-        accessibilityActions={ROW_ACTIONS.map(({ id, title }) => ({ name: id ?? title, label: title }))}
+        accessibilityActions={actions.map(({ id, title }) => ({ name: id ?? title, label: title }))}
         onAccessibilityAction={(event) => onAction(event.nativeEvent.actionName)}
         feedback="highlight"
         style={[styles.row, { backgroundColor: selected ? theme.backgroundSelected : 'transparent' }]}>
@@ -411,6 +434,7 @@ const styles = StyleSheet.create({
   itemContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   section: { paddingHorizontal: Spacing.three, paddingTop: Spacing.four, paddingBottom: Spacing.two },
   note: { paddingHorizontal: Spacing.three },
+  group: { paddingHorizontal: Spacing.three, paddingTop: Spacing.two, paddingBottom: Spacing.one },
   skeletonLine: { width: '70%', height: 12, borderRadius: Radius.pill },
   footerLoading: { paddingVertical: Spacing.three },
   footer: {

@@ -13,6 +13,7 @@ export type QlikThread = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  favorite?: boolean;
 };
 
 /** An entry of GET /api/v1/assistants, captured live on mtcteam.ap (2026-10-05). Only the mapped fields. */

@@ -66,8 +66,10 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
     },
 
     async listThreads(opts) {
+      // Qlik's filter takes the value as a string: `favorite eq true` matches nothing (docs/poc-tickets/fixtures/40-favorite-patch).
+      const filter = opts?.pinned ? `&filter=${encodeURIComponent('favorite eq "true"')}` : '';
       const path =
-        opts?.cursor ?? `/threads?sort=-UPDATED${opts?.limit === undefined ? '' : `&limit=${opts.limit}`}`;
+        opts?.cursor ?? `/threads?sort=-UPDATED${opts?.limit === undefined ? '' : `&limit=${opts.limit}`}${filter}`;
       const { data, links } = await json<QlikList<QlikThread>>(path);
       return { items: data.map(toThread), next: links?.next?.href };
     },
@@ -93,6 +95,13 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
       await qlikFetch(deps, config, `/threads/${id}`, {
         method: 'PATCH',
         body: [{ op: 'replace', path: '/name', value: name }],
+      });
+    },
+
+    async setThreadPinned(id, pinned) {
+      await qlikFetch(deps, config, `/threads/${id}`, {
+        method: 'PATCH',
+        body: [{ op: 'replace', path: '/favorite', value: pinned }],
       });
     },
 
