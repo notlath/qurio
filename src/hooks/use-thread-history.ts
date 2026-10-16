@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-import type { AppError, Thread } from '@/domain';
+import { errorMessageFor, type AppError, type Thread } from '@/domain';
 import { useAnswersPort } from '@/qlik/context';
 
 function isAppError(value: unknown): value is AppError {
@@ -10,7 +10,7 @@ function isAppError(value: unknown): value is AppError {
 
 /**
  * The selected Assistant's History, one page at a time, newest first, as the side panel lists it:
- * load, page, delete and recover.
+ * load, page, rename, delete and recover.
  */
 export function useThreadHistory() {
   const port = useAnswersPort();
@@ -87,6 +87,21 @@ export function useThreadHistory() {
     }
   }
 
+  /** Resolves true when the Thread is renamed. On a failure the old name comes back and an alert says why. */
+  async function rename(id: string, name: string): Promise<boolean> {
+    const previous = threads.find((t) => t.id === id)?.name ?? name;
+    const setName = (value: string) => setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, name: value } : t)));
+    setName(name); // optimistic. The old name comes back below if the rename fails.
+    try {
+      await port.renameThread(id, name);
+      return true;
+    } catch (e) {
+      setName(previous);
+      Alert.alert('Could not rename conversation', errorMessageFor(isAppError(e) ? e : { kind: 'ServiceUnavailable' }).message);
+      return false;
+    }
+  }
+
   return {
     /** Empty while the first page loads or after it failed, so a list renders its empty component. */
     threads: initialLoad || error ? [] : threads,
@@ -103,5 +118,6 @@ export function useThreadHistory() {
     dismissMoreError: () => setMoreError(null),
     dismissError: () => setError(null),
     remove,
+    rename,
   };
 }

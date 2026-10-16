@@ -19,6 +19,7 @@ export interface AnswersPort {
   createThread(name: string): Promise<Thread>;
   getThread(id: string): Promise<ThreadDetail>;
   deleteThread(id: string): Promise<void>;
+  renameThread(id: string, name: string): Promise<void>;
 
   ask(threadId: string, prompt: string, h: AskHandlers): Promise<Interaction>;
   listInteractions(threadId: string): Promise<Interaction[]>;

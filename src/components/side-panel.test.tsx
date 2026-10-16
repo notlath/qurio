@@ -1,5 +1,6 @@
+import { MenuView } from '@expo/ui/community/menu';
 import type { DrawerContentComponentProps } from 'expo-router/drawer';
-import { Alert, FlatList, type AlertButton } from 'react-native';
+import { Alert, FlatList, TextInput, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import OpeningScreen from '@/app/index';
@@ -74,6 +75,18 @@ const threadLabels = (renderer: TestRenderer.ReactTestRenderer) => [
       .map((node) => node.props.accessibilityLabel),
   ),
 ];
+
+// A long press opens the row's native menu. Jest cannot long-press a native view, so a test picks the
+// menu item the way the native menu reports it.
+const rowMenu = (renderer: TestRenderer.ReactTestRenderer, name: string) =>
+  renderer.root.findAllByType(MenuView).find((menu) => menu.findAllByProps({ accessibilityLabel: `Open ${name}` }).length > 0)!;
+const choose = async (renderer: TestRenderer.ReactTestRenderer, name: string, title: string) => {
+  const menu = rowMenu(renderer, name);
+  const action = menu.props.actions.find((a: { title: string }) => a.title === title);
+  await act(async () => {
+    menu.props.onPressAction({ nativeEvent: { event: action.id ?? action.title } });
+  });
+};
 
 beforeEach(() => {
   mockRouter.push.mockReset();
@@ -213,6 +226,7 @@ describe('SidePanelContent', () => {
 
     const row = (renderer: TestRenderer.ReactTestRenderer) =>
       renderer.root.findAllByProps({ accessibilityLabel: 'Open Q3 policy changes' })[0];
+    const chooseDelete = async (renderer: TestRenderer.ReactTestRenderer) => choose(renderer, 'Q3 policy changes', 'Delete');
     const answer = async (text: string) => {
       const buttons = alert.mock.calls.at(-1)[2] as AlertButton[];
       await act(async () => {
@@ -224,13 +238,11 @@ describe('SidePanelContent', () => {
       return { ...fixture, deleteThread: jest.fn(fixture.deleteThread) };
     }
 
-    it('asks first on a long press, and keeps the Thread on Cancel', async () => {
+    it('asks first from the row menu, and keeps the Thread on Cancel', async () => {
       const port = deletablePort();
       const { renderer } = await renderPanel(port);
 
-      await act(async () => {
-        row(renderer).props.onLongPress();
-      });
+      await chooseDelete(renderer);
       expect(alert).toHaveBeenLastCalledWith(
         'Delete conversation?',
         '"Q3 policy changes" and its answers will be permanently removed.',
@@ -246,9 +258,7 @@ describe('SidePanelContent', () => {
       const port = deletablePort();
       const { renderer, props } = await renderPanel(port);
 
-      await act(async () => {
-        row(renderer).props.onLongPress();
-      });
+      await chooseDelete(renderer);
       await answer('Delete');
       expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
       expect(threadLabels(renderer)).not.toContain('Open Q3 policy changes');
@@ -259,7 +269,7 @@ describe('SidePanelContent', () => {
       const port = deletablePort();
       const { renderer } = await renderPanel(port);
 
-      expect(row(renderer).props.accessibilityActions).toEqual([{ name: 'delete', label: 'Delete' }]);
+      expect(row(renderer).props.accessibilityActions).toContainEqual({ name: 'delete', label: 'Delete' });
       await act(async () => {
         row(renderer).props.onAccessibilityAction({ nativeEvent: { actionName: 'delete' } });
       });
@@ -272,9 +282,7 @@ describe('SidePanelContent', () => {
       const port = deletablePort();
       const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { thread: 'thread-1', assistantId: 'assistant-knowledge' }));
 
-      await act(async () => {
-        row(renderer).props.onLongPress();
-      });
+      await chooseDelete(renderer);
       await answer('Delete');
       expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
       expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
@@ -288,13 +296,81 @@ describe('SidePanelContent', () => {
       const port = { ...createFixtureAnswersPort(), deleteThread: jest.fn().mockRejectedValue({ kind: 'ServiceUnavailable' }) };
       const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { thread: 'thread-1', assistantId: 'assistant-knowledge' }));
 
-      await act(async () => {
-        row(renderer).props.onLongPress();
-      });
+      await chooseDelete(renderer);
       await answer('Delete');
       expect(alert).toHaveBeenLastCalledWith('Could not delete conversation', expect.any(String));
       expect(threadLabels(renderer)).toContain('Open Q3 policy changes');
       expect(props.navigation.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('renaming a Thread', () => {
+    let alert: jest.SpyInstance;
+    beforeEach(() => {
+      alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    });
+    afterEach(() => alert.mockRestore());
+
+    const dialogField = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findAllByType(TextInput)[0];
+    async function rename(renderer: TestRenderer.ReactTestRenderer, name: string) {
+      await choose(renderer, 'Q3 policy changes', 'Rename');
+      await act(async () => dialogField(renderer).props.onChangeText(name));
+      await act(async () => renderer.root.findAllByProps({ accessibilityLabel: 'Save' })[0].props.onPress());
+    }
+
+    it('offers Rename and Delete on a long press', async () => {
+      const { renderer } = await renderPanel();
+
+      const menu = rowMenu(renderer, 'Q3 policy changes');
+      expect(menu.props.shouldOpenOnLongPress).toBe(true);
+      expect(menu.props.actions.map((a: { title: string }) => a.title)).toEqual(['Rename', 'Delete']);
+    });
+
+    it('opens the rename dialog with the current name, from the menu and from the screen reader', async () => {
+      const { renderer } = await renderPanel();
+
+      await choose(renderer, 'Q3 policy changes', 'Rename');
+      expect(dialogField(renderer).props.value).toBe('Q3 policy changes');
+      await act(async () => renderer.root.findAllByProps({ accessibilityLabel: 'Cancel' })[0].props.onPress());
+      expect(renderer.root.findAllByType(TextInput)).toEqual([]);
+
+      const row = renderer.root.findAllByProps({ accessibilityLabel: 'Open Q3 policy changes' })[0];
+      expect(row.props.accessibilityActions).toContainEqual({ name: 'rename', label: 'Rename' });
+      await act(async () => row.props.onAccessibilityAction({ nativeEvent: { actionName: 'rename' } }));
+      expect(dialogField(renderer).props.value).toBe('Q3 policy changes');
+    });
+
+    it('saves the new name, lists it, and keeps the open Thread open and highlighted', async () => {
+      const fixture = createFixtureAnswersPort();
+      const port = { ...fixture, renameThread: jest.fn(fixture.renameThread) };
+      const { renderer, props } = await renderPanel(port, drawerProps(true, ['index'], { thread: 'thread-1', assistantId: 'assistant-knowledge' }));
+
+      await rename(renderer, 'Travel policy');
+      expect(port.renameThread).toHaveBeenCalledWith('thread-1', 'Travel policy');
+      expect(threadLabels(renderer)[0]).toBe('Open Travel policy');
+      expect(selectedRows(renderer)).toEqual(['Open Travel policy']);
+      expect(props.navigation.navigate).not.toHaveBeenCalled();
+      expect(renderer.root.findAllByType(TextInput)).toEqual([]);
+    });
+
+    it('shows the new name while the save is in progress', async () => {
+      let finish!: () => void;
+      const port = { ...createFixtureAnswersPort(), renameThread: () => new Promise<void>((resolve) => (finish = resolve)) };
+      const { renderer } = await renderPanel(port);
+
+      await rename(renderer, 'Travel policy');
+      expect(threadLabels(renderer)[0]).toBe('Open Travel policy');
+      await act(async () => finish());
+    });
+
+    it('restores the old name and says why when the save fails, and keeps the draft', async () => {
+      const port = { ...createFixtureAnswersPort(), renameThread: jest.fn().mockRejectedValue({ kind: 'Offline' }) };
+      const { renderer } = await renderPanel(port);
+
+      await rename(renderer, 'Travel policy');
+      expect(alert).toHaveBeenLastCalledWith('Could not rename conversation', expect.stringMatching(/connect/i));
+      expect(threadLabels(renderer)[0]).toBe('Open Q3 policy changes');
+      expect(dialogField(renderer).props.value).toBe('Travel policy');
     });
   });
 

@@ -193,6 +193,30 @@ describe('createAnswersPort', () => {
     expect(fetch).toHaveBeenCalledWith(`${BASE}/threads/thread-1`, expect.objectContaining({ method: 'DELETE' }));
   });
 
+  it('renames a thread with a JSON Patch of its name, and accepts the empty 204', async () => {
+    const fetch = jest.fn().mockResolvedValue({
+      ...jsonResponse(null, 204),
+      json: () => Promise.reject(new Error('no body')),
+    });
+
+    await expect(portWith(fetch).renameThread('thread-1', 'Travel policy')).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads/thread-1`,
+      expect.objectContaining({ method: 'PATCH', body: '[{"op":"replace","path":"/name","value":"Travel policy"}]' }),
+    );
+  });
+
+  it.each([
+    [401, { kind: 'SessionExpired' }],
+    [403, { kind: 'NotEntitled' }],
+    [404, { kind: 'AssistantNotFound' }],
+    [503, { kind: 'ServiceUnavailable' }],
+  ])('maps HTTP %i from a rename to a curated domain error', async (status, expected) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status));
+
+    await expect(portWith(fetch).renameThread('thread-1', 'Travel policy')).rejects.toEqual(expected);
+  });
+
   describe('ask', () => {
     it('streams deltas, then recovers the interaction id Qlik never returns in the stream', async () => {
       const fetch = jest

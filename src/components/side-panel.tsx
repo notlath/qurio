@@ -1,9 +1,10 @@
+import { MenuView, type MenuAction, type MenuComponentRef } from '@expo/ui/community/menu';
 import { Image } from 'expo-image';
 import { useNavigation, useRouter } from 'expo-router';
 import { getDrawerStatusFromState, type DrawerContentComponentProps } from 'expo-router/drawer';
 import { DrawerActions, getFocusedRouteNameFromRoute, type RouteProp } from 'expo-router/react-navigation';
 import type { AndroidSymbol, SFSymbol } from 'expo-symbols';
-import { useEffect, useRef, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +15,7 @@ import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
+import { RenameThreadDialog } from '@/components/rename-thread-dialog';
 import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { ProfileAvatar, useProfile } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
@@ -201,7 +203,6 @@ function PanelHistory({
   onOpenThread: (thread: Thread) => void;
   onDeletedThread: (thread: Thread) => void;
 }) {
-  const theme = useTheme();
   const {
     threads,
     initialLoad,
@@ -216,15 +217,20 @@ function PanelHistory({
     dismissMoreError,
     dismissError,
     remove,
+    rename,
   } = useThreadHistory();
+  const [renaming, setRenaming] = useState<Thread | null>(null);
 
-  // A long press and the screen reader's Delete action ask first. No swipe-to-delete: in the panel a
-  // left swipe closes the panel. After a failed delete the row comes back and the Thread stays open.
+  // Delete asks first. No swipe-to-delete: in the panel a left swipe closes the panel. After a failed
+  // delete the row comes back and the Thread stays open.
   function confirmDelete(thread: Thread) {
     confirmDeleteThread(thread, () => {
       void remove(thread.id).then((deleted) => deleted && onDeletedThread(thread));
     });
   }
+
+  // What each item of ROW_ACTIONS does, by its id.
+  const rowActions: Record<string, (thread: Thread) => void> = { rename: setRenaming, delete: confirmDelete };
 
   // The panel stays mounted while it is closed. Each time it opens, it loads the first page again,
   // so a Thread started since the last time is listed.
@@ -243,63 +249,107 @@ function PanelHistory({
   }, [openThread, refresh]);
 
   return (
-    <FlatList
-      style={styles.flex}
-      contentContainerStyle={styles.list}
-      ListHeaderComponent={
-        <>
-          {header}
-          <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header" numberOfLines={1} style={styles.section}>
-            {`History · ${assistant.name}`}
-          </ThemedText>
-        </>
-      }
-      data={threads}
-      keyExtractor={(item) => item.id}
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.5}
-      renderItem={({ item }) => (
-        <AppPressable
-          accessibilityLabel={`Open ${item.name}`}
-          accessibilityHint={`Last updated ${formatRelativeTime(item.updatedAt)}`}
-          onPress={() => onOpenThread(item)}
-          accessibilityState={{ selected: item.id === openThread }}
-          onLongPress={() => confirmDelete(item)}
-          accessibilityActions={[{ name: 'delete', label: 'Delete' }]}
-          onAccessibilityAction={(event) => {
-            if (event.nativeEvent.actionName === 'delete') confirmDelete(item);
-          }}
-          feedback="highlight"
-          style={[styles.row, { backgroundColor: item.id === openThread ? theme.backgroundSelected : 'transparent' }]}>
-          <ThemedText numberOfLines={1}>{item.name}</ThemedText>
-        </AppPressable>
-      )}
-      ListEmptyComponent={
-        initialLoad ? (
-          <View accessible accessibilityLabel="Loading conversations">
-            {[0, 1, 2, 3].map((i) => (
-              <ThreadRowSkeleton key={i} />
-            ))}
-          </View>
-        ) : error ? (
-          <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={dismissError} />
-        ) : (
-          // No button: New chat is directly above.
-          <EmptyState
-            icon={<Icon ios="bubble.left.and.bubble.right" android="forum" size={28} color="primary" />}
-            title="No conversations yet"
-            message="Ask the Assistant a question and the conversation will be saved here."
+    <>
+      <FlatList
+        style={styles.flex}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <>
+            {header}
+            <ThemedText type="small" themeColor="textSecondary" accessibilityRole="header" numberOfLines={1} style={styles.section}>
+              {`History · ${assistant.name}`}
+            </ThemedText>
+          </>
+        }
+        data={threads}
+        keyExtractor={(item) => item.id}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item }) => (
+          <HistoryRow
+            thread={item}
+            selected={item.id === openThread}
+            onOpen={() => onOpenThread(item)}
+            onAction={(id) => rowActions[id]?.(item)}
           />
-        )
-      }
-      ListFooterComponent={
-        loadingMore ? (
-          <ActivityIndicator style={styles.footerLoading} />
-        ) : moreError ? (
-          <ErrorState error={moreError} erroredAt={erroredAt} onRetry={() => void retryMore()} onDismiss={dismissMoreError} />
-        ) : null
-      }
-    />
+        )}
+        ListEmptyComponent={
+          initialLoad ? (
+            <View accessible accessibilityLabel="Loading conversations">
+              {[0, 1, 2, 3].map((i) => (
+                <ThreadRowSkeleton key={i} />
+              ))}
+            </View>
+          ) : error ? (
+            <ErrorState error={error} erroredAt={erroredAt} onRetry={retry} onDismiss={dismissError} />
+          ) : (
+            // No button: New chat is directly above.
+            <EmptyState
+              icon={<Icon ios="bubble.left.and.bubble.right" android="forum" size={28} color="primary" />}
+              title="No conversations yet"
+              message="Ask the Assistant a question and the conversation will be saved here."
+            />
+          )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator style={styles.footerLoading} />
+          ) : moreError ? (
+            <ErrorState error={moreError} erroredAt={erroredAt} onRetry={() => void retryMore()} onDismiss={dismissMoreError} />
+          ) : null
+        }
+      />
+      {renaming && (
+        <RenameThreadDialog thread={renaming} onSave={(name) => rename(renaming.id, name)} onClose={() => setRenaming(null)} />
+      )}
+    </>
+  );
+}
+
+/**
+ * What a long press on a History row offers, in this order. The screen reader gets the same items as
+ * actions on the row. Each id has its handler in `PanelHistory`.
+ */
+const ROW_ACTIONS: MenuAction[] = [
+  { id: 'rename', title: 'Rename', image: 'pencil' },
+  { id: 'delete', title: 'Delete', image: 'trash', attributes: { destructive: true } },
+];
+
+/**
+ * One History row. A tap opens the Thread. A long press opens a native menu: SwiftUI's context menu on
+ * iOS, a Compose dropdown menu on Android.
+ */
+function HistoryRow({
+  thread,
+  selected,
+  onOpen,
+  onAction,
+}: {
+  thread: Thread;
+  selected: boolean;
+  onOpen: () => void;
+  onAction: (id: string) => void;
+}) {
+  const theme = useTheme();
+  const menu = useRef<MenuComponentRef>(null);
+
+  return (
+    <MenuView ref={menu} shouldOpenOnLongPress actions={ROW_ACTIONS} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
+      <AppPressable
+        accessibilityLabel={`Open ${thread.name}`}
+        accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
+        onPress={onOpen}
+        accessibilityState={{ selected }}
+        // The iOS context menu opens on a long press by itself. On Android this row takes the touch
+        // before the menu's own trigger can, so the row opens the menu.
+        onLongPress={process.env.EXPO_OS === 'android' ? () => menu.current?.show() : undefined}
+        accessibilityActions={ROW_ACTIONS.map(({ id, title }) => ({ name: id ?? title, label: title }))}
+        onAccessibilityAction={(event) => onAction(event.nativeEvent.actionName)}
+        feedback="highlight"
+        style={[styles.row, { backgroundColor: selected ? theme.backgroundSelected : 'transparent' }]}>
+        <ThemedText numberOfLines={1}>{thread.name}</ThemedText>
+      </AppPressable>
+    </MenuView>
   );
 }
 
