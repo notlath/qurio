@@ -8,10 +8,10 @@ function isAppError(value: unknown): value is AppError {
   return typeof value === 'object' && value !== null && 'kind' in value;
 }
 
-// ponytail: one request for the pinned Threads. A Qlik User with more pins than this sees the rest in the other group.
+// One request lists the pinned Threads. A pin beyond this limit shows in the other group until its page loads.
 const PINNED_LIMIT = 100;
 
-const byNewest = (a: Thread, b: Thread) => b.updatedAt.localeCompare(a.updatedAt);
+const byNewest = (a: Thread, b: Thread) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 
 /** `items` that `known` does not hold yet. A pinned Thread arrives in the pinned list and again in its page. */
 const withNew = (known: Thread[], items: Thread[]) => [...known, ...items.filter((item) => !known.some((t) => t.id === item.id))];
@@ -111,18 +111,19 @@ export function useThreadHistory() {
     }
   }
 
-  /** Resolves true when the Thread is pinned or unpinned. On a failure it goes back to its group and an alert says why. */
+  /** Resolves true when the Thread is pinned or unpinned. On a failure it returns to its group and an alert says why. */
   async function setPinned(id: string, pinned: boolean): Promise<boolean> {
     const previous = threads.find((t) => t.id === id);
     if (!previous) return false;
-    const replace = (thread: Thread) => setThreads((prev) => prev.map((t) => (t.id === id ? thread : t)));
-    // Optimistic. Like Qlik, whose PATCH of the flag also changes `updatedAt`, so the Thread leads its new group.
-    replace({ ...previous, pinned, updatedAt: new Date().toISOString() });
+    const patch = (changes: Partial<Thread>) => setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, ...changes } : t)));
+    // Optimistic. Qlik also changes `updatedAt` when it saves the flag, so the Thread leads its new group.
+    patch({ pinned, updatedAt: new Date().toISOString() });
     try {
       await port.setThreadPinned(id, pinned);
       return true;
     } catch (e) {
-      replace(previous);
+      // Only the pin and its date come back. A rename made meanwhile stays.
+      patch({ pinned: previous.pinned, updatedAt: previous.updatedAt });
       Alert.alert(
         pinned ? 'Could not pin conversation' : 'Could not unpin conversation',
         errorMessageFor(isAppError(e) ? e : { kind: 'ServiceUnavailable' }).message,
@@ -136,7 +137,7 @@ export function useThreadHistory() {
   return {
     /** The pinned Threads, newest first. Empty while the first page loads or after it failed. */
     pinned: listed.filter((t) => t.pinned).sort(byNewest),
-    /** The other Threads, newest first. Empty while the first page loads or after it failed, so a list renders its empty component. */
+    /** The other Threads, newest first. Empty while the first page loads or after it failed. */
     threads: listed.filter((t) => !t.pinned).sort(byNewest),
     initialLoad,
     error,

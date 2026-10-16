@@ -240,8 +240,10 @@ function PanelHistory({
     delete: confirmDelete,
   };
 
-  // The pinned group leads. It and the other group each carry a heading, so the split is plain.
-  const rows: HistoryItem[] = pinned.length ? [{ heading: 'Pinned' }, ...pinned, { heading: 'Conversations' }, ...threads] : threads;
+  // The Pinned group leads and has a heading. The other group gets a heading only while it has rows.
+  const rows: HistoryItem[] = pinned.length
+    ? [{ heading: 'Pinned' }, ...pinned, ...(threads.length ? [{ heading: 'Conversations' }, ...threads] : [])]
+    : threads;
 
   // The panel stays mounted while it is closed. Each time it opens, it loads the first page again,
   // so a Thread started since the last time is listed.
