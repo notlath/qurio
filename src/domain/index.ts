@@ -8,4 +8,5 @@ export type { Feedback, FeedbackReason } from './feedback';
 export type { Interaction } from './interaction';
 export type { QlikUser } from './qlik-user';
 export type { Starter } from './starter';
+export { threadNameFor } from './thread';
 export type { Thread, ThreadDetail } from './thread';

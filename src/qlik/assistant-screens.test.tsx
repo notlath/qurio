@@ -55,6 +55,30 @@ it('creates a Thread only on the first question and resets for another Assistant
   await act(async () => { renderer.unmount(); });
 });
 
+it('names a new Thread after its first question', async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  await act(async () => { composer(renderer).props.setQuestion('  What were   sales last month?'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  await act(async () => { composer(renderer).props.setQuestion('And the month before?'); });
+  await act(async () => { await composer(renderer).props.onAsk(); });
+  expect(a.createThread).toHaveBeenCalledTimes(1);
+  expect(a.createThread).toHaveBeenCalledWith('What were sales last month?');
+  await act(async () => { renderer.unmount(); });
+});
+
+it('names a new Thread after a Starter used as the first question', async () => {
+  const a = makePort('a');
+  useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
+  await act(async () => { await renderer.root.findAllByProps({ accessibilityLabel: 'Ask: a starter' })[0].props.onPress(); });
+  expect(a.createThread).toHaveBeenCalledWith('a starter');
+  await act(async () => { renderer.unmount(); });
+});
+
 it('offers a new conversation once one has started, and the next question starts another Thread', async () => {
   const a = makePort('a');
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
