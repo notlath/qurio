@@ -9,15 +9,12 @@ import { useTheme } from '@/hooks/use-theme';
 
 // Like the Gemini app: the side panel button, then the current Assistant as the header's title,
 // opened as a sheet. The screen's own title stays for assistive tech and the back stack.
-// iOS 26 draws one shared glass capsule behind all left items of a header. Separate items with a
-// space between them get a capsule each, so the button and the picker read as two controls.
+// iOS: the side panel button is the only left item, and the Assistant picker is the centered title.
+// Two left items made iOS 26 draw a rectangle on the next screen's back button while the push animated.
 const ASSISTANT_HEADER_LEFT: NativeStackNavigationOptions = Platform.OS === 'ios'
   ? {
-      unstable_headerLeftItems: () => [
-        { type: 'custom', element: <SidePanelButton /> },
-        { type: 'spacing', spacing: Spacing.two },
-        { type: 'custom', element: <AssistantSwitcher includeAgentic placement="header" /> },
-      ],
+      unstable_headerLeftItems: () => [{ type: 'custom', element: <SidePanelButton /> }],
+      headerTitle: () => <AssistantSwitcher includeAgentic placement="header" />,
     }
   : { headerLeft: AssistantTrigger };
 
@@ -43,7 +40,7 @@ export default function AssistantLayout() {
 
   return (
     <Stack screenOptions={screenOptions}>
-      <Stack.Screen name="index" options={{ ...CHAT_HEADER, ...ASSISTANT_HEADER_LEFT, title: 'Assistant', headerTitle: '' }} />
+      <Stack.Screen name="index" options={{ ...CHAT_HEADER, headerTitle: '', ...ASSISTANT_HEADER_LEFT, title: 'Assistant' }} />
       <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant' }} />
       <Stack.Screen
         name="choose"

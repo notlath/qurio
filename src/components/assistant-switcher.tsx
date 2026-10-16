@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   triggerText: { flexShrink: 1 },
-  // iOS 26 wraps a header item in a glass capsule that hugs its content. Inset the text so it does not
-  // touch the capsule's rounded ends. Android draws no capsule, so it needs no inset.
+  // On iOS the header picker is the centered title, with no capsule. The inset keeps its text clear of
+  // the side panel button. Android puts a gap between them instead.
   headerTrigger: { paddingHorizontal: Platform.OS === 'ios' ? Spacing.three : 0 },
   // The sheet uses three sizes only: headline (17) for its title, defaultSemiBold (16) for each
   // Assistant name, small (14) for everything secondary. Captions (12) were too small to read here.

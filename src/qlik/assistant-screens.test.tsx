@@ -27,7 +27,8 @@ const makePort = (id: string) => ({
   getThread: jest.fn(async () => ({ id: 'old-thread', name: 'Old', interactions: [] })),
 }) as unknown as AnswersPort;
 const composer = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByType('Composer' as never);
-const actions = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByType('Header' as never).props.options.headerRight();
+// Undefined while there is nothing to start over: then the header has no right item.
+const actions = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findByType('Header' as never).props.options.headerRight?.();
 const greets = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findAll((node) => node.props.children === 'What can I help with?').length > 0;
 beforeEach(() => {
   mockParams = {};
@@ -84,14 +85,14 @@ it('offers a new conversation once one has started, and the next question starts
   useAssistantSelection.mockReturnValue({ selected: { id: 'a' } });
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => { renderer = TestRenderer.create(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
-  expect(actions(renderer).props.canStartNew).toBe(false);
+  expect(actions(renderer)).toBeUndefined();
   await act(async () => { composer(renderer).props.setQuestion('First'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
-  expect(actions(renderer).props.canStartNew).toBe(true);
+  expect(actions(renderer)).toBeDefined();
 
   await act(async () => { actions(renderer).props.onNew(); });
   await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
-  expect(actions(renderer).props.canStartNew).toBe(false);
+  expect(actions(renderer)).toBeUndefined();
   expect(composer(renderer).props.question).toBe('');
   await act(async () => { composer(renderer).props.setQuestion('Second'); });
   await act(async () => { await composer(renderer).props.onAsk(); });
@@ -138,7 +139,7 @@ it('marks the Thread a new chat creates as started, so the side panel can highli
 
   // The started Thread stays the current chat: the new param does not reload it.
   await act(async () => { renderer.update(<AnswersScope port={a}><ChatScreen /></AnswersScope>); });
-  expect(actions(renderer).props.canStartNew).toBe(true);
+  expect(actions(renderer)).toBeDefined();
   expect(a.getThread).not.toHaveBeenCalled();
   await act(async () => { renderer.unmount(); });
 });

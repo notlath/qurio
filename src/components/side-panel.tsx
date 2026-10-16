@@ -1,4 +1,4 @@
-import { MenuView, type MenuAction, type MenuComponentRef } from '@expo/ui/community/menu';
+import type { MenuAction, MenuComponentRef } from '@expo/ui/community/menu';
 import { Image } from 'expo-image';
 import { useNavigation, useRouter } from 'expo-router';
 import { getDrawerStatusFromState, type DrawerContentComponentProps } from 'expo-router/drawer';
@@ -16,6 +16,7 @@ import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { RenameThreadDialog } from '@/components/rename-thread-dialog';
+import { RowMenu } from '@/components/row-menu';
 import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { ProfileAvatar, useProfile } from '@/components/sign-in-section';
 import { ThemedText } from '@/components/themed-text';
@@ -334,7 +335,7 @@ function HistoryRow({
   const menu = useRef<MenuComponentRef>(null);
 
   return (
-    <MenuView ref={menu} shouldOpenOnLongPress actions={ROW_ACTIONS} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
+    <RowMenu ref={menu} shouldOpenOnLongPress actions={ROW_ACTIONS} onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}>
       <AppPressable
         accessibilityLabel={`Open ${thread.name}`}
         accessibilityHint={`Last updated ${formatRelativeTime(thread.updatedAt)}`}
@@ -349,7 +350,7 @@ function HistoryRow({
         style={[styles.row, { backgroundColor: selected ? theme.backgroundSelected : 'transparent' }]}>
         <ThemedText numberOfLines={1}>{thread.name}</ThemedText>
       </AppPressable>
-    </MenuView>
+    </RowMenu>
   );
 }
 

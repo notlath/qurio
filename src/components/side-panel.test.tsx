@@ -1,9 +1,9 @@
-import { MenuView } from '@expo/ui/community/menu';
 import type { DrawerContentComponentProps } from 'expo-router/drawer';
 import { Alert, FlatList, TextInput, type AlertButton } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import OpeningScreen from '@/app/index';
+import { RowMenu } from '@/components/row-menu';
 import { edgeSwipeEnabled, SidePanelContent } from '@/components/side-panel';
 import type { Assistant } from '@/domain';
 import { AnswersScope } from '@/qlik/context';
@@ -79,7 +79,7 @@ const threadLabels = (renderer: TestRenderer.ReactTestRenderer) => [
 // A long press opens the row's native menu. Jest cannot long-press a native view, so a test picks the
 // menu item the way the native menu reports it.
 const rowMenu = (renderer: TestRenderer.ReactTestRenderer, name: string) =>
-  renderer.root.findAllByType(MenuView).find((menu) => menu.findAllByProps({ accessibilityLabel: `Open ${name}` }).length > 0)!;
+  renderer.root.findAllByType(RowMenu).find((menu) => menu.findAllByProps({ accessibilityLabel: `Open ${name}` }).length > 0)!;
 const choose = async (renderer: TestRenderer.ReactTestRenderer, name: string, title: string) => {
   const menu = rowMenu(renderer, name);
   const action = menu.props.actions.find((a: { title: string }) => a.title === title);

@@ -43,8 +43,7 @@ function StarterRow({ starter, onPress }: { starter: Starter; onPress: (prompt: 
  * The header's "New conversation" button. It shows only once there is a conversation to leave, as in
  * the ChatGPT and Gemini apps: on an empty screen it would do nothing.
  */
-function NewConversationButton({ canStartNew, onNew }: { canStartNew: boolean; onNew: () => void }) {
-  if (!canStartNew) return null;
+function NewConversationButton({ onNew }: { onNew: () => void }) {
   return (
     <IconButton
       accessibilityLabel="New conversation"
@@ -198,7 +197,9 @@ function Conversation({
     <View style={styles.flex}>
       <Stack.Screen
         options={{
-          headerRight: () => <NewConversationButton canStartNew={asking || interactions.length > 0} onNew={onNew} />,
+          // No right item at all until there is something to start over. On iOS 26 an item that renders
+          // nothing still gets an empty glass circle.
+          headerRight: asking || interactions.length > 0 ? () => <NewConversationButton onNew={onNew} /> : undefined,
         }}
       />
       <FlatList
