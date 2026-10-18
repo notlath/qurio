@@ -122,9 +122,22 @@ describe('createAnswersPort', () => {
         name: 'POC Ticket 01 verification',
         createdAt: wireThread.createdAt,
         updatedAt: wireThread.updatedAt,
+        pinned: false,
       },
     ]);
     expect(page.next).toBe(next);
+  });
+
+  it('lists only pinned Threads with a string-valued favorite filter, since a bare true matches nothing', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [{ ...wireThread, favorite: true }] }));
+
+    const page = await portWith(fetch).listThreads({ pinned: true, limit: 100 });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads?sort=-UPDATED&limit=100&filter=favorite%20eq%20%22true%22`,
+      expect.anything(),
+    );
+    expect(page.items[0].pinned).toBe(true);
   });
 
   it('follows a cursor as an absolute url rather than rebuilding the query', async () => {
@@ -215,6 +228,25 @@ describe('createAnswersPort', () => {
     const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status));
 
     await expect(portWith(fetch).renameThread('thread-1', 'Travel policy')).rejects.toEqual(expected);
+  });
+
+  it.each([true, false])('sets pinned=%s with a JSON Patch of favorite, and accepts the empty 204', async (pinned) => {
+    const fetch = jest.fn().mockResolvedValue({
+      ...jsonResponse(null, 204),
+      json: () => Promise.reject(new Error('no body')),
+    });
+
+    await expect(portWith(fetch).setThreadPinned('thread-1', pinned)).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads/thread-1`,
+      expect.objectContaining({ method: 'PATCH', body: `[{"op":"replace","path":"/favorite","value":${pinned}}]` }),
+    );
+  });
+
+  it('maps a failed pin to a curated domain error', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, 503));
+
+    await expect(portWith(fetch).setThreadPinned('thread-1', true)).rejects.toEqual({ kind: 'ServiceUnavailable' });
   });
 
   describe('ask', () => {

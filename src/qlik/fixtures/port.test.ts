@@ -86,6 +86,25 @@ describe('createFixtureAnswersPort', () => {
     await expect(createFixtureAnswersPort().renameThread('does-not-exist', 'New name')).rejects.toThrow();
   });
 
+  it('pins a thread in memory, so it lists as pinned and its updatedAt moves forward', async () => {
+    const port = createFixtureAnswersPort();
+    const { items } = await port.listThreads({ limit: 100 });
+    const target = items[items.length - 1];
+
+    await port.setThreadPinned(target.id, true);
+
+    const pinned = await port.listThreads({ pinned: true });
+    expect(pinned.items.map((t) => t.id)).toEqual([target.id]);
+    expect(pinned.items[0].updatedAt > target.updatedAt).toBe(true);
+
+    await port.setThreadPinned(target.id, false);
+    expect((await port.listThreads({ pinned: true })).items).toEqual([]);
+  });
+
+  it('rejects setThreadPinned for an unknown id', async () => {
+    await expect(createFixtureAnswersPort().setThreadPinned('does-not-exist', true)).rejects.toThrow();
+  });
+
   it('submits feedback that attaches to the correct interaction, verified by re-fetching', async () => {
     const port = createFixtureAnswersPort();
     const thread = await port.createThread('Feedback thread');

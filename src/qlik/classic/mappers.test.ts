@@ -24,7 +24,16 @@ describe('toThread', () => {
       name: 'POC Ticket 01 verification',
       createdAt: '2026-09-02T00:28:33Z',
       updatedAt: '2026-09-02T00:28:33Z',
+      pinned: false,
     });
+  });
+
+  it("maps Qlik's favorite flag to pinned", () => {
+    const wire = { id: 't', name: 'n', createdAt: 'c', updatedAt: 'u' };
+
+    expect(toThread({ ...wire, favorite: true }).pinned).toBe(true);
+    expect(toThread({ ...wire, favorite: false }).pinned).toBe(false);
+    expect(toThread(wire).pinned).toBe(false);
   });
 });
 

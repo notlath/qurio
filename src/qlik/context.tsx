@@ -31,6 +31,7 @@ function createUnconfiguredPort(): AnswersPort {
     getThread: fail,
     deleteThread: fail,
     renameThread: fail,
+    setThreadPinned: fail,
     ask: fail,
     listInteractions: fail,
     submitFeedback: fail,

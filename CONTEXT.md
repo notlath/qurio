@@ -58,6 +58,10 @@ _Avoid_: Conversation, session, chat
 The Qlik User's Threads with the selected Assistant, newest first. An Agentic Assistant has no History in the app: Qlik keeps its chats inside its own Assistant view.
 _Avoid_: Recents, chats, conversations
 
+**Pinned Thread**:
+A Thread the Qlik User keeps at the top of History, in a Pinned group above the other Threads. The app says "Pin" and "Unpin". Qlik stores the pin as the Thread's `favorite` flag, so a pin shows on every device of the Qlik User.
+_Avoid_: Favorite (Qlik's field name), starred, bookmarked
+
 **Interaction**:
 A single question-and-answer exchange inside a Thread. Feedback is attached to an Interaction, not to a Thread.
 _Avoid_: Message, turn, prompt
