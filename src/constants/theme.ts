@@ -24,6 +24,9 @@ export const Colors = {
     // neighbours; `border` at 1.24:1 is a decorative separator only. 3.24:1 vs background.
     borderStrong: '#7C8F83',
     danger: '#B42318',
+    dangerForeground: '#FFFFFF', // 6.57:1 on danger
+    // Dims the screen behind a dialog.
+    scrim: 'rgba(0, 0, 0, 0.4)',
   },
   dark: {
     text: '#F2F7F2',
@@ -36,6 +39,8 @@ export const Colors = {
     border: '#31473A',
     borderStrong: '#5E7566', // 3.65:1 vs background
     danger: '#FFB4AB',
+    dangerForeground: '#690005', // 7.72:1 on danger
+    scrim: 'rgba(0, 0, 0, 0.6)',
   },
 } as const;
 
@@ -88,14 +93,24 @@ export const Duration = {
   medium: 260,
 } as const;
 
-/** Light mode needs real surface separation; dark mode separates with borders instead. */
+/**
+ * Shape lock: actions (buttons, chips, the composer) are pills; cards and grouped lists use
+ * `Radius.card`; inputs and chat bubbles use `Radius.control`; inline blocks (code, icon tiles) use
+ * `Radius.small`.
+ * Every rounded surface also takes `Shape.continuous` so its corners read as squircles on iOS.
+ */
+export const Shape = { continuous: { borderCurve: 'continuous' } } as const;
+
+/**
+ * One elevation, for surfaces that float above content (the composer). Lists and cards sit flat
+ * on the background and separate with a hairline — stacking shadows on every row reads as noise.
+ */
 export const Elevation = {
-  card: Platform.select({
-    ios: { shadowColor: '#0B1F14', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-    android: { elevation: 2 },
-    default: {},
-  }),
+  floating: { boxShadow: '0 2px 12px rgba(11, 31, 20, 0.08)' },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+/** Centres a list's content column at `MaxContentWidth` on tablets and the web preview. */
+export const ContentColumn = { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' } as const;

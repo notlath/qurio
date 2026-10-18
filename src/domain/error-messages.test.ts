@@ -66,9 +66,18 @@ describe('errorMessageFor', () => {
     expect(offline.message).not.toBe(serviceUnavailable.message);
   });
 
+  it('gives AssistantNotChosen a non-retryable message that tells the user to choose an Assistant', () => {
+    const result = errorMessageFor({ kind: 'AssistantNotChosen' });
+
+    expect(result.canRetry).toBe(false);
+    expect(result.message).toContain('Choose an Assistant');
+  });
+
   it('never includes raw error identifiers — every message is one of a fixed, curated set', () => {
     const allKinds: AppError[] = [
+      { kind: 'TenantApprovalRequired' },
       { kind: 'ConfigMissing' },
+      { kind: 'AssistantNotChosen' },
       { kind: 'NotEntitled' },
       { kind: 'AssistantForbidden' },
       { kind: 'AssistantNotFound' },

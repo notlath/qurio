@@ -11,7 +11,6 @@ import { loadExpiresAtMs, loadRefreshToken, saveExpiresAtMs, saveRefreshToken } 
 
 jest.mock('expo-auth-session', () => ({
   refreshAsync: jest.fn(),
-  makeRedirectUri: () => 'qlikanswers://auth',
 }));
 jest.mock('./tokens', () => ({
   loadExpiresAtMs: jest.fn(),

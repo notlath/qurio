@@ -2,13 +2,13 @@ import type { AppError } from '@/domain';
 
 import type { AnswersPort } from '../port';
 import {
-  fixtureAnalyticsApps,
   fixtureAnswerFor,
   fixtureInteractionsByThreadId,
   fixtureStarters,
   fixtureThreads,
 } from './data';
 import { paginate } from './pagination';
+import { fixtureDataSets, type FixtureData } from './worst-case';
 
 let nextThreadId = 1;
 let nextInteractionId = 1;
@@ -24,15 +24,20 @@ function simulatedErrorFor(kind: string): AppError {
   return { kind } as AppError;
 }
 
-export function createFixtureAnswersPort(): AnswersPort {
+export function createFixtureAnswersPort(data: FixtureData = fixtureDataSets.demo): AnswersPort {
   const threads = [...fixtureThreads];
   const interactionsByThreadId = { ...fixtureInteractionsByThreadId };
 
   return {
     capabilities: { streaming: false, analyticsInsights: false },
 
+    async getCurrentUser() {
+      return { id: 'fixture-user', name: 'Alex Morgan', email: 'alex@example.com' };
+    },
+
     async listThreads(opts) {
-      return paginate(threads, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
+      const listed = opts?.pinned ? threads.filter((t) => t.pinned) : threads;
+      return paginate(listed, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
     },
 
     async createThread(name) {
@@ -56,6 +61,20 @@ export function createFixtureAnswersPort(): AnswersPort {
       delete interactionsByThreadId[id];
     },
 
+    async renameThread(id, name) {
+      const index = threads.findIndex((t) => t.id === id);
+      if (index === -1) throw new Error(`Fixture thread not found: ${id}`);
+      // A new object: the list shares its Thread objects with the fixture data that other ports use.
+      threads[index] = { ...threads[index], name };
+    },
+
+    async setThreadPinned(id, pinned) {
+      const index = threads.findIndex((t) => t.id === id);
+      if (index === -1) throw new Error(`Fixture thread not found: ${id}`);
+      // Like Qlik, a change of the flag also changes `updatedAt`.
+      threads[index] = { ...threads[index], pinned, updatedAt: new Date().toISOString() };
+    },
+
     async ask(threadId, prompt, handlers) {
       if (!interactionsByThreadId[threadId]) throw new Error(`Fixture thread not found: ${threadId}`);
       await new Promise((resolve) => setTimeout(resolve, 300)); // simulated latency, so the loading state is real to see
@@ -63,7 +82,7 @@ export function createFixtureAnswersPort(): AnswersPort {
       const errorTrigger = prompt.match(ERROR_TRIGGER);
       if (errorTrigger) throw simulatedErrorFor(errorTrigger[1]);
 
-      const answer = fixtureAnswerFor(prompt);
+      const answer = data.answerFor?.(prompt) ?? fixtureAnswerFor(prompt);
       const fullText = answer.blocks.map((b) => b.markdown).join('');
       const words = fullText.split(' ');
       let deliveredText = '';
@@ -110,8 +129,18 @@ export function createFixtureAnswersPort(): AnswersPort {
       return fixtureStarters;
     },
 
+    async listAssistants() {
+      return data.assistants;
+    },
+
     async listAnalyticsApps(opts) {
-      return paginate(fixtureAnalyticsApps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
+      const name = opts?.name?.toLowerCase();
+      const apps = name ? data.apps.filter((app) => app.name.toLowerCase().includes(name)) : data.apps;
+      return paginate(apps, { limit: opts?.limit ?? DEFAULT_PAGE_SIZE, cursor: opts?.cursor });
+    },
+
+    async thumbnailImage() {
+      return null; // fixture apps have no thumbnails, so the generated cover is what renders
     },
   };
 }

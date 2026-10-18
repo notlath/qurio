@@ -92,6 +92,18 @@
       "skillPath": "skills/background-processing/SKILL.md",
       "computedHash": "12d6340de6c438430f5d081ff01052c9be55992f698e1c770721f2267d343b9c"
     },
+    "better-ui": {
+      "source": "jakubkrehel/skills",
+      "sourceType": "github",
+      "skillPath": "skills/better-ui/SKILL.md",
+      "computedHash": "74573763ba1906eb6cd2b35dc3747cb2a2afc940b398203672195f0509ce9bde"
+    },
+    "brandkit": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/brandkit/SKILL.md",
+      "computedHash": "735007879f5110aeae1e981a53fe74a12afde70347f9773dacd50e4697a091bf"
+    },
     "browserenginekit": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
@@ -171,10 +183,16 @@
       "computedHash": "1db76917e20ae43e0ce27cde44278068cd23edbbb10794ea6973c7b44dde0b14"
     },
     "design-taste-frontend": {
-      "source": "leonxlnx/taste-skill",
+      "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
-      "computedHash": "899b84384f74f540ea5284d9b2e9234e050998b42eacc805410b518d4226c0b3"
+      "computedHash": "18f81679d2b0247ce9da298b03ed8e47ecd3c206f2951d70eefb1b65d3219345"
+    },
+    "design-taste-frontend-v1": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill-v1/SKILL.md",
+      "computedHash": "0a226c13d69639553cf8a7c40aa5527b026820f8ddaf7a6b263988e32ab44a27"
     },
     "device-integrity": {
       "source": "dpearson2699/swift-ios-skills",
@@ -230,11 +248,23 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
     },
+    "full-output-enforcement": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/output-skill/SKILL.md",
+      "computedHash": "524f7c7950c3fde726101613f630140411c7d080e63be718687f4b38f919be81"
+    },
     "gamekit": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
       "skillPath": "skills/gamekit/SKILL.md",
       "computedHash": "0306696313a7f144bb28dac326f21ff88dbc2d17166eae22a5c2ca7e569d30f8"
+    },
+    "gpt-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/gpt-tasteskill/SKILL.md",
+      "computedHash": "7bd1bfdda0e51016ca222693401a65fc0dd9bf9487e0bd5b1740ba510f6f963a"
     },
     "handoff": {
       "source": "mattpocock/skills",
@@ -248,23 +278,47 @@
       "skillPath": "skills/healthkit/SKILL.md",
       "computedHash": "8e09920fd36ca296396c9ecaa4678f73b053107a79631c09dee430e51c232554"
     },
+    "high-end-visual-design": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/soft-skill/SKILL.md",
+      "computedHash": "f730e4132775f13eea19e3dc39afc6bb453cfc0498872b127ad8f0d47cfd802d"
+    },
     "homekit": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
       "skillPath": "skills/homekit/SKILL.md",
       "computedHash": "11a8d958a38813c932cc622ce00c9e8affd2e6fa4d47770329625142f283f1a3"
     },
+    "image-to-code": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/image-to-code-skill/SKILL.md",
+      "computedHash": "3d2ac14d956fdafc5500d2108b90895e134d847f9f199e7f1d18bf1f814cf7c8"
+    },
     "imagegen-frontend-mobile": {
-      "source": "leonxlnx/taste-skill",
+      "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/imagegen-frontend-mobile/SKILL.md",
       "computedHash": "7c1d1dc59cd0df4063b8621af543bf5dea1d576b261507e17b0323c69680b048"
+    },
+    "imagegen-frontend-web": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/imagegen-frontend-web/SKILL.md",
+      "computedHash": "27255c7c50181e58add156b2aa2bd5325285b85f04027e4c8b73742d98d7be0a"
     },
     "improve-codebase-architecture": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "016f12709bff30a27419e8add978a9be70f5ca1fb6738b3be6793038e0aba631"
+    },
+    "industrial-brutalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/brutalist-skill/SKILL.md",
+      "computedHash": "e66e5a2a8b73cef79ab6546459c665e8b983645689c5f3772f7eed8b9f1e8e0e"
     },
     "ios-accessibility": {
       "source": "dpearson2699/swift-ios-skills",
@@ -313,6 +367,12 @@
       "sourceType": "github",
       "skillPath": "skills/metrickit/SKILL.md",
       "computedHash": "ba4353fc464b11991d19f7954a451a87741916655ff027bd23b27218da8cba07"
+    },
+    "minimalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/minimalist-skill/SKILL.md",
+      "computedHash": "7e88897e0371184e97a82b8d9ef080323c13f21eb067b58ef71eb05173a08ac2"
     },
     "mobile-android-design": {
       "source": "wshobson/agents",
@@ -392,6 +452,12 @@
       "skillPath": "skills/realitykit/SKILL.md",
       "computedHash": "8e0636ecef653a6cb7e933c2ab545fd3e657fe8c3c231935fd4f7d9c39d2910c"
     },
+    "redesign-existing-projects": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/redesign-skill/SKILL.md",
+      "computedHash": "47eced3e960a2c961d3cbee11fa1216264f589344b586a5cbd03967cd6b9c54b"
+    },
     "relevancekit": {
       "source": "dpearson2699/swift-ios-skills",
       "sourceType": "github",
@@ -433,6 +499,12 @@
       "sourceType": "github",
       "skillPath": "skills/spritekit/SKILL.md",
       "computedHash": "439a1971698e7a129d5472c47c5d6a8929dfa222ebdcc75ecccdf49d0d2572a1"
+    },
+    "stitch-design-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/stitch-skill/SKILL.md",
+      "computedHash": "c96b580192b34167efa01f460bbc669ff4315cf97f3cf6ff85ded8029aa720b8"
     },
     "storekit": {
       "source": "dpearson2699/swift-ios-skills",

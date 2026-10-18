@@ -1,4 +1,10 @@
-import type { AnalyticsApp, Interaction, Starter, Thread } from '@/domain';
+import type { AnalyticsApp, Assistant, Interaction, Starter, Thread } from '@/domain';
+
+// More than one, so a Tenant with several Assistants is what the web preview shows.
+export const fixtureAssistants: Assistant[] = [
+  { kind: 'classic', id: 'fixture-assistant-hr', name: 'HR Policies', description: 'Leave, benefits and travel policy questions.' },
+  { kind: 'classic', id: 'fixture-assistant-sales', name: 'Sales Insights', description: '' },
+];
 
 // Names/dates for threads beyond the first two — enough to demo "scrolling loads older pages"
 // against real pagination (src/qlik/fixtures/pagination.ts), not just a list that fits on screen.
@@ -54,6 +60,7 @@ export const fixtureAnalyticsApps: AnalyticsApp[] = analyticsAppNames.map((name,
   id: `fixture-app-${i + 1}`,
   name,
   updatedAt: new Date(Date.parse('2026-09-30T08:00:00Z') - i * 3 * 24 * 60 * 60 * 1000).toISOString(),
+  hasThumbnail: false,
 }));
 
 export const fixtureInteractionsByThreadId: Record<string, Interaction[]> = {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { AppError, Interaction } from '@/domain';
 import { useAnswersPort } from '@/qlik/context';
@@ -17,10 +17,10 @@ function isAppError(value: unknown): value is AppError {
  * A resumed thread passes its id directly; a new one passes a resolver, so the
  * Thread is created by the first question rather than by opening the screen —
  * against a live tenant the eager version cost a POST, and a junk thread in
- * history, every time the app was launched.
+ * history, every time the app was launched. The resolver gets the first question to name the Thread.
  */
 export function useThreadConversation(
-  thread: string | (() => Promise<string>),
+  thread: string | ((question: string) => Promise<string>),
   initialInteractions: Interaction[] = [],
 ) {
   const port = useAnswersPort();
@@ -32,6 +32,10 @@ export function useThreadConversation(
   const [error, setError] = useState<AppError | null>(null);
   const [erroredAt, setErroredAt] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   // Accepts an explicit prompt (e.g. tapping a Starter) since setQuestion + immediately reading
   // `question` would race React's state batching; defaults to whatever's currently typed.
@@ -47,7 +51,7 @@ export function useThreadConversation(
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
-      const threadId = typeof thread === 'string' ? thread : await thread();
+      const threadId = typeof thread === 'string' ? thread : await thread(trimmed);
       const interaction = await port.ask(threadId, trimmed, {
         onDelta: (delta) => setPartialAnswer((prev) => prev + delta),
         signal: controller.signal,

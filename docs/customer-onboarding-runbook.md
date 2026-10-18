@@ -2,9 +2,11 @@
 
 Covers ticket 14 checklist item 9. Expands [technical-proposal.md §11](technical-proposal.md) with the concrete key names this app's managed-configuration reader (`src/config/load-managed-config.*.ts`, `modules/managed-config/`) expects. Background: [ADR-0004](adr/0004-mdm-managed-tenant-configuration.md).
 
-## 1. Confirm entitlement
+## 1. Confirm entitlement and index the Knowledge Base
 
 Confirm the Answers Entitlement and assign it to each intended Qlik User.
+
+Index the Assistant's Knowledge Base before rollout. An Assistant with an unindexed Knowledge Base gives no answers.
 
 ## 2. Create the Native OAuth client
 

@@ -1,4 +1,4 @@
-import { toAnalyticsApp, toAnswer, toCitations, toInteraction, toThread } from './mappers';
+import { toAssistant, toAnalyticsApp, toAnswer, toCitations, toInteraction, toThread } from './mappers';
 
 // Wire shapes below are copied verbatim (ids replaced with fixture placeholders)
 // from docs/poc-tickets/fixtures/01-verify-assistants-api/, captured against the real tenant.
@@ -24,7 +24,16 @@ describe('toThread', () => {
       name: 'POC Ticket 01 verification',
       createdAt: '2026-09-02T00:28:33Z',
       updatedAt: '2026-09-02T00:28:33Z',
+      pinned: false,
     });
+  });
+
+  it("maps Qlik's favorite flag to pinned", () => {
+    const wire = { id: 't', name: 'n', createdAt: 'c', updatedAt: 'u' };
+
+    expect(toThread({ ...wire, favorite: true }).pinned).toBe(true);
+    expect(toThread({ ...wire, favorite: false }).pinned).toBe(false);
+    expect(toThread(wire).pinned).toBe(false);
   });
 });
 
@@ -178,7 +187,24 @@ describe('toAnalyticsApp', () => {
     expect(toAnalyticsApp(wire).id).toBe('app-id-1');
   });
 
-  it('keeps only the name and the update time the list shows', () => {
-    expect(toAnalyticsApp(wire)).toEqual({ id: 'app-id-1', name: 'Sales overview', updatedAt: '2026-09-30T08:00:00Z' });
+  it('keeps only the name, the update time and whether a thumbnail exists', () => {
+    expect(toAnalyticsApp(wire)).toEqual({
+      id: 'app-id-1',
+      name: 'Sales overview',
+      updatedAt: '2026-09-30T08:00:00Z',
+      hasThumbnail: false,
+    });
   });
+
+  it('reports a thumbnail only when Items carries a non-empty thumbnailId', () => {
+    expect(toAnalyticsApp({ ...wire, thumbnailId: 'thumb-1' }).hasThumbnail).toBe(true);
+    expect(toAnalyticsApp({ ...wire, thumbnailId: '' }).hasThumbnail).toBe(false);
+  });
+});
+
+it.each([undefined, []])('maps Assistants without appIds as classic (%j)', (appIds) => {
+  expect(toAssistant({ id: 'a', name: 'Knowledge', description: '', appIds }).kind).toBe('classic');
+});
+it('maps an Assistant linked to an Analytics App as agentic', () => {
+  expect(toAssistant({ id: 'a', name: 'Analytics', description: '', appIds: ['app-1'] }).kind).toBe('agentic');
 });

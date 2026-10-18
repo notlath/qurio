@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { AppPressable } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Shape, Spacing } from '@/constants/theme';
 import { errorMessageFor, type AppError } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -42,13 +43,25 @@ export function ErrorState({
   const retryBlocked = error.kind === 'RateLimited' && secondsRemaining > 0;
 
   return (
-    <ThemedView type="backgroundElement" style={[styles.container, { borderColor: theme.border }]}>
-      <ThemedText type="smallBold">{title}</ThemedText>
-      <ThemedText type="small">{message}</ThemedText>
-      <ThemedView style={styles.actions}>
+    <ThemedView
+      type="backgroundElement"
+      // Announced when it appears: an error that only renders is silent to a screen reader.
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={[styles.container, Shape.continuous, { borderColor: theme.border }]}>
+      <View style={styles.heading}>
+        <Icon ios="exclamationmark.triangle.fill" android="error" size={18} color="danger" />
+        <ThemedText type="smallBold" selectable style={styles.title}>
+          {title}
+        </ThemedText>
+      </View>
+      <ThemedText type="small" themeColor="textSecondary" selectable>
+        {message}
+      </ThemedText>
+      <View style={styles.actions}>
         {canRetry && (
           <AppPressable onPress={onRetry} disabled={retryBlocked} accessibilityLabel="Retry" style={styles.action}>
-            <ThemedText type={retryBlocked ? 'small' : 'linkPrimary'}>
+            <ThemedText type={retryBlocked ? 'small' : 'smallBold'} themeColor={retryBlocked ? undefined : 'primary'}>
               {retryBlocked ? `Retry in ${secondsRemaining}s` : 'Retry'}
             </ThemedText>
           </AppPressable>
@@ -58,13 +71,15 @@ export function ErrorState({
             Dismiss
           </ThemedText>
         </AppPressable>
-      </ThemedView>
+      </View>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.two, padding: Spacing.three, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  title: { flex: 1 },
   actions: { flexDirection: 'row', gap: Spacing.four, alignItems: 'center' },
   action: { justifyContent: 'center' },
 });

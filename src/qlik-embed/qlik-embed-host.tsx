@@ -7,6 +7,7 @@ import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTyp
 
 import { getAccessTokenWithExpiry } from '@/auth/access-token';
 import { AppPressable } from '@/components/pressable';
+import { settingsHref, useSidePanelLayout } from '@/components/side-panel-layout';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -21,7 +22,7 @@ import {
   safeUrl,
   type HostFailure,
 } from './bridge';
-import { embedPageHtml, tenantOriginOf } from './page';
+import { bottomInsetScript, embedPageHtml, tenantOriginOf } from './page';
 import { hostTrace } from './trace';
 import type { QlikEmbedHostProps } from './types';
 
@@ -41,8 +42,9 @@ export function QlikEmbedHost(props: QlikEmbedHostProps) {
   return <HostSession key={key} {...props} onRetry={() => setAttempt((n) => n + 1)} />;
 }
 
-function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
+function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
   const router = useRouter();
+  const { docked } = useSidePanelLayout();
   const webView = useRef<WebView>(null);
   const [session] = useState(() => randomUUID());
   const [failure, setFailure] = useState<HostFailure | null>(null);
@@ -53,9 +55,18 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
       surface,
       resourceId,
       session,
+      bottomInset,
     }),
     tenantOrigin: tenantOriginOf(config.tenantHost),
   }));
+
+  // A new inset reaches the running page; the session and its WebView are kept.
+  const shownInset = useRef(bottomInset);
+  useEffect(() => {
+    if (shownInset.current === bottomInset) return;
+    shownInset.current = bottomInset;
+    webView.current?.injectJavaScript(bottomInsetScript(bottomInset));
+  }, [bottomInset]);
 
   // Replies that resolve after this session ended (unmount, failure) are dropped, not delivered.
   const active = useRef(true);
@@ -133,7 +144,7 @@ function HostSession({ config, surface, resourceId, onRetry }: QlikEmbedHostProp
         <ThemedText type="smallBold">{title}</ThemedText>
         <ThemedText type="small">{message}</ThemedText>
         <ThemedView style={styles.actions}>
-          <AppPressable accessibilityLabel="Open Settings" onPress={() => router.navigate('/settings')}>
+          <AppPressable accessibilityLabel="Open Settings" onPress={() => router.navigate(settingsHref(docked))}>
             <ThemedText type="linkPrimary">Open Settings</ThemedText>
           </AppPressable>
           <AppPressable accessibilityLabel="Try again" onPress={onRetry}>
