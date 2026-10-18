@@ -5,10 +5,10 @@ import type { TenantConfig } from '@/config';
 import type { AppError, Interaction, Starter } from '@/domain';
 
 import { classifyFetchFailure } from './classic/errors';
-import { qlikFetch, qlikJson, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
-import { toAnalyticsApp, toAnswer, toInteraction, toThread } from './classic/mappers';
+import { qlikFetch, qlikJson, qlikUrl, type HttpDeps, type HttpInit, type HttpResponse, type QlikList } from './classic/http';
+import { toAnalyticsApp, toAnswer, toAssistant, toInteraction, toQlikUser, toThread } from './classic/mappers';
 import { consumeStream, type StreamReader } from './classic/stream-session';
-import type { QlikInteraction, QlikItem, QlikSource, QlikThread } from './classic/wire-types';
+import type { QlikAssistant, QlikInteraction, QlikItem, QlikSource, QlikThread, QlikUserRecord } from './classic/wire-types';
 import type { AnswersPort } from './port';
 
 /** An `expo/fetch` response, whose `body` is a real ReadableStream on native. */
@@ -56,9 +56,20 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
   return {
     capabilities: { streaming: true, analyticsInsights: false },
 
+    async getCurrentUser() {
+      // Qlik answers users/me with a 301 to this Qlik User's resource. iOS drops the Authorization
+      // header when it follows a redirect, so the redirect is followed here, with the token.
+      // No Assistant selection is needed.
+      const me = await qlikFetch(deps, config, '/api/v1/users/me', { redirect: 'manual' });
+      const location = me.headers.get('location');
+      return toQlikUser(location ? await json<QlikUserRecord>(location) : await me.json() as QlikUserRecord);
+    },
+
     async listThreads(opts) {
+      // Qlik's filter takes the value as a string: `favorite eq true` matches nothing (docs/poc-tickets/fixtures/40-favorite-patch).
+      const filter = opts?.pinned ? `&filter=${encodeURIComponent('favorite eq "true"')}` : '';
       const path =
-        opts?.cursor ?? `/threads?sort=-UPDATED${opts?.limit === undefined ? '' : `&limit=${opts.limit}`}`;
+        opts?.cursor ?? `/threads?sort=-UPDATED${opts?.limit === undefined ? '' : `&limit=${opts.limit}`}${filter}`;
       const { data, links } = await json<QlikList<QlikThread>>(path);
       return { items: data.map(toThread), next: links?.next?.href };
     },
@@ -77,6 +88,21 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
 
     async deleteThread(id) {
       await qlikFetch(deps, config, `/threads/${id}`, { method: 'DELETE' });
+    },
+
+    async renameThread(id, name) {
+      // Qlik answers a JSON Patch with an empty 204, so there is no body to parse.
+      await qlikFetch(deps, config, `/threads/${id}`, {
+        method: 'PATCH',
+        body: [{ op: 'replace', path: '/name', value: name }],
+      });
+    },
+
+    async setThreadPinned(id, pinned) {
+      await qlikFetch(deps, config, `/threads/${id}`, {
+        method: 'PATCH',
+        body: [{ op: 'replace', path: '/favorite', value: pinned }],
+      });
     },
 
     async ask(threadId, prompt, handlers) {
@@ -128,11 +154,37 @@ export function createAnswersPort(config: TenantConfig, deps: HttpDeps<QlikRespo
 
     async listAnalyticsApps(opts) {
       // Items is tenant-level, not part of the Assistant: `/api/` paths are rooted at the Tenant.
+      // `name` is Items' name search. Seen live on mtcklpi.sg (2026-10-15): it ignores case, matches part
+      // of a name ("sal" finds "Sales Analysis"), and Qlik's own `next` href keeps it for later pages.
       const path =
         opts?.cursor ??
-        `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}`;
+        `/api/v1/items?resourceType=app&sort=-updatedAt&limit=${opts?.limit ?? ANALYTICS_APP_PAGE_SIZE}` +
+          (opts?.name ? `&name=${encodeURIComponent(opts.name)}` : '');
       const { data, links } = await json<QlikList<QlikItem>>(path);
       return { items: data.map(toAnalyticsApp), next: links?.next?.href };
+    },
+
+    async thumbnailImage(appId) {
+      // [POC] Endpoint from the published Apps API (qlik.dev/apis/rest/apps), not yet captured live.
+      // Built through qlikUrl, so the bearer token can only ever be sent to the Tenant itself.
+      const token = await deps.getToken();
+      if (!token) return null;
+      return {
+        uri: qlikUrl(config, `/api/v1/apps/${encodeURIComponent(appId)}/media/thumbnail`),
+        headers: { Authorization: `Bearer ${token}` },
+      };
+    },
+
+    async listAssistants() {
+      // Tenant-level, like Items. All pages at once: the choice needs the whole list, and a Tenant has few.
+      const assistants: QlikAssistant[] = [];
+      let path: string | undefined = '/api/v1/assistants?limit=100';
+      while (path) {
+        const { data, links }: QlikList<QlikAssistant> = await json<QlikList<QlikAssistant>>(path);
+        assistants.push(...data);
+        path = links?.next?.href;
+      }
+      return assistants.map(toAssistant);
     },
 
     async listStarters() {

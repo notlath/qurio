@@ -34,6 +34,18 @@ describe('qlikUrl', () => {
     expect(qlikUrl(config, href)).toBe(href);
   });
 
+  it('refuses an Assistant path before an Assistant is chosen', () => {
+    const { assistantId: _, ...hostnameOnly } = config;
+
+    expect(() => qlikUrl(hostnameOnly, '/threads')).toThrow(expect.objectContaining({ kind: 'AssistantNotChosen' }));
+  });
+
+  it('still roots an /api/ path at the tenant before an Assistant is chosen', () => {
+    const { assistantId: _, ...hostnameOnly } = config;
+
+    expect(qlikUrl(hostnameOnly, '/api/v1/items')).toBe('https://acme.eu.qlikcloud.com/api/v1/items');
+  });
+
   it.each([
     ['another host', 'https://evil.example.com/api/v1/items?next=abc'],
     ['a look-alike prefix', 'https://acme.eu.qlikcloud.com.evil.example.com/api/v1/items'],
@@ -76,6 +88,14 @@ describe('qlikFetch', () => {
     const fetch = jest.fn().mockResolvedValue(response(status));
 
     await expect(qlikFetch(deps(fetch), config, '/threads')).rejects.toEqual(expected);
+  });
+
+  it('never reaches the network for an Assistant call before an Assistant is chosen', async () => {
+    const fetch = jest.fn();
+    const { assistantId: _, ...hostnameOnly } = config;
+
+    await expect(qlikFetch(deps(fetch), hostnameOnly, '/threads')).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('maps a network failure to Offline', async () => {

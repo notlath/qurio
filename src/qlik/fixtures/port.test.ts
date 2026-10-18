@@ -71,6 +71,40 @@ describe('createFixtureAnswersPort', () => {
     await expect(port.getThread(created.id)).rejects.toThrow();
   });
 
+  it('renames a thread in memory, so listThreads and getThread show the new name', async () => {
+    const port = createFixtureAnswersPort();
+    const created = await port.createThread('Old name');
+
+    await port.renameThread(created.id, 'New name');
+
+    const { items } = await port.listThreads({ limit: 100 });
+    expect(items.find((t) => t.id === created.id)?.name).toBe('New name');
+    expect((await port.getThread(created.id)).name).toBe('New name');
+  });
+
+  it('rejects renameThread for an unknown id', async () => {
+    await expect(createFixtureAnswersPort().renameThread('does-not-exist', 'New name')).rejects.toThrow();
+  });
+
+  it('pins a thread in memory, so it lists as pinned and its updatedAt moves forward', async () => {
+    const port = createFixtureAnswersPort();
+    const { items } = await port.listThreads({ limit: 100 });
+    const target = items[items.length - 1];
+
+    await port.setThreadPinned(target.id, true);
+
+    const pinned = await port.listThreads({ pinned: true });
+    expect(pinned.items.map((t) => t.id)).toEqual([target.id]);
+    expect(pinned.items[0].updatedAt > target.updatedAt).toBe(true);
+
+    await port.setThreadPinned(target.id, false);
+    expect((await port.listThreads({ pinned: true })).items).toEqual([]);
+  });
+
+  it('rejects setThreadPinned for an unknown id', async () => {
+    await expect(createFixtureAnswersPort().setThreadPinned('does-not-exist', true)).rejects.toThrow();
+  });
+
   it('submits feedback that attaches to the correct interaction, verified by re-fetching', async () => {
     const port = createFixtureAnswersPort();
     const thread = await port.createThread('Feedback thread');
@@ -120,6 +154,17 @@ describe('createFixtureAnswersPort', () => {
   });
 });
 
+describe('createFixtureAnswersPort — Assistants', () => {
+  it('lists a fixed set of Assistants as domain values', async () => {
+    const assistants = await createFixtureAnswersPort().listAssistants();
+
+    expect(assistants.length).toBeGreaterThan(1);
+    for (const assistant of assistants) {
+      expect(assistant).toEqual({ id: expect.any(String), name: expect.any(String), description: expect.any(String), kind: 'classic' });
+    }
+  });
+});
+
 describe('createFixtureAnswersPort — Analytics Apps', () => {
   it('lists Analytics Apps most recently updated first, paged', async () => {
     const port = createFixtureAnswersPort();
@@ -144,5 +189,17 @@ describe('createFixtureAnswersPort — Analytics Apps', () => {
 
     expect(ids.length).toBeGreaterThan(4);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('finds apps by part of the name, ignoring case, across pages', async () => {
+    const port = createFixtureAnswersPort();
+
+    const first = await port.listAnalyticsApps({ limit: 1, name: 'R' });
+    const second = await port.listAnalyticsApps({ limit: 1, name: 'R', cursor: first.next });
+
+    expect(first.items.every((app) => app.name.toLowerCase().includes('r'))).toBe(true);
+    expect(second.items.every((app) => app.name.toLowerCase().includes('r'))).toBe(true);
+    expect(second.items[0].id).not.toBe(first.items[0].id);
+    await expect(port.listAnalyticsApps({ name: 'no such app' })).resolves.toEqual({ items: [], next: undefined });
   });
 });

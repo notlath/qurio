@@ -19,16 +19,18 @@ export type AnswerRenderBlock =
   | { kind: 'code'; text: string };
 
 /** Bold, italic, and links, matched left to right — none was ever observed nested inside another. */
-const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\)/g;
+// A raw URL ends before the punctuation that closes its sentence, so "…policy.pdf." links the file.
+const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s<>]*[^\s<>.,;:!?)\]'"])/g;
 
 export function parseInlineSpans(text: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
   let lastIndex = 0;
   for (const match of text.matchAll(INLINE)) {
     if (match.index! > lastIndex) spans.push({ text: text.slice(lastIndex, match.index) });
-    const [, bold, italic, linkText, href] = match;
+    const [, bold, italic, linkText, href, url] = match;
     if (bold !== undefined) spans.push({ text: bold, bold: true });
     else if (italic !== undefined) spans.push({ text: italic, italic: true });
+    else if (url !== undefined) spans.push({ text: url, href: url });
     else spans.push({ text: linkText, href });
     lastIndex = match.index! + match[0].length;
   }
@@ -80,23 +82,41 @@ function chunkToBlocks(chunk: string): AnswerRenderBlock[] {
     return [{ kind: 'table', rows: dataRows.map(parseTableRow) }];
   }
 
-  if (lines.every((l) => NUMBERED_ITEM.test(l))) {
-    return lines.map((l) => ({
-      kind: 'numberedListItem',
-      spans: parseInlineSpans(l.match(NUMBERED_ITEM)![1]),
-    }));
+  // A chunk can mix prose lines with list items ("Intro:\n- a\n- b"): each list line is its own
+  // block, and consecutive prose lines join into one paragraph.
+  const blocks: AnswerRenderBlock[] = [];
+  let prose: string[] = [];
+  const flushProse = () => {
+    if (prose.length) blocks.push({ kind: 'paragraph', spans: parseInlineSpans(prose.join(' ')) });
+    prose = [];
+  };
+  for (const line of lines) {
+    const numbered = line.match(NUMBERED_ITEM);
+    const bullet = line.match(BULLET_ITEM);
+    if (numbered || bullet) {
+      flushProse();
+      blocks.push({
+        kind: numbered ? 'numberedListItem' : 'bulletListItem',
+        spans: parseInlineSpans((numbered ?? bullet)![1]),
+      });
+    } else prose.push(line);
   }
-
-  if (lines.every((l) => BULLET_ITEM.test(l))) {
-    return lines.map((l) => ({
-      kind: 'bulletListItem',
-      spans: parseInlineSpans(l.match(BULLET_ITEM)![1]),
-    }));
-  }
-
-  return [{ kind: 'paragraph', spans: parseInlineSpans(lines.join(' ')) }];
+  flushProse();
+  return blocks;
 }
 
 export function parseAnswerMarkdown(markdown: string): AnswerRenderBlock[] {
   return splitIntoChunks(markdown).flatMap(chunkToBlocks);
+}
+
+/** About four lines in the hugging bubble on a phone. Longer prose reads better across the column. */
+const SHORT_ANSWER_CHARS = 280;
+
+/**
+ * True for every Answer except one short paragraph. Tables and code need the width, and a long
+ * Answer read at 85% wide left a narrow column with an empty strip beside it for screens.
+ */
+export function needsFullColumn(markdown: string): boolean {
+  const blocks = parseAnswerMarkdown(markdown);
+  return blocks.length > 1 || blocks.some((block) => block.kind !== 'paragraph') || markdown.length > SHORT_ANSWER_CHARS;
 }

@@ -61,6 +61,50 @@ const wireInteraction = {
 };
 
 describe('createAnswersPort', () => {
+  it('retrieves the signed-in Qlik User before an Assistant is chosen', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({
+      id: 'user-1', name: 'Alex Morgan', email: 'alex@example.com', picture: 'https://images.example.com/alex.jpg',
+      assignedRoles: [{ name: 'TenantAdmin' }],
+    }));
+    const port = createAnswersPort({ tenantHost: config.tenantHost, clientId: config.clientId }, { fetch, getToken: async () => 'access-1' });
+    await expect(port.getCurrentUser()).resolves.toEqual({
+      id: 'user-1', name: 'Alex Morgan', email: 'alex@example.com', pictureUrl: 'https://images.example.com/alex.jpg',
+    });
+    expect(fetch).toHaveBeenCalledWith(`https://${config.tenantHost}/api/v1/users/me`, expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer access-1' }),
+    }));
+  });
+
+  // iOS URLSession drops the Authorization header when it follows a redirect itself; Qlik answers
+  // users/me with a 301. This double behaves like iOS: an automatic follow arrives without a token.
+  it('follows the users/me redirect itself, so the token reaches the Qlik User resource on iOS', async () => {
+    const fetch = jest.fn(async (url: string, init: { headers: Record<string, string>; redirect?: string }) => {
+      if (url.endsWith('/api/v1/users/me')) {
+        if (init.redirect !== 'manual') return jsonResponse({}, 401);
+        return { ok: false, status: 301, headers: { get: (name: string) => (name.toLowerCase() === 'location' ? '/api/v1/users/user-1' : null) }, json: async () => ({}) };
+      }
+      if (url === `https://${config.tenantHost}/api/v1/users/user-1` && init.headers.Authorization === 'Bearer access-1') {
+        return jsonResponse({ id: 'user-1', name: 'Alex Morgan' });
+      }
+      return jsonResponse({}, 401);
+    });
+    const port = createAnswersPort(config, { fetch, getToken: async () => 'access-1' });
+
+    await expect(port.getCurrentUser()).resolves.toEqual({ id: 'user-1', name: 'Alex Morgan' });
+  });
+
+  it.each([undefined, '', 'http://images.example.com/alex.jpg', 'file:///private/avatar.jpg'])(
+    'omits an unavailable or insecure picture (%s)', async (picture) => {
+      const fetch = jest.fn().mockResolvedValue(jsonResponse({ id: 'user-1', name: 'Alex', picture }));
+      await expect(portWith(fetch).getCurrentUser()).resolves.toEqual({ id: 'user-1', name: 'Alex' });
+    },
+  );
+
+  it.each([[401, 'SessionExpired'], [403, 'AccessDenied']])('maps profile HTTP %s without assuming an Answers Entitlement failure', async (status, kind) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status as number));
+    await expect(portWith(fetch).getCurrentUser()).rejects.toEqual({ kind });
+  });
+
   it('declares streaming, which is what separates it from the fixture port', () => {
     expect(portWith(jest.fn()).capabilities).toEqual({ streaming: true, analyticsInsights: false });
   });
@@ -78,9 +122,22 @@ describe('createAnswersPort', () => {
         name: 'POC Ticket 01 verification',
         createdAt: wireThread.createdAt,
         updatedAt: wireThread.updatedAt,
+        pinned: false,
       },
     ]);
     expect(page.next).toBe(next);
+  });
+
+  it('lists only pinned Threads with a string-valued favorite filter, since a bare true matches nothing', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [{ ...wireThread, favorite: true }] }));
+
+    const page = await portWith(fetch).listThreads({ pinned: true, limit: 100 });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads?sort=-UPDATED&limit=100&filter=favorite%20eq%20%22true%22`,
+      expect.anything(),
+    );
+    expect(page.items[0].pinned).toBe(true);
   });
 
   it('follows a cursor as an absolute url rather than rebuilding the query', async () => {
@@ -147,6 +204,49 @@ describe('createAnswersPort', () => {
 
     await expect(portWith(fetch).deleteThread('thread-1')).resolves.toBeUndefined();
     expect(fetch).toHaveBeenCalledWith(`${BASE}/threads/thread-1`, expect.objectContaining({ method: 'DELETE' }));
+  });
+
+  it('renames a thread with a JSON Patch of its name, and accepts the empty 204', async () => {
+    const fetch = jest.fn().mockResolvedValue({
+      ...jsonResponse(null, 204),
+      json: () => Promise.reject(new Error('no body')),
+    });
+
+    await expect(portWith(fetch).renameThread('thread-1', 'Travel policy')).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads/thread-1`,
+      expect.objectContaining({ method: 'PATCH', body: '[{"op":"replace","path":"/name","value":"Travel policy"}]' }),
+    );
+  });
+
+  it.each([
+    [401, { kind: 'SessionExpired' }],
+    [403, { kind: 'NotEntitled' }],
+    [404, { kind: 'AssistantNotFound' }],
+    [503, { kind: 'ServiceUnavailable' }],
+  ])('maps HTTP %i from a rename to a curated domain error', async (status, expected) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status));
+
+    await expect(portWith(fetch).renameThread('thread-1', 'Travel policy')).rejects.toEqual(expected);
+  });
+
+  it.each([true, false])('sets pinned=%s with a JSON Patch of favorite, and accepts the empty 204', async (pinned) => {
+    const fetch = jest.fn().mockResolvedValue({
+      ...jsonResponse(null, 204),
+      json: () => Promise.reject(new Error('no body')),
+    });
+
+    await expect(portWith(fetch).setThreadPinned('thread-1', pinned)).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/threads/thread-1`,
+      expect.objectContaining({ method: 'PATCH', body: `[{"op":"replace","path":"/favorite","value":${pinned}}]` }),
+    );
+  });
+
+  it('maps a failed pin to a curated domain error', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, 503));
+
+    await expect(portWith(fetch).setThreadPinned('thread-1', true)).rejects.toEqual({ kind: 'ServiceUnavailable' });
   });
 
   describe('ask', () => {
@@ -272,14 +372,24 @@ describe('listAnalyticsApps', () => {
     expect(url).not.toMatch(/spaceId|collectionId|name=|query=/);
   });
 
+  it('searches by app name when the Qlik User types one', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await portWith(fetch).listAnalyticsApps({ name: 'sales & ops' });
+
+    expect(fetch.mock.calls[0][0]).toBe(
+      `${TENANT}/api/v1/items?resourceType=app&sort=-updatedAt&limit=50&name=sales%20%26%20ops`,
+    );
+  });
+
   it('maps each item to a domain Analytics App keyed by resourceId', async () => {
     const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireItem(1), wireItem(2)] }));
 
     const page = await portWith(fetch).listAnalyticsApps();
 
     expect(page.items).toEqual([
-      { id: 'app-1', name: 'App 1', updatedAt: '2026-09-29T08:00:00Z' },
-      { id: 'app-2', name: 'App 2', updatedAt: '2026-09-28T08:00:00Z' },
+      { id: 'app-1', name: 'App 1', updatedAt: '2026-09-29T08:00:00Z', hasThumbnail: false },
+      { id: 'app-2', name: 'App 2', updatedAt: '2026-09-28T08:00:00Z', hasThumbnail: false },
     ]);
     expect(page.next).toBeUndefined();
   });
@@ -338,5 +448,117 @@ describe('listAnalyticsApps', () => {
     const fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
 
     await expect(portWith(fetch).listAnalyticsApps()).rejects.toEqual({ kind: 'Offline' });
+  });
+});
+
+describe('listAssistants', () => {
+  const TENANT = 'https://acme.eu.qlikcloud.com';
+  // Shape captured live from GET /api/v1/assistants on mtcteam.ap (2026-10-05), trimmed to what is mapped plus noise.
+  const wireAssistant = (n: number, description = '') => ({
+    id: `assistant-${n}`,
+    name: `Assistant ${n}`,
+    title: '',
+    description,
+    tags: [],
+    knowledgeBases: ['kb-1'],
+    legacy: true,
+  });
+
+  it('lists the Assistants the signed-in user can see, as domain values only', async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ data: [wireAssistant(1, 'Pricing questions'), wireAssistant(2)] }));
+
+    await expect(portWith(fetch).listAssistants()).resolves.toEqual([
+      { id: 'assistant-1', name: 'Assistant 1', description: 'Pricing questions', kind: 'classic' },
+      { id: 'assistant-2', name: 'Assistant 2', description: '', kind: 'classic' },
+    ]);
+    expect(fetch).toHaveBeenCalledWith(
+      `${TENANT}/api/v1/assistants?limit=100`,
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer access-1' }) }),
+    );
+  });
+
+  it('follows every next href, so no Assistant is missed', async () => {
+    const next = `${TENANT}/api/v1/assistants?limit=100&next=cursor-2`;
+    const fetch = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: [wireAssistant(1)], links: { next: { href: next } } }))
+      .mockResolvedValueOnce(jsonResponse({ data: [wireAssistant(2)] }));
+
+    const assistants = await portWith(fetch).listAssistants();
+
+    expect(assistants.map((a) => a.id)).toEqual(['assistant-1', 'assistant-2']);
+    expect(fetch).toHaveBeenLastCalledWith(next, expect.anything());
+  });
+
+  it('works before an Assistant is chosen', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [wireAssistant(1)] }));
+    const { assistantId: _, ...hostnameOnly } = config;
+
+    const port = createAnswersPort(hostnameOnly, { fetch, getToken: async () => 'access-1' });
+
+    await expect(port.listAssistants()).resolves.toHaveLength(1);
+  });
+
+  it.each([
+    [401, { kind: 'SessionExpired' }],
+    [403, { kind: 'NotEntitled' }],
+    [503, { kind: 'ServiceUnavailable' }],
+  ])('maps HTTP %i to a curated domain error, as the Assistant calls do', async (status, expected) => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({}, status));
+
+    await expect(portWith(fetch).listAssistants()).rejects.toEqual(expected);
+  });
+
+  it('reports a network failure as Offline', async () => {
+    const fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    await expect(portWith(fetch).listAssistants()).rejects.toEqual({ kind: 'Offline' });
+  });
+});
+
+describe('before an Assistant is chosen', () => {
+  const { assistantId: _, ...hostnameOnly } = config;
+  const hostnamePort = (fetch: jest.Mock) => createAnswersPort(hostnameOnly, { fetch, getToken: async () => 'access-1' });
+
+  it('fails every Assistant call with AssistantNotChosen, without a request', async () => {
+    const fetch = jest.fn();
+    const port = hostnamePort(fetch);
+
+    await expect(port.listThreads()).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.createThread('New')).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.ask('thread-1', 'Q?', { onDelta: () => {} })).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    await expect(port.listStarters()).rejects.toEqual({ kind: 'AssistantNotChosen' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('still lists Analytics Apps, so the app is useful right after sign-in', async () => {
+    const fetch = jest.fn().mockResolvedValue(jsonResponse({ data: [] }));
+
+    await expect(hostnamePort(fetch).listAnalyticsApps()).resolves.toEqual({ items: [], next: undefined });
+  });
+});
+
+describe('thumbnailImage', () => {
+  it('addresses the app media endpoint on the Tenant, with the current bearer token', async () => {
+    const image = await portWith(jest.fn()).thumbnailImage('app-1');
+
+    expect(image).toEqual({
+      uri: 'https://acme.eu.qlikcloud.com/api/v1/apps/app-1/media/thumbnail',
+      headers: { Authorization: 'Bearer access-1' },
+    });
+  });
+
+  it('cannot be steered off the app media path by the app id', async () => {
+    const image = await portWith(jest.fn()).thumbnailImage('../../users/me');
+
+    expect(image?.uri).toBe('https://acme.eu.qlikcloud.com/api/v1/apps/..%2F..%2Fusers%2Fme/media/thumbnail');
+  });
+
+  it('has no image to offer without a session', async () => {
+    const port = createAnswersPort(config, { fetch: jest.fn(), getToken: async () => null });
+
+    expect(await port.thumbnailImage('app-1')).toBeNull();
   });
 });

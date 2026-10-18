@@ -1,4 +1,4 @@
-import { parseAnswerMarkdown } from './answer-markdown';
+import { needsFullColumn, parseAnswerMarkdown, parseInlineSpans } from './answer-markdown';
 
 // Sanitised examples below are copied from docs/poc-tickets/fixtures/10-answer-rendering-subset/CATALOGUE.md
 // — real markdown syntax as captured from the tenant, invented placeholder prose (the source is a
@@ -177,5 +177,89 @@ describe('parseAnswerMarkdown', () => {
     ]);
     expect(result[0]).toMatchObject({ level: 1, spans: [{ text: 'Core Concept' }] });
     expect(result[8]).toEqual({ kind: 'code', text: 'Small trajectory changes = large long-term impact' });
+  });
+
+  it('splits an intro line from the list items that follow it in the same chunk (#30)', () => {
+    const result = parseAnswerMarkdown(
+      'So counting from August:\n- Month 1: August\n- Month 2: September\n- Month 3: October (1st review)',
+    );
+
+    expect(result).toEqual([
+      { kind: 'paragraph', spans: [{ text: 'So counting from August:' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 1: August' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 2: September' }] },
+      { kind: 'bulletListItem', spans: [{ text: 'Month 3: October (1st review)' }] },
+    ]);
+  });
+
+  it('keeps text that merely contains " - " as one paragraph (#30)', () => {
+    const result = parseAnswerMarkdown('Regularization takes six months - see your contract.\nAsk HR - they confirm.');
+
+    expect(result).toEqual([
+      {
+        kind: 'paragraph',
+        spans: [{ text: 'Regularization takes six months - see your contract. Ask HR - they confirm.' }],
+      },
+    ]);
+  });
+  it('parses every prefix of a streaming answer, so a half-arrived marker never crashes or hides text', () => {
+    const markdown = [
+      '# Title',
+      '',
+      'Some **bold** and *italic* with a [link](https://example.com).',
+      '',
+      '1. First',
+      '2. Second',
+      '',
+      '| A | B |',
+      '|---|---|',
+      '| 1 | 2 |',
+      '',
+      '```',
+      'code',
+      '```',
+    ].join('\n');
+
+    for (let end = 1; end <= markdown.length; end++) {
+      const prefix = markdown.slice(0, end);
+      const text = JSON.stringify(parseAnswerMarkdown(prefix));
+      // The newest character always shows somewhere, unless it is markup or whitespace.
+      const last = prefix.trim().slice(-1);
+      if (/[a-z0-9]/i.test(last)) expect(text).toContain(last);
+    }
+  });
+});
+
+describe('needsFullColumn', () => {
+  it('is false only for one short paragraph, so short replies keep the hugging bubble', () => {
+    expect(needsFullColumn('Yes.')).toBe(false);
+    expect(needsFullColumn('Travel approval now requires manager sign-off.')).toBe(false);
+  });
+
+  it('is true for tables, code, headings, lists, several paragraphs and long prose', () => {
+    expect(needsFullColumn('| A | B |\n|---|---|\n| 1 | 2 |')).toBe(true);
+    expect(needsFullColumn('```\nconst x = 1;\n```')).toBe(true);
+    expect(needsFullColumn('# Title')).toBe(true);
+    expect(needsFullColumn('- one\n- two')).toBe(true);
+    expect(needsFullColumn('First paragraph.\n\nSecond paragraph.')).toBe(true);
+    expect(needsFullColumn('Employees must follow the rules in this section. '.repeat(8))).toBe(true);
+  });
+});
+
+describe('raw URLs in an Answer', () => {
+  it('become links, without the punctuation that ends the sentence', () => {
+    expect(parseInlineSpans('The policy is at https://intranet.example.com/hr/policy.pdf?v=7&lang=en. Read it.')).toEqual([
+      { text: 'The policy is at ' },
+      { text: 'https://intranet.example.com/hr/policy.pdf?v=7&lang=en', href: 'https://intranet.example.com/hr/policy.pdf?v=7&lang=en' },
+      { text: '. Read it.' },
+    ]);
+  });
+
+  it("leave the URL of a Markdown link alone", () => {
+    expect(parseInlineSpans('See [the site](https://example.com).')).toEqual([
+      { text: 'See ' },
+      { text: 'the site', href: 'https://example.com' },
+      { text: '.' },
+    ]);
   });
 });

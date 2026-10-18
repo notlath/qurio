@@ -20,6 +20,10 @@ _Avoid_: End user, app user, member
 **Answers Entitlement**:
 The per-Qlik-User license allocation that grants access to Qlik Answers. Without it a Qlik User can authenticate but cannot use an Assistant.
 
+**Profile**:
+The signed-in Qlik User's identity details within the active Tenant: name, email address, and picture when available.
+_Avoid_: App account, Customer account
+
 ### Qlik Answers concepts
 
 **Assistant**:
@@ -29,6 +33,10 @@ _Avoid_: Bot, agent, chatbot
 **Agentic Assistant**:
 An Assistant that reasons over both Knowledge Bases and an Analytics App, returning insights and explanations as well as document answers. Distinct from a classic Assistant, which covers Knowledge Bases only.
 _Avoid_: Agentic chat, agent
+
+**Legacy Assistant**:
+An Assistant that covers Knowledge Bases only. The app chats with it natively over the Qlik REST API and keeps its Threads. Qlik's own help pages call this kind "legacy", and the app shows that word to Qlik Users. The code and older notes call it a "classic" Assistant.
+_Avoid_: Classic Assistant in text the Qlik User reads
 
 **Analytics App**:
 A Qlik Sense application in the Tenant, made of Sheets. Qlik Users browse it in the app, and an Agentic Assistant can reason over it. Distinct from a Knowledge Base, which holds documents.
@@ -43,8 +51,16 @@ A governed collection of indexed source documents an Assistant draws answers fro
 _Avoid_: KB (in prose), corpus, index
 
 **Thread**:
-One continuous conversation with an Assistant, owned by a Qlik User and persisted in the Tenant. The app's conversation history is a list of Threads.
+One continuous conversation with one Assistant, owned by a Qlik User and persisted in the Tenant. The Qlik User chooses the Assistant when the Thread starts, and the Thread keeps it for its whole life: resuming a Thread always continues with that Assistant. The app shows Qlik Users the word "conversation". The code and docs say Thread.
 _Avoid_: Conversation, session, chat
+
+**History**:
+The Qlik User's Threads with the selected Assistant, newest first. An Agentic Assistant has no History in the app: Qlik keeps its chats inside its own Assistant view.
+_Avoid_: Recents, chats, conversations
+
+**Pinned Thread**:
+A Thread the Qlik User keeps at the top of History, in a Pinned group above the other Threads. The app says "Pin" and "Unpin". Qlik stores the pin as the Thread's `favorite` flag, so a pin shows on every device of the Qlik User.
+_Avoid_: Favorite (Qlik's field name), starred, bookmarked
 
 **Interaction**:
 A single question-and-answer exchange inside a Thread. Feedback is attached to an Interaction, not to a Thread.
@@ -55,32 +71,22 @@ A reference from an answer back to the specific source material it was drawn fro
 _Avoid_: Source, reference, footnote
 
 **Answer**:
-The content an Assistant returns for one Interaction — prose, and for an Agentic Assistant also analytics-derived insight and chart content. Modelled in our own terms, never as Qlik's response JSON.
+The content an Assistant returns for one Interaction — prose, structured content, or an Analytics Insight — together with its Citations. Modelled in our own terms, never as Qlik's response JSON. It is never stored on the device.
 _Avoid_: Response, result, output
 
 **Analytics Insight**:
-A finding an Agentic Assistant derives from a Qlik analytics app rather than from a Knowledge Base document. A classic Assistant never produces one.
+Answer content that an Agentic Assistant derives from an Analytics App rather than from a Knowledge Base document. A Legacy Assistant never produces one. The domain models it even while the Legacy adapter cannot produce it.
 
 **Feedback**:
 A Qlik User's rating of a single Interaction, sent back to the Tenant. Attached to an Interaction, never to a Thread.
 
 **Tenant Configuration**:
-The non-secret values that point the app at one Customer's Tenant — tenant hostname, OAuth client ID, assistant ID. Supplied at deployment time, never compiled in.
-_Avoid_: Settings, environment, tenant info
+The values that point the app at one Customer's Tenant. Only the tenant hostname is needed: the Qlik User enters it, or the Customer's MDM supplies it. The Assistant is found after sign-in, never entered.
+_Avoid_: Settings, environment, tenant info, workspace connection
 
-**Answer**:
-The content Qlik returns for a single Interaction, in whatever form that takes — prose, structured content, or an Analytics Insight — together with its Citations. It is never stored on the device.
-_Avoid_: Response, result, output
-
-**Analytics Insight**:
-Answer content derived from a Qlik analytics app rather than from documents, produced only by an Agentic Assistant. The domain models it even while the classic adapter cannot produce it.
-
-**Feedback**:
-A Qlik User's rating of a single Interaction. Attached to an Interaction, never to a Thread.
-
-**Tenant Configuration**:
-The non-secret values that point the app at one Customer's Tenant — tenant hostname, OAuth client ID, assistant ID. Supplied at deployment time, never compiled in.
-_Avoid_: Settings, environment, app config
+**Tenant Approval**:
+A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User.
+_Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
 
 **Starter**:
 A suggested opening question configured on an Assistant, shown before a Thread has any Interactions.

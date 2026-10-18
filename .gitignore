@@ -83,3 +83,6 @@ bun.lock
 bun.lockb
 yarn.lock
 pnpm-lock.yaml
+
+# e2e (tester-army) run output
+.e2e/

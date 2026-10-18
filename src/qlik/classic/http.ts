@@ -16,10 +16,12 @@ export type HttpInit = {
   body?: unknown; // serialised here, so callers pass plain objects
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** 'manual' returns a 3xx response instead of following it, so the caller can follow it with the token. */
+  redirect?: 'follow' | 'manual';
 };
 
 export type HttpDeps<R extends HttpResponse = HttpResponse> = {
-  fetch(url: string, init: { method?: string; body?: string; headers: Record<string, string>; signal?: AbortSignal }): Promise<R>;
+  fetch(url: string, init: { method?: string; body?: string; headers: Record<string, string>; signal?: AbortSignal; redirect?: 'follow' | 'manual' }): Promise<R>;
   getToken(): Promise<string | null>;
 };
 
@@ -40,6 +42,7 @@ export function qlikUrl(config: TenantConfig, path: string): string {
     throw { kind: 'ServiceUnavailable' } satisfies AppError;
   }
   if (path.startsWith('/api/')) return `${tenantOrigin}${path}`;
+  if (!config.assistantId) throw { kind: 'AssistantNotChosen' } satisfies AppError;
   return `${tenantOrigin}/api/v1/assistants/${config.assistantId}${path}`;
 }
 
@@ -65,7 +68,8 @@ export async function qlikFetch<R extends HttpResponse>(
 ): Promise<R> {
   // Resolved before the token is fetched: an off-tenant URL must not even cost a token refresh.
   const url = qlikUrl(config, path);
-  const scope = url.startsWith(`https://${config.tenantHost}/api/v1/assistants/`) ? 'assistant' : 'tenant';
+  // The Assistants list counts as an Assistant call: its 403 is a missing Answers Entitlement too.
+  const scope = url.startsWith(`https://${config.tenantHost}/api/v1/assistants`) ? 'assistant' : 'tenant';
 
   const token = await deps.getToken();
   if (!token) throw { kind: 'SessionExpired' } satisfies AppError;
@@ -77,6 +81,7 @@ export async function qlikFetch<R extends HttpResponse>(
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       headers: { ...authHeaders(token), ...init.headers },
       signal: init.signal,
+      redirect: init.redirect,
     });
   } catch (error) {
     const domainError = classifyFetchFailure(error);
@@ -84,7 +89,8 @@ export async function qlikFetch<R extends HttpResponse>(
     throw domainError;
   }
 
-  if (!response.ok) throw toDomainError(response, scope);
+  const redirected = init.redirect === 'manual' && response.status >= 300 && response.status < 400;
+  if (!response.ok && !redirected) throw toDomainError(response, scope);
   return response;
 }
 

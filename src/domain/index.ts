@@ -1,9 +1,12 @@
 export type { AnalyticsApp } from './analytics-app';
 export type { Answer, AnswerBlock, AnalyticsInsight, Citation } from './answer';
+export type { Assistant } from './assistant';
 export type { AppError } from './errors';
 export { errorMessageFor } from './error-messages';
 export type { ErrorMessage } from './error-messages';
 export type { Feedback, FeedbackReason } from './feedback';
 export type { Interaction } from './interaction';
+export type { QlikUser } from './qlik-user';
 export type { Starter } from './starter';
+export { threadNameFor } from './thread';
 export type { Thread, ThreadDetail } from './thread';

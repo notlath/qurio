@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import { useCallback } from 'react';
 
 import { IS_INTERNAL_BUILD, type TenantConfig } from '@/config';
+import { errorMessageFor } from '@/domain';
 import { adoptTokens, forgetAccessToken, getAccessToken, peekAccessToken } from './access-token';
 import { discoveryFor, redirectUri, SCOPES } from './oauth';
 import { clearTokens, loadRefreshToken } from './tokens';
@@ -29,6 +30,9 @@ export function useQlikAuth(config: TenantConfig) {
 
   const signIn = useCallback(async () => {
     const result = await promptAsync();
+    if (result.type === 'error' && result.params.error_code === 'OAUTH-28') {
+      throw new Error(errorMessageFor({ kind: 'TenantApprovalRequired' }).message);
+    }
     if (result.type !== 'success') return null;
 
     const deviceType = deviceTypeLabel(await Device.getDeviceTypeAsync());

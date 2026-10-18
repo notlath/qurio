@@ -4,7 +4,18 @@ import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'question' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code' | 'caption';
+  type?:
+    | 'default'
+    | 'defaultSemiBold'
+    | 'headline'
+    | 'question'
+    | 'title'
+    | 'small'
+    | 'smallBold'
+    | 'subtitle'
+    | 'linkPrimary'
+    | 'code'
+    | 'caption';
   themeColor?: ThemeColor;
 };
 
@@ -14,15 +25,18 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
   return (
     <Text
+      // Display sizes are headings to VoiceOver/TalkBack too, so rotor and heading navigation find them.
+      accessibilityRole={type === 'title' || type === 'subtitle' ? 'header' : undefined}
       style={[
         { color },
         type === 'default' && styles.default,
+        type === 'defaultSemiBold' && styles.defaultSemiBold,
+        type === 'headline' && styles.headline,
         type === 'question' && styles.question,
         type === 'title' && styles.title,
         type === 'small' && styles.small,
         type === 'smallBold' && styles.smallBold,
         type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
         type === 'linkPrimary' && styles.linkPrimary,
         type === 'code' && styles.code,
         type === 'caption' && styles.caption,
@@ -41,11 +55,12 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
  * the design system. `allowFontScaling` is deliberately left on so Dynamic Type still works.
  */
 const styles = StyleSheet.create({
+  // The display size: iOS's Title 1. Used once per screen, for a first-screen heading.
   title: {
     fontFamily: Fonts.bold,
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.8,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
   },
   subtitle: {
     fontFamily: Fonts.bold,
@@ -58,9 +73,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
-  question: {
+  // A title in a header or a sheet, as iOS's Headline style.
+  headline: {
     fontFamily: Fonts.semibold,
-    fontSize: 18,
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  // A list row's name. Tighter than body copy, because it is one line, not a paragraph.
+  defaultSemiBold: {
+    fontFamily: Fonts.semibold,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  // The Qlik User's question: the same size as the Answer, so the Answer is never outranked. The
+  // bubble's colour and side already say whose words these are.
+  question: {
+    fontFamily: Fonts.regular,
+    fontSize: 16,
     lineHeight: 24,
   },
   small: {
@@ -79,11 +108,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 0.2,
   },
-  link: {
-    fontFamily: Fonts.medium,
-    fontSize: 15,
-    lineHeight: 20,
-  },
   linkPrimary: {
     fontFamily: Fonts.semibold,
     fontSize: 15,
@@ -91,7 +115,9 @@ const styles = StyleSheet.create({
   },
   code: {
     fontFamily: Fonts.mono,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 20,
   },
 });
+
+export { styles as TextStyles };

@@ -3,16 +3,19 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { PrimaryButton } from '@/components/pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Shape, Spacing } from '@/constants/theme';
 import { shouldBeLocked } from '@/auth/biometric-gate';
 import { resolveCurrentTenantConfig } from '@/config';
 
 // Used only when MDM hasn't set TenantConfig.biometricTimeoutMs — the config always wins.
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 const PRIVACY_LOCK_KEY = 'qlik.privacyLockEnabled';
+// Set only when building the e2e APK: the emulator's system unlock prompt cannot be automated.
+const E2E_SKIP_LOCK = process.env.EXPO_PUBLIC_E2E_SKIP_LOCK === '1';
 
 type PrivacyLock = {
   enabled: boolean;
@@ -42,7 +45,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(Platform.OS === 'web');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [locked, setLocked] = useState(() => Platform.OS !== 'web' && shouldBeLocked({ kind: 'cold-start' }));
+  const [locked, setLocked] = useState(() => Platform.OS !== 'web' && !E2E_SKIP_LOCK && shouldBeLocked({ kind: 'cold-start' }));
   const [authenticating, setAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timeoutMsRef = useRef(DEFAULT_TIMEOUT_MS);
@@ -82,7 +85,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !enabled) return;
+    if (Platform.OS === 'web' || !enabled || E2E_SKIP_LOCK) return;
     const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
       if (next === 'background' || next === 'inactive') {
         backgroundedAtRef.current = Date.now();
@@ -104,7 +107,7 @@ export function LockGate({ children }: { children: ReactNode }) {
     setError(null);
     setAuthenticating(true);
     try {
-      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock QlikAnswersApp' });
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock Qurio' });
       if (result.success) setLocked(false);
       else setError('Authentication failed. Try again.');
     } finally {
@@ -124,13 +127,17 @@ export function LockGate({ children }: { children: ReactNode }) {
 
   return (
     <ThemedView style={styles.overlay}>
-      <ThemedView type="primary" style={styles.mark}>
-        <ThemedText type="subtitle" themeColor="primaryForeground">Q</ThemedText>
+      <ThemedView type="backgroundSelected" style={[styles.mark, Shape.continuous]}>
+        <Icon ios="lock.fill" android="lock" size={28} color="primary" />
       </ThemedView>
-      <ThemedText type="title">Your workspace is locked.</ThemedText>
-      <ThemedText themeColor="textSecondary" style={styles.copy}>Use your device credential to return to Qlik Answers.</ThemedText>
+      <ThemedText type="subtitle" style={styles.centered}>
+        Your workspace is locked.
+      </ThemedText>
+      <ThemedText themeColor="textSecondary" style={[styles.copy, styles.centered]}>
+        Use your device credential to return to Qurio.
+      </ThemedText>
       {error && (
-        <ThemedText type="small" themeColor="danger">
+        <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite" selectable style={styles.centered}>
           {error}
         </ThemedText>
       )}
@@ -147,11 +154,13 @@ export function LockGate({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.four,
     gap: Spacing.three,
   },
-  mark: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.control },
+  mark: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.card },
+  centered: { textAlign: 'center' },
   copy: { maxWidth: 300 },
-  unlockButton: { alignSelf: 'flex-start', minWidth: 160 },
+  unlockButton: { maxWidth: 320, width: '100%', marginTop: Spacing.two },
 });
