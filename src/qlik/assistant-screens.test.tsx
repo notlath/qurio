@@ -220,4 +220,3 @@ it('aborts a pending question when another Assistant replaces the new Thread scr
     await act(async () => { finish(); renderer.unmount(); });
   }
 });
-
