@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+> **Amended by [ADR-0012](0012-metadata-client-for-regions-without-a-published-client.md).** A region with no published client now uses the Metadata Client, so MTC no longer needs a Tenant in every region. The published clients for `sg`, `ap` and `us` stay.
+
 # One published OAuth client per region; the Qlik User enters only the tenant hostname
 
 Customers found the setup too technical: a Tenant admin had to create a Native OAuth client and find its client ID and an assistant ID, then push them through MDM. We now ship MTC's own OAuth client inside the app instead. MTC creates one Native client in an MTC-owned Tenant per region and publishes it. A Customer's Tenant admin approves it once, and from then on a Qlik User types only the tenant hostname and signs in. The app finds the Assistant after sign-in by listing the Tenant's Assistants. MDM stays as an optional override for Customers that use it.
@@ -22,5 +24,5 @@ A Native client created and published in `mtcmarketing.sg` showed its consent sc
 
 - MTC must own a Tenant in each region its Customers use. A published client only works within its region.
 - Onboarding a Customer is one approval by their Tenant admin. Not yet verified: whether a non-admin's first sign-in can trigger that approval, and what such a user sees before it.
-- Published clients use "required" consent by default. A Tenant admin may be able to switch their Tenant to "trusted".
+- Published clients use "required" consent. A Tenant admin cannot switch a published client to "trusted" (Qlik help, checked 2026-10-19).
 - The Agentic Assistant is not yet discoverable the same way, because `/api/v1/cloud-assistants` returned 404.

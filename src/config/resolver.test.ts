@@ -3,6 +3,7 @@ import { normalizeTenantHost, resolveTenant, resolveTenantConfig } from './resol
 const NUL = String.fromCharCode(0);
 const ZERO_WIDTH_SPACE = String.fromCharCode(0x200b);
 const SG_CLIENT_ID = '01a107a4b62d66ffc82d0ffc7e6b1098';
+const METADATA_CLIENT_ID = 'https://notlath.github.io/qurio-oauth/client.json';
 
 describe('resolveTenant', () => {
   it('resolves a hostname alone with the published client ID for its region', () => {
@@ -86,13 +87,15 @@ describe('resolveTenant', () => {
     expect(result).toEqual({ kind: 'resolved', config: { tenantHost: 'qlik.acme.com', clientId: 'own-client' } });
   });
 
-  it('reports a region with no published client', () => {
-    expect(resolveTenant({ dev: { tenantHost: 'acme.eu.qlikcloud.com' } })).toEqual({
-      kind: 'unsupported-region',
-      tenantHost: 'acme.eu.qlikcloud.com',
-      region: 'eu',
-    });
-  });
+  it.each(['acme.eu.qlikcloud.com', 'acme.jp.qlikcloud.com', 'alias.de.qlikcloud.com'])(
+    'resolves %s with the metadata client: no published client exists in its region',
+    (host) => {
+      expect(resolveTenant({ dev: { tenantHost: host } })).toEqual({
+        kind: 'resolved',
+        config: { tenantHost: host, clientId: METADATA_CLIENT_ID },
+      });
+    },
+  );
 
   it.each([{}, { managed: {}, dev: {} }, { dev: { tenantHost: ` ${NUL}` } }])('is not configured without a hostname', (sources) => {
     expect(resolveTenant(sources)).toEqual({ kind: 'not-configured' });
@@ -100,7 +103,7 @@ describe('resolveTenant', () => {
 
   it('falls back to the typed hostname when the managed one does not resolve', () => {
     const result = resolveTenant({
-      managed: { tenantHost: 'acme.eu.qlikcloud.com' },
+      managed: { tenantHost: 'qlik.acme.com' },
       dev: { tenantHost: 'typed.sg.qlikcloud.com' },
     });
 
@@ -108,9 +111,9 @@ describe('resolveTenant', () => {
   });
 
   it('reports the managed failure when neither source resolves', () => {
-    const result = resolveTenant({ managed: { tenantHost: 'acme.eu.qlikcloud.com' }, dev: { tenantHost: 'qlik.acme.com' } });
+    const result = resolveTenant({ managed: { tenantHost: 'qlik.acme.com' }, dev: { tenantHost: 'other.acme.com' } });
 
-    expect(result).toEqual({ kind: 'unsupported-region', tenantHost: 'acme.eu.qlikcloud.com', region: 'eu' });
+    expect(result).toEqual({ kind: 'custom-domain', tenantHost: 'qlik.acme.com' });
   });
 
   it('reports the typed failure when there is no managed hostname', () => {
@@ -141,7 +144,7 @@ describe('resolveTenantConfig', () => {
   it('falls back to the dev config when managed is incomplete', () => {
     const dev = { tenantHost: 'dev.eu.qlikcloud.com', clientId: 'client-2', assistantId: 'assistant-2' };
 
-    const result = resolveTenantConfig({ managed: { tenantHost: 'acme.eu.qlikcloud.com' }, dev });
+    const result = resolveTenantConfig({ managed: { tenantHost: 'qlik.acme.com' }, dev });
 
     expect(result).toEqual(dev);
   });
@@ -239,7 +242,7 @@ describe('resolveTenantConfig', () => {
   });
 
   it('returns null when neither source is complete', () => {
-    const result = resolveTenantConfig({ managed: undefined, dev: { tenantHost: 'dev.eu.qlikcloud.com' } });
+    const result = resolveTenantConfig({ managed: undefined, dev: { tenantHost: 'qlik.acme.com' } });
 
     expect(result).toBeNull();
   });

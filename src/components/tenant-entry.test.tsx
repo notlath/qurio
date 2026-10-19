@@ -61,14 +61,6 @@ it('requests sign-in directly for a configured Tenant without a session', async 
   mockConfig = null;
 });
 
-it('explains an unsupported region', async () => {
-  let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<HostnameEntry />); });
-  await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('acme.eu.qlikcloud.com'); });
-  await act(async () => { await renderer.root.findByType(PrimaryButton).props.onPress(); });
-  expect(JSON.stringify(renderer.toJSON())).toContain('not supported');
-});
-
 it('shows the existing unreachable Tenant preflight message', async () => {
   const { validateTenantHost } = jest.requireMock('@/config');
   validateTenantHost.mockResolvedValueOnce({ ok: false, field: 'tenantHost', message: 'Could not reach "acme.sg.qlikcloud.com".' });
