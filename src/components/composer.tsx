@@ -85,12 +85,13 @@ export function Composer({
 /**
  * The message list's scroll view, for FlatList's `renderScrollComponent`: lifts the latest messages
  * with the keyboard by the same distance the composer moves — but only when already at the end, so
- * someone reading back through a thread is not scrolled away from it.
+ * someone reading back through a thread is not scrolled away from it. With `lift` off, the keyboard
+ * only adds room to scroll: the new chat's welcome keeps itself centred (KeyboardCentered).
  */
-export function ChatScrollView(props: ScrollViewProps) {
+export function ChatScrollView({ lift = true, ...props }: ScrollViewProps & { lift?: boolean }) {
   const { bottom } = useSafeAreaInsets();
 
-  return <KeyboardChatScrollView {...props} offset={bottom} keyboardLiftBehavior="whenAtEnd" />;
+  return <KeyboardChatScrollView {...props} offset={bottom} keyboardLiftBehavior={lift ? 'whenAtEnd' : 'never'} />;
 }
 
 /**
