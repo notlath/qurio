@@ -6,18 +6,17 @@
 <title>Qurio Client Presentation</title>
 <link rel="icon" href="logo.svg" />
 <style>
-/* Fonts and tokens come from the app: src/constants/theme.ts (Colors, Radius, Duration, Elevation) and
-   the Plus Jakarta Sans files the app loads in src/app/_layout.tsx. Radii use the app's iOS values. */
 @font-face { font-family: 'Plus Jakarta Sans'; font-weight: 400; src: url(fonts/PlusJakartaSans_400Regular.ttf); }
 @font-face { font-family: 'Plus Jakarta Sans'; font-weight: 500; src: url(fonts/PlusJakartaSans_500Medium.ttf); }
 @font-face { font-family: 'Plus Jakarta Sans'; font-weight: 600; src: url(fonts/PlusJakartaSans_600SemiBold.ttf); }
 @font-face { font-family: 'Plus Jakarta Sans'; font-weight: 700; src: url(fonts/PlusJakartaSans_700Bold.ttf); }
 
+/* Tokens mirror the app's design system (src/constants/theme.ts). */
 :root {
   --text: #17251D; --bg: #F6F9F6; --surface: #FFFFFF; --selected: #E1F0E6; --text2: #5D6E63;
   --primary: #146B43; --on-primary: #FFFFFF; --border: #D7E4DB; --border-strong: #7C8F83;
-  --danger: #B42318; --scrim: rgba(0,0,0,.4); --shadow: 0 2px 12px rgba(11,31,20,.08);
-  --r-small: 12px; --r-control: 16px; --r-card: 22px;
+  --danger: #B42318; --shadow: 0 2px 12px rgba(11,31,20,.08);
+  --r-control: 16px; --r-card: 22px;
   --d-instant: 100ms; --d-short: 180ms; --d-medium: 260ms;
   color-scheme: light;
 }
@@ -25,13 +24,13 @@
   :root:not([data-theme="light"]) {
     --text: #F2F7F2; --bg: #101713; --surface: #19231C; --selected: #254232; --text2: #B4C4BA;
     --primary: #7FD3A2; --on-primary: #102117; --border: #31473A; --border-strong: #5E7566;
-    --danger: #FFB4AB; --scrim: rgba(0,0,0,.6); color-scheme: dark;
+    --danger: #FFB4AB; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --text: #F2F7F2; --bg: #101713; --surface: #19231C; --selected: #254232; --text2: #B4C4BA;
   --primary: #7FD3A2; --on-primary: #102117; --border: #31473A; --border-strong: #5E7566;
-  --danger: #FFB4AB; --scrim: rgba(0,0,0,.6); color-scheme: dark;
+  --danger: #FFB4AB; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -41,102 +40,91 @@ body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta San
 /* ---------- stage: a fixed 1600x900 canvas scaled to the window ---------- */
 .viewport { position: fixed; inset: 0; }
 .stage { position: absolute; left: 50%; top: 50%; width: 1600px; height: 900px; transform: translate(-50%, -50%) scale(var(--s, 1)); transform-origin: center; }
-.slide { position: absolute; inset: 0; padding: 80px 112px 72px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transform: translateY(12px); transition: opacity var(--d-medium) ease, transform var(--d-medium) ease, visibility 0s linear var(--d-medium); }
+.slide { position: absolute; inset: 0; padding: 80px 112px 64px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transform: translateY(12px); transition: opacity var(--d-medium) ease, transform var(--d-medium) ease, visibility 0s linear var(--d-medium); }
 .slide.active { opacity: 1; visibility: visible; transform: none; transition: opacity var(--d-medium) ease, transform var(--d-medium) ease; }
-.slide .notes { display: none; }
-.slide.active .rise { animation: rise var(--d-medium) cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 70ms + 80ms); }
+.slide.active .rise { animation: rise var(--d-medium) cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 60ms + 80ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .slide, .slide.active { transition: none; transform: none; } .slide.active .rise { animation: none; } }
 
-/* ---------- type ---------- */
-.eyebrow { font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin: 0 0 16px; }
-h1, h2 { margin: 0; font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; }
-h1 { font-size: 76px; }
-h2 { font-size: 52px; max-width: 1376px; }
-.lede { font-size: 26px; line-height: 1.45; color: var(--text2); margin: 20px 0 0; max-width: 1050px; }
+/* ---------- one heading system for every content slide ---------- */
+.eyebrow { font-size: 17px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin: 0 0 14px; }
+h1, h2, h3 { margin: 0; }
+h1 { font-size: 76px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; }
+h2 { font-size: 50px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+.lede { font-size: 23px; line-height: 1.45; color: var(--text2); margin: 14px 0 0; max-width: 1150px; }
+.body { margin-top: 40px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 p { margin: 0; }
 .muted { color: var(--text2); }
-.small { font-size: 18px; line-height: 1.5; }
-.foot { margin-top: auto; font-size: 15px; color: var(--text2); }
+.source { margin-top: auto; padding-top: 16px; font-size: 15px; color: var(--text2); }
+.label, .card .label { font-size: 15px; line-height: 1.3; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); margin: 0 0 12px; }
 
-/* ---------- surfaces ---------- */
+/* ---------- surfaces and status ---------- */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 28px 32px; }
-.tint { background: var(--selected); border-color: transparent; }
-.row { display: flex; gap: 24px; }
+.card.tint { background: var(--selected); border-color: transparent; }
+.card.dashed { background: transparent; border: 1.5px dashed var(--border-strong); }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; }
-.chip.done { background: var(--selected); color: var(--primary); }
+.chip.ok { background: var(--selected); color: var(--primary); }
 .chip.poc { border: 1.5px solid var(--border-strong); color: var(--text2); }
 .chip.plan { border: 1.5px dashed var(--border-strong); color: var(--text2); }
-.chip.qlik { background: var(--bg); border: 1px solid var(--border); color: var(--text2); }
+.chip.qlik { background: var(--surface); border: 1px solid var(--border); color: var(--text2); }
+.chip.plain { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 500; height: 40px; font-size: 17px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.icon { width: 28px; height: 28px; flex: none; stroke: var(--primary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chips { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.icon { width: 26px; height: 26px; flex: none; stroke: var(--primary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.list li { display: flex; gap: 14px; font-size: 19px; line-height: 1.4; }
+.list .icon { width: 24px; height: 24px; margin-top: 2px; }
+.list.pending .icon { stroke: var(--text2); }
 
-/* ---------- phone frames hold real captures of the app ---------- */
+/* ---------- phone frames hold captures of the app ---------- */
 .phone { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 40px; padding: 8px; box-shadow: var(--shadow); flex: none; }
 .phone img { display: block; width: 100%; border-radius: 32px; }
 
-/* ---------- slide 1 ---------- */
+/* ---------- 1 · title ---------- */
 .s-title { flex-direction: row; align-items: center; gap: 96px; }
-.brand { display: flex; align-items: center; gap: 16px; margin-bottom: 48px; }
+.brand { display: flex; align-items: center; gap: 16px; margin-bottom: 44px; }
 .brand img { width: 64px; height: 64px; border-radius: 16px; }
 .brand span { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
-.agenda { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 48px; }
-.agenda .chip { height: 40px; font-size: 17px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 500; }
-.presenter { margin-top: 48px; display: flex; gap: 14px; align-items: center; font-size: 19px; }
-.presenter b { font-weight: 600; }
+.s-title .lede { font-size: 25px; margin-top: 22px; }
+.byline { margin-top: 44px; display: flex; gap: 14px; align-items: center; font-size: 19px; }
+.byline b { font-weight: 600; }
 
-/* ---------- slide 2 ---------- */
-.quote { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; max-width: 1280px; }
+/* ---------- 2 · challenge ---------- */
+.quote { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.22; max-width: 1300px; }
 .quote em { font-style: normal; color: var(--primary); }
-.psv { margin-top: 48px; }
-.psv h3 { margin: 0 0 12px; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); font-weight: 600; }
-.psv p { font-size: 21px; line-height: 1.5; }
-.objectives { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; align-items: center; }
-.objectives > span:first-child { font-size: 16px; font-weight: 600; color: var(--text2); margin-right: 8px; letter-spacing: .08em; text-transform: uppercase; }
-.objectives .chip { height: 42px; font-size: 17px; font-weight: 500; background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.psv p { font-size: 20px; line-height: 1.5; }
 
-/* ---------- slide 3 ---------- */
-.flow { display: grid; grid-template-columns: 280px 64px 1fr 64px 1fr; align-items: stretch; margin-top: 56px; }
+/* ---------- 3 · solution ---------- */
+.flow { display: grid; grid-template-columns: 290px 56px 1fr 56px 1fr; align-items: stretch; }
 .flow .arrow { display: flex; align-items: center; justify-content: center; }
-.flow .arrow svg { width: 48px; height: 24px; stroke: var(--border-strong); stroke-width: 2.5; fill: none; }
-.node h3 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
-.node .owner { margin: 6px 0 20px; font-size: 15px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); }
-.node ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.node li { display: flex; gap: 14px; align-items: flex-start; font-size: 19px; line-height: 1.4; }
-.node li b { display: block; font-weight: 600; font-size: 20px; }
+.flow .arrow svg { width: 44px; height: 24px; stroke: var(--border-strong); stroke-width: 2.5; fill: none; }
+.node h3 { font-size: 25px; font-weight: 700; }
+.node .owner { margin: 6px 0 20px; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); }
 .node.mtc { border: 2px solid var(--primary); }
-.differs { margin-top: 32px; display: flex; gap: 24px; }
-.differs .card { flex: 1; padding: 22px 28px; font-size: 19px; line-height: 1.45; }
-.differs b { color: var(--primary); }
+.node.mtc .owner { color: var(--primary); }
+.node li b { display: block; font-weight: 600; }
+.points { margin-top: 24px; }
+.points .card { padding: 22px 28px; font-size: 18px; line-height: 1.45; }
+.points b { color: var(--primary); font-weight: 600; }
 
-/* ---------- slide 4 ---------- */
-.phones { display: flex; gap: 32px; margin-top: 28px; justify-content: space-between; }
-.feature { width: 300px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-.feature h3 { margin: 0; font-size: 21px; font-weight: 700; }
+/* ---------- 4 · capabilities ---------- */
+.phones { display: flex; justify-content: space-between; }
+.feature { width: 318px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.feature .phone { width: 176px; margin-bottom: 8px; }
+.feature h3 { font-size: 21px; font-weight: 700; }
 .feature p { font-size: 16px; line-height: 1.45; color: var(--text2); }
-.phones .phone { width: 184px; margin-bottom: 6px; }
-.strip { margin-top: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 16px; }
-.strip .label { font-weight: 600; color: var(--text2); margin-right: 4px; }
+.strip { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.strip .chip { height: 32px; font-size: 14px; }
 
-/* ---------- slide 5 ---------- */
-.s-demo { background: var(--primary); color: var(--on-primary); }
-.s-demo .eyebrow, .s-demo .muted { color: var(--on-primary); opacity: .82; }
-.s-demo h1 { font-size: 96px; }
-.demo-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, auto); grid-auto-flow: column; gap: 22px 64px; margin-top: 64px; counter-reset: step; }
-.demo-grid div { display: flex; flex-direction: column; position: relative; padding-left: 48px; font-size: 28px; font-weight: 600; line-height: 1.3; padding-bottom: 18px; border-bottom: 1px solid color-mix(in srgb, var(--on-primary) 22%, transparent); }
-.demo-grid div::before { counter-increment: step; content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 7px; font-size: 18px; font-weight: 700; opacity: .7; }
-.demo-grid small { display: block; font-size: 18px; font-weight: 400; opacity: .8; margin-top: 6px; }
-.timebox { display: inline-flex; gap: 10px; align-items: center; margin-left: 20px; font-size: 20px; font-weight: 600; padding: 6px 18px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--on-primary) 55%, transparent); vertical-align: middle; letter-spacing: 0; }
-
-/* ---------- slide 6: architecture ---------- */
-.legend { display: flex; gap: 12px; margin-top: 18px; }
-.arch { margin-top: 24px; width: 1376px; height: 600px; }
+/* ---------- 5 · architecture ---------- */
+.arch { width: 1376px; height: 560px; margin-top: 20px; }
 .arch text { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 .arch .cont { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
 .arch .cont-q { fill: var(--bg); stroke: var(--border-strong); stroke-width: 1.5; stroke-dasharray: 6 6; }
 .arch .ctitle { font-size: 19px; font-weight: 700; fill: var(--text); }
-.arch .csub { font-size: 14px; font-weight: 600; fill: var(--text2); letter-spacing: .06em; }
+.arch .csub { font-size: 13px; font-weight: 600; fill: var(--text2); letter-spacing: .06em; }
 .arch .m { fill: var(--selected); stroke: var(--primary); stroke-width: 1.5; }
 .arch .q { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1.5; }
 .arch .os { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1.5; stroke-dasharray: 5 5; }
@@ -147,120 +135,98 @@ p { margin: 0; }
 .arch .lt { font-size: 14px; font-weight: 600; fill: var(--text); }
 .arch .num { fill: var(--primary); }
 .arch .numt { fill: var(--on-primary); font-size: 13px; font-weight: 700; }
-.arch .band { fill: var(--bg); stroke: none; }
-.slide.active .arch .ln, .slide.active .arch .ln2 { animation: draw 700ms ease both; animation-delay: 400ms; stroke-dasharray: 400; }
-.slide.active .arch .ln2 { stroke-dasharray: 6 5; animation: fadein 600ms ease both 600ms; }
+.arch .band { fill: var(--bg); }
+.slide.active .arch .ln { stroke-dasharray: 400; animation: draw 700ms ease both 400ms; }
+.slide.active .arch .ln2 { animation: fadein 600ms ease both 600ms; }
 @keyframes draw { from { stroke-dashoffset: 400; } to { stroke-dashoffset: 0; } }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---------- slide 7 ---------- */
-.sec { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; margin-top: 36px; }
-.sec h3 { margin: 0 0 18px; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); font-weight: 600; }
-.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
-.checks li { display: flex; gap: 14px; font-size: 19px; line-height: 1.38; }
-.checks .icon { width: 24px; height: 24px; margin-top: 2px; }
-.open { margin-top: 20px; padding: 20px 28px; border-radius: var(--r-card); border: 1.5px dashed var(--border-strong); display: flex; gap: 20px; align-items: baseline; }
-.open b { font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--danger); white-space: nowrap; }
-.open span { font-size: 18px; line-height: 1.5; color: var(--text); }
+/* ---------- 6 · security ---------- */
+.sec { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; }
+.note { margin-top: 24px; padding: 18px 28px; border-radius: var(--r-card); border: 1.5px dashed var(--border-strong); display: flex; gap: 20px; align-items: baseline; }
+.note b { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); white-space: nowrap; font-weight: 600; }
+.note span { font-size: 18px; line-height: 1.5; }
 
-/* ---------- slide 8: comparison ---------- */
-table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+/* ---------- 7 · release ---------- */
+.rel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.ver { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; color: var(--primary); }
+.facts { margin: 18px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; font-size: 17px; line-height: 1.35; }
+.facts dt { color: var(--text2); }
+.facts dd { margin: 0; font-weight: 600; }
+.timeline { margin-top: 36px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.timeline div { border-top: 3px solid var(--primary); padding-top: 12px; font-size: 18px; font-weight: 600; line-height: 1.3; }
+.timeline div span { display: block; font-size: 15px; color: var(--text2); font-weight: 500; margin-top: 4px; }
+.timeline div.later { border-top-style: dashed; border-top-color: var(--border-strong); }
+
+/* ---------- 8 · demo ---------- */
+.s-demo { background: var(--primary); color: var(--on-primary); }
+.s-demo .eyebrow { color: var(--on-primary); opacity: .82; }
+.demo-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, auto); grid-auto-flow: column; gap: 22px 64px; counter-reset: step; }
+.demo-grid div { position: relative; padding: 0 0 18px 48px; font-size: 27px; font-weight: 600; line-height: 1.3; border-bottom: 1px solid color-mix(in srgb, var(--on-primary) 22%, transparent); }
+.demo-grid div::before { counter-increment: step; content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 7px; font-size: 18px; font-weight: 700; opacity: .7; }
+.demo-grid small { display: block; font-size: 18px; font-weight: 400; opacity: .82; margin-top: 6px; }
+
+/* ---------- 9 · comparison ---------- */
+table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
 .cmp th, .cmp td { text-align: left; vertical-align: top; padding: 13px 22px; font-size: 16.5px; line-height: 1.38; border-bottom: 1px solid var(--border); }
 .cmp tr:last-child td { border-bottom: 0; }
-.cmp thead th { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); font-weight: 600; background: var(--bg); }
+.cmp thead th { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); font-weight: 600; background: var(--bg); }
 .cmp thead th.us { color: var(--primary); }
 .cmp td:first-child { font-weight: 600; width: 230px; }
 .cmp td.us { background: color-mix(in srgb, var(--selected) 45%, transparent); }
 
-/* ---------- slide 9 ---------- */
-.eval { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 40px; flex: 1; min-height: 0; }
+/* ---------- 10 · evaluation ---------- */
+.eval { align-items: start; }
 .eval .card { display: flex; flex-direction: column; gap: 16px; }
-.eval h3 { margin: 0; font-size: 26px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.eval h3 { font-size: 25px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
 .eval ul { margin: 0; padding: 0 0 0 20px; display: grid; gap: 11px; font-size: 18px; line-height: 1.42; }
 .eval li::marker { color: var(--border-strong); }
 
-/* ---------- slide 10 ---------- */
-.big { font-size: 54px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.14; max-width: 1300px; }
+/* ---------- 11 · conclusion ---------- */
+.big { font-size: 48px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.16; max-width: 1320px; }
 .big em { font-style: normal; color: var(--primary); }
-.sum { margin-top: 44px; }
 .sum .card { padding: 24px 28px; }
-.sum b { display: block; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); font-weight: 600; margin-bottom: 8px; }
-.sum p { font-size: 20px; line-height: 1.45; }
+.sum p { font-size: 19px; line-height: 1.45; }
 .steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 36px; }
 .steps div { border-top: 3px solid var(--primary); padding-top: 14px; font-size: 18px; font-weight: 600; line-height: 1.3; }
 .steps div span { display: block; font-size: 14px; color: var(--text2); font-weight: 500; margin-top: 6px; }
 .steps div.later { border-top-style: dashed; border-top-color: var(--border-strong); }
 
-/* ---------- slide 11 ---------- */
-.s-qa { justify-content: center; align-items: flex-start; }
-.s-qa h1 { font-size: 112px; }
-.topics { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 56px; max-width: 1200px; }
-.topics .chip { height: 44px; font-size: 18px; font-weight: 500; background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+/* ---------- 12 · questions ---------- */
+.s-qa { justify-content: center; }
+.s-qa h1 { font-size: 104px; }
 
-/* ---------- chrome ---------- */
+/* ---------- controls ---------- */
 .progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--primary); width: 0; transition: width var(--d-medium) ease; z-index: 5; }
 .hud { position: fixed; right: 20px; bottom: 16px; display: flex; gap: 8px; align-items: center; z-index: 5; font-size: 14px; color: var(--text2); opacity: 0; transition: opacity var(--d-short); }
-body.mouse .hud { opacity: 1; }
-.hud button { font: inherit; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); height: 36px; min-width: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer; }
-.hud button:hover { background: var(--selected); }
+body.mouse .hud, .hud:focus-within { opacity: 1; }
+.hud button, .pres-bar button { font: inherit; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); height: 36px; min-width: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer; }
+.hud button:hover, .pres-bar button:hover { background: var(--selected); }
 .hud button:active { transform: scale(.97); transition: transform var(--d-instant); }
 .hud button:focus-visible, .ov-item:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 .counter { font-variant-numeric: tabular-nums; padding: 0 6px; }
 
-.panel { position: fixed; z-index: 10; background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); display: none; }
-.notes-drawer { left: 24px; right: 24px; bottom: 24px; max-height: 42vh; overflow: auto; border-radius: var(--r-card); padding: 20px 28px; font-size: 16px; line-height: 1.55; }
-body.show-notes .notes-drawer { display: block; }
-.help { left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: var(--r-card); padding: 28px 36px; font-size: 16px; line-height: 1.9; }
+.help { position: fixed; z-index: 10; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: var(--r-card); padding: 28px 36px; font-size: 16px; line-height: 1.9; display: none; }
 body.show-help .help { display: block; }
-.help kbd, .pres kbd { font: 600 13px/1 ui-monospace, monospace; border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 7px; }
+kbd { font: 600 13px/1 ui-monospace, monospace; border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 7px; }
 
 .overview { position: fixed; inset: 0; z-index: 9; background: var(--bg); overflow: auto; padding: 40px; display: none; }
 body.show-overview .overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; align-content: start; }
 .ov-item { position: relative; aspect-ratio: 16/9; border-radius: var(--r-control); overflow: hidden; border: 1px solid var(--border); background: var(--bg); cursor: pointer; padding: 0; }
 .ov-item.current { border: 3px solid var(--primary); }
-.ov-item .stage { left: 0; top: 0; transform-origin: 0 0; transform: scale(var(--s)); }
-.ov-item .slide { opacity: 1; visibility: visible; transform: none; transition: none; }
-.ov-item .slide .rise { animation: none !important; }
 .ov-cap { position: absolute; left: 8px; bottom: 8px; background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; color: var(--text); }
+.ov-item .stage, .frame .stage { left: 0; top: 0; transform-origin: 0 0; transform: scale(var(--s)); }
+.ov-item .slide, .frame .slide { opacity: 1; visibility: visible; transform: none; transition: none; }
+.ov-item .slide .rise, .frame .slide .rise { animation: none !important; }
 
-/* notes content */
-.nt h4 { margin: 14px 0 4px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
-.nt h4:first-child { margin-top: 0; }
-.nt ul, .nt ol { margin: 4px 0; padding-left: 22px; }
-.nt li { margin: 3px 0; }
-.nt p { margin: 4px 0; }
-
-/* ---------- presenter window ---------- */
-body.presenter { overflow: hidden; }
+/* ---------- presenter window: current slide, next slide, timer ---------- */
 body.presenter .viewport, body.presenter .hud, body.presenter .progress { display: none; }
 .pres { display: none; }
 body.presenter .pres { display: grid; position: fixed; inset: 0; grid-template-columns: 1.55fr 1fr; grid-template-rows: auto 1fr; gap: 16px; padding: 16px; }
 .pres-bar { grid-column: 1 / -1; display: flex; gap: 16px; align-items: center; font-size: 15px; }
-.pres-bar .clock { font: 700 28px/1 'Plus Jakarta Sans', sans-serif; font-variant-numeric: tabular-nums; }
-.pres-bar .pace { padding: 6px 14px; border-radius: 999px; background: var(--selected); color: var(--primary); font-weight: 600; }
-.pres-bar .pace.late { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); }
-.pres-bar button { font: inherit; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer; }
-.pres-left { display: grid; grid-template-rows: 1fr auto; gap: 12px; min-height: 0; }
-.pres-right { display: grid; grid-template-rows: auto 1fr; gap: 12px; min-height: 0; }
-.frame { position: relative; border: 1px solid var(--border); border-radius: var(--r-control); overflow: hidden; background: var(--bg); }
-.frame .stage { left: 0; top: 0; transform-origin: 0 0; transform: scale(var(--s)); }
-.frame .slide { transition: none; }
-.frame.next, .pres-left .frame { aspect-ratio: 16/9; align-self: start; }
-.frame-label { font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; }
-.pres-notes { overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-control); padding: 20px 24px; font-size: 17px; line-height: 1.55; }
-
-/* ---------- printable notes handout (?notes) ---------- */
-body.handout { overflow: auto; }
-body.handout .viewport, body.handout .hud, body.handout .progress { display: none; }
-.handout-list { display: none; }
-body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; margin: 0 auto; }
-.ho-row { display: grid; grid-template-columns: 560px 1fr; gap: 28px; padding: 24px 0; border-bottom: 1px solid var(--border); break-inside: avoid; }
-.ho-row .frame { width: 560px; height: 315px; }
-.ho-row .slide { opacity: 1; visibility: visible; transform: none; transition: none; }
-.ho-row .slide .rise { animation: none !important; }
-.ho-row h3 { margin: 0 0 8px; font-size: 20px; }
-.ho-row .nt { font-size: 14px; line-height: 1.5; }
-@media print { body.handout { background: #fff; } .ho-row { padding: 12px 0; } }
+.pres-bar .clock { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.frame { position: relative; border: 1px solid var(--border); border-radius: var(--r-control); overflow: hidden; background: var(--bg); aspect-ratio: 16/9; align-self: start; }
+.frame-label { font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -269,314 +235,290 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
 <div class="viewport" id="viewport">
 <div class="stage" id="stage">
 
-<!-- =============================== 1 · INTRODUCTION =============================== -->
-<section class="slide s-title" data-title="Introduction" data-min="3">
+<!-- 1 · Title -->
+<section class="slide s-title" data-title="Introduction">
   <div style="flex:1">
     <div class="brand rise"><img src="logo.svg" alt="" /><span>Qurio</span></div>
     <p class="eyebrow rise">Introducing MTC's custom analytics app</p>
     <h1 class="rise">Ask your data.<br />See your apps.<br />One sign-in.</h1>
-    <p class="lede rise">Qurio is a native iOS and Android app for Qlik Cloud. It puts Qlik Answers Assistants and your Analytics Apps side by side, and each person signs in as themselves.</p>
-    <div class="agenda rise">
-      <span class="chip">Why we built it</span><span class="chip">What it does today</span><span class="chip">Live demo</span><span class="chip">Architecture &amp; security</span><span class="chip">Honest limits &amp; next steps</span>
-    </div>
-    <div class="presenter rise"><span class="chip done"><span class="dot"></span>MTC</span><span><b>Analytics Integration Developer</b> <span class="muted">· presenting</span></span></div>
+    <p class="lede rise">Qurio is a native mobile app for Qlik Cloud. It brings Qlik Answers Assistants and your Analytics Apps together, and each person signs in with their own Qlik identity.</p>
+    <div class="chips rise" style="margin-top:44px"><span class="chip plain">The challenge</span><span class="chip plain">The solution</span><span class="chip plain">How it works</span><span class="chip plain">Release status</span><span class="chip plain">Live demo</span><span class="chip plain">Next steps</span></div>
+    <div class="byline rise"><span class="chip ok"><span class="dot"></span>MTC</span><b>Analytics Integration Developer</b></div>
   </div>
-  <div class="phone rise" style="width:360px"><img src="screens/new-chat-light.png" alt="Qurio's Assistant start screen with suggested questions" /></div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 3 min</h4><p>Set context: who we are, what Qurio is, and what the next 60 minutes look like.</p>
-    <h4>Key messages</h4><ul><li>Qurio is a native mobile app that MTC built on top of Qlik Cloud. It does not replace Qlik. It uses the client's own Qlik Cloud Tenant.</li><li>It brings two things together: Qlik Answers Assistants (conversational answers from governed content) and the Analytics Apps people already use.</li><li>Every person signs in as themselves, so Qlik's own permissions apply.</li></ul>
-    <h4>Talking points</h4><ul><li>Introduce yourself as MTC's Analytics Integration Developer.</li><li>Agenda: about 20 minutes of context, 18 minutes of live demo, architecture and security, then 10 minutes for questions.</li><li>Promise honesty: we will show what is finished, what is a proof of concept, and what is still open.</li></ul>
-    <h4>Technical detail if asked</h4><p>Built with Expo SDK 57 and React Native 0.86, TypeScript in strict mode. Product name Qurio; project name QlikAnswersApp; bundle ID com.mtc.qlikanswersapp.</p>
-    <h4>Transition</h4><p>"Let's start with why this app exists."</p>
-  </div></aside>
+  <div class="phone rise" style="width:340px"><img src="screens/new-chat-light.png" alt="Qurio's Assistant start screen" /></div>
 </section>
 
-<!-- =============================== 2 · PROBLEM =============================== -->
-<section class="slide" data-title="Problem and objectives" data-min="5">
-  <p class="eyebrow rise">The problem</p>
+<!-- 2 · Challenge -->
+<section class="slide" data-title="The challenge">
+  <p class="eyebrow rise">The challenge</p>
   <p class="quote rise">How can MTC recreate essential <em>Qlik Analytics</em> functionality in a customizable application, while integrating an AI-powered conversational experience through <em>Qlik Answers</em>?</p>
-  <div class="grid3 psv">
-    <div class="card rise"><h3>Problem</h3><p>Qlik's mobile app is strong for dashboards. Its store listings and mobile help do not mention Qlik Answers. Qlik supports Answers chat in mobile browsers, but a no-browser-access requirement rules that route out.</p></div>
-    <div class="card rise"><h3>Proposed solution</h3><p>A native app that signs each person in to their own Qlik Cloud Tenant and puts Assistants and Analytics Apps in one place, in an interface MTC can tailor.</p></div>
-    <div class="card tint rise"><h3>Expected value</h3><p>One place to ask and to look. Answers cite their sources. Access stays governed by the permissions Qlik already enforces.</p></div>
+  <div class="body">
+    <div class="grid3 psv">
+      <div class="card rise"><p class="label">Problem</p><p>Qlik's mobile app is built for dashboards. Its store listings and mobile help do not mention Qlik Answers. Qlik Answers runs in mobile browsers, but browser access was not an option for this project.</p></div>
+      <div class="card rise"><p class="label">Solution</p><p>A native app that signs each person in to their own Qlik Cloud Tenant and brings Assistants and Analytics Apps into one tailored interface.</p></div>
+      <div class="card tint rise"><p class="label">Value</p><p>One place to ask and to look. Answers cite their sources. Access stays governed by the permissions Qlik already enforces.</p></div>
+    </div>
+    <div class="chips rise" style="margin-top:32px"><span class="label" style="margin:0 8px 0 0">Objectives</span><span class="chip plain">Essential analytics workflows</span><span class="chip plain">One central experience</span><span class="chip plain">Conversational analytics</span><span class="chip plain">Tailored interface</span><span class="chip plain">Built on Qlik's infrastructure</span></div>
+    <p class="source rise">Qlik product information: Apple App Store, Google Play and Qlik Help, October 2026.</p>
   </div>
-  <div class="objectives rise"><span>Objectives</span><span class="chip">Replicate essential analytics workflows</span><span class="chip">One central experience</span><span class="chip">Conversational analytics</span><span class="chip">Flexible, tailored UI</span><span class="chip">Reuse Qlik's infrastructure</span></div>
-  <p class="foot rise">Qlik facts: App Store, Google Play and help.qlik.com, read 15 Oct 2026. Qlik Answers is a Qlik Cloud capability. This slide does not say Qlik lacks conversational AI.</p>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 5 min</h4><p>Agree on the problem before showing the solution. Separate the problem, the solution and the value.</p>
-    <h4>Key messages</h4><ul><li><b>Problem:</b> people want analytics and conversational answers on mobile, in one place, without a browser.</li><li><b>Solution:</b> a native app on the client's Qlik Cloud Tenant.</li><li><b>Value:</b> one experience, answers with Citations, permissions enforced by Qlik.</li></ul>
-    <h4>Talking points</h4><ul><li>Qlik Answers is real and strong. It runs in Qlik Cloud, and Qlik says the chat works in mobile browsers. We are not saying Qlik has no AI.</li><li>Qlik's own mobile app (Qlik Analytics) is excellent for dashboards: offline apps, alerts, bookmarks. On 15 Oct 2026 its store listings and mobile help pages did not mention Qlik Answers. We cannot prove it is absent. We can only say the materials do not mention it.</li><li>The project had a requirement: no browser-based access to Qlik Answers (recorded in ADR-0005). That rules out the mobile-browser route.</li><li>Walk through the five objectives. Point out that "replicate essential analytics workflows" is the objective. Today the analytics viewer is a proof of concept (we will be specific later).</li></ul>
-    <h4>Careful wording</h4><p>Do not say "Qlik's app cannot do AI". Say "Qlik's mobile app materials do not mention Qlik Answers".</p>
-    <h4>Transition</h4><p>"So what did we build?"</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 3 · SOLUTION =============================== -->
-<section class="slide" data-title="Proposed solution" data-min="3">
+<!-- 3 · Solution -->
+<section class="slide" data-title="The solution">
   <p class="eyebrow rise">The solution</p>
-  <h2 class="rise">A native front end to the Qlik Cloud you already have</h2>
-  <div class="flow">
-    <div class="card node rise">
-      <h3>Qlik User</h3><p class="owner">iPhone · Android</p>
-      <ul><li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Signs in with their own Tenant identity</span></li><li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg><span>Unlocks with Face ID, fingerprint or passcode</span></li></ul>
+  <h2 class="rise">A native front end to your existing Qlik Cloud</h2>
+  <div class="body">
+    <div class="flow">
+      <div class="card node rise">
+        <h3>Qlik User</h3><p class="owner">Phone or tablet</p>
+        <ul class="list"><li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Signs in with their own Tenant identity</span></li><li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg><span>Unlocks with Face ID, fingerprint or passcode</span></li></ul>
+      </div>
+      <div class="arrow rise"><svg viewBox="0 0 48 24"><path d="M2 12h42M34 4l10 8-10 8"/></svg></div>
+      <div class="card node mtc rise">
+        <h3>Qurio app</h3><p class="owner">Built by MTC</p>
+        <ul class="list">
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span><b>Ask</b>Chat with an Assistant. Answers stream in with sources.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span><b>Browse</b>Find Analytics Apps and open them in Qlik's own view.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span><b>Protect</b>Privacy lock, capture protection, no Answers stored.</span></li>
+        </ul>
+      </div>
+      <div class="arrow rise"><svg viewBox="0 0 48 24"><path d="M2 12h42M34 4l10 8-10 8"/></svg></div>
+      <div class="card node rise">
+        <h3>Your Qlik Cloud Tenant</h3><p class="owner">Managed by Qlik</p>
+        <ul class="list">
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/></svg><span><b>Qlik Answers</b>Assistants, Knowledge Bases, conversations</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span><b>Analytics Apps</b>Sheets, charts, the analytics engine</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg><span><b>Identity &amp; permissions</b>Sign-in, entitlements, space access</span></li>
+        </ul>
+      </div>
     </div>
-    <div class="arrow rise"><svg viewBox="0 0 48 24"><path d="M2 12h42M34 4l10 8-10 8"/></svg></div>
-    <div class="card node mtc rise">
-      <h3>Qurio app</h3><p class="owner" style="color:var(--primary)">Built by MTC</p>
-      <ul>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span><b>Ask</b>Chat with an Assistant. Answers stream in with sources.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span><b>Browse</b>Find Analytics Apps and open them in Qlik's own view.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span><b>Protect</b>Privacy lock, capture protection, no answers stored.</span></li>
-      </ul>
-    </div>
-    <div class="arrow rise"><svg viewBox="0 0 48 24"><path d="M2 12h42M34 4l10 8-10 8"/></svg></div>
-    <div class="card node rise">
-      <h3>Your Qlik Cloud Tenant</h3><p class="owner">Managed by Qlik</p>
-      <ul>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/></svg><span><b>Qlik Answers</b>Assistants, Knowledge Bases, Threads</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span><b>Analytics Apps</b>Sheets, charts, the analytics engine</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg><span><b>Identity &amp; permissions</b>Sign-in, entitlements, space access</span></li>
-      </ul>
+    <div class="grid3 points">
+      <div class="card rise"><b>Assistant first.</b> The app opens on the Assistant. Analytics Apps are one tap away in the side panel.</div>
+      <div class="card rise"><b>No MTC server.</b> The app talks directly to your Tenant through Qlik's published APIs.</div>
+      <div class="card rise"><b>One app, many Tenants.</b> People type only the Tenant hostname. Device management can supply it instead.</div>
     </div>
   </div>
-  <div class="differs">
-    <div class="card rise"><b>Not just a dashboard.</b> The app opens on the Assistant. Analytics Apps are one tap away in the side panel.</div>
-    <div class="card rise"><b>No MTC server in between.</b> The phone talks directly to the client's Tenant over Qlik's published APIs.</div>
-    <div class="card rise"><b>One app, many Tenants.</b> A person types only the Tenant hostname. MDM can supply it instead.</div>
-  </div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 3 min</h4><p>Give a simple mental model before features and demo.</p>
-    <h4>Key messages</h4><ul><li>Three parts: the person, the Qurio app (MTC), and the client's Qlik Cloud Tenant (Qlik).</li><li>Qurio is a front end. The data, the AI and the permissions stay in Qlik.</li></ul>
-    <h4>Talking points</h4><ul><li><b>Ask:</b> the person picks an Assistant, asks a question, and reads a streamed Answer with its Citations (sources).</li><li><b>Browse:</b> the Apps list comes from Qlik's Items API. Opening an app shows Qlik's own embedded Analytics App view (proof of concept).</li><li><b>Protect:</b> privacy lock on by default, screenshot protection in release builds, no Answer content written to the phone.</li><li>Primary users: Qlik Users who hold a Qlik Answers Entitlement. Every app user is a Qlik User. There is no separate app account.</li><li>Workflow: open the app → it opens on the Assistant → ask → check sources → rate the Answer → go back to History or open Apps from the side panel.</li></ul>
-    <h4>Technical detail if asked</h4><p>"No MTC server" is ADR-0001. "Hostname only" is ADR-0010: MTC publishes one OAuth client per Qlik region (today ap and sg). A Tenant admin approves it once per Tenant.</p>
-    <h4>Transition</h4><p>"Here is what that looks like on a phone."</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 4 · FEATURES =============================== -->
-<section class="slide" data-title="Key features" data-min="2">
-  <p class="eyebrow rise">Key features</p>
+<!-- 4 · Capabilities -->
+<section class="slide" data-title="Key capabilities">
+  <p class="eyebrow rise">Key capabilities</p>
   <h2 class="rise">What a Qlik User can do today</h2>
-  <div class="phones">
-    <div class="feature rise"><div class="phone"><img src="screens/new-chat-light.png" alt="Start screen with Starter questions" /></div><h3>Start with a question</h3><p>Choose an Assistant. Tap a suggested Starter or type a question.</p><span class="chip done"><span class="dot"></span>Implemented</span></div>
-    <div class="feature rise"><div class="phone"><img src="screens/chat-light.png" alt="An Answer with a sources button and feedback thumbs" /></div><h3>Answers with sources</h3><p>Streamed Answers, Stop, Citations, and Feedback with a reason.</p><span class="chip done"><span class="dot"></span>Implemented</span></div>
-    <div class="feature rise"><div class="phone"><img src="screens/panel-light.png" alt="Side panel with New chat, Apps and History" /></div><h3>History panel</h3><p>Reopen, rename, pin and delete conversations. Pins sync through Qlik.</p><span class="chip done"><span class="dot"></span>Implemented</span></div>
-    <div class="feature rise"><div class="phone"><img src="screens/apps-light.png" alt="Analytics Apps list" /></div><h3>Your Analytics Apps</h3><p>Search, list or grid, paging, pull to refresh. Opens in Qlik's view.</p><span class="row" style="gap:8px"><span class="chip done"><span class="dot"></span>Grid</span><span class="chip poc">Viewer: PoC</span></span></div>
+  <div class="body" style="margin-top:32px">
+    <div class="phones">
+      <div class="feature rise"><div class="phone"><img src="screens/new-chat-light.png" alt="Assistant start screen" /></div><h3>Start a conversation</h3><p>Choose an Assistant and ask in plain language. Suggested questions appear when the Assistant provides them.</p><span class="chip ok"><span class="dot"></span>Available</span></div>
+      <div class="feature rise"><div class="phone"><img src="screens/chat-light.png" alt="An Answer with its source and rating buttons" /></div><h3>Answers with sources</h3><p>Answers stream in as they are written. Stop at any time, open the sources, and rate each Answer.</p><span class="chip ok"><span class="dot"></span>Available</span></div>
+      <div class="feature rise"><div class="phone"><img src="screens/panel-light.png" alt="Side panel with New chat, Apps and History" /></div><h3>Conversation history</h3><p>Reopen, rename, pin and delete conversations. Pins are stored in Qlik, so they follow the user.</p><span class="chip ok"><span class="dot"></span>Available</span></div>
+      <div class="feature rise"><div class="phone"><img src="screens/apps-light.png" alt="Analytics Apps in grid view with search" /></div><h3>Analytics Apps</h3><p>Browse as a list or grid and search by name. Open an app in Qlik's embedded view.</p><div class="chips" style="gap:8px"><span class="chip ok"><span class="dot"></span>Browse</span><span class="chip poc">View: proof of concept</span></div></div>
+    </div>
+    <div class="strip rise"><span class="label" style="margin:0 6px 0 0">Also included</span><span class="chip ok">Hostname-only sign-in</span><span class="chip ok">Privacy lock</span><span class="chip ok">Capture protection</span><span class="chip ok">Phone and tablet layouts</span><span class="chip ok">Device management</span><span class="chip poc">Agentic Assistant: proof of concept</span></div>
+    <p class="source rise" style="margin-top:14px;padding-top:0">Screens captured on iPhone with a live Qlik Cloud Tenant.</p>
   </div>
-  <div class="strip rise"><span class="label">Also in the app</span><span class="chip done">Hostname-only sign-in</span><span class="chip done">Privacy lock</span><span class="chip done">Capture protection</span><span class="chip done">MDM configuration</span><span class="chip poc">Agentic Assistant (Qlik's UI): PoC</span><span class="muted" style="margin-left:auto;font-size:15px">Screens: web preview, sample data</span></div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 2 min</h4><p>Show the four capabilities that people will use most. Keep it brisk: the demo shows them for real.</p>
-    <h4>Key messages</h4><ul><li>Conversational analytics is the core: choose an Assistant, ask, read sources, give feedback.</li><li>History is in a side panel, like the ChatGPT and Gemini apps (ADR-0011).</li><li>Analytics Apps: the list is finished. The viewer is a proof of concept.</li></ul>
-    <h4>Status, precisely</h4><ul><li><b>Implemented:</b> Legacy (classic) Assistant chat with streaming, Stop, Starters, Citations and Feedback; Assistant chooser; History with rename, pin and delete; Apps list with search, list/grid view, pagination and pull to refresh; hostname-only sign-in; privacy lock; capture protection; managed (MDM) configuration.</li><li><b>Proof of concept:</b> the Analytics App viewer and the Agentic Assistant. Both run Qlik's own UI (qlik-embed) inside the app. Evidence comes from Android emulator and development builds.</li><li><b>Pending device checks:</b> the side panel work (GitHub issues 32–41) is in the code and awaits human sign-off on physical devices. The Starters endpoint shape is marked unverified in the code.</li></ul>
-    <h4>About the screenshots</h4><p>These are real captures of the app's web preview. The web preview uses built-in sample data ("HR Policies", "Sales overview"). It does not sign in to Qlik. Say so if asked.</p>
-    <h4>Transition</h4><p>"Let me show you the real thing on a phone."</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 5 · DEMO =============================== -->
-<section class="slide s-demo" data-title="Live demonstration" data-min="18">
-  <p class="eyebrow rise">Live demonstration</p>
-  <h1 class="rise">Let's see it live <span class="timebox">18 min</span></h1>
-  <div class="demo-grid">
-    <div class="rise">Unlock and sign in<small>Privacy lock · Tenant hostname · Qlik sign-in</small></div>
-    <div class="rise">Choose an Assistant<small>Legacy and Agentic Assistants in one list</small></div>
-    <div class="rise">Ask real business questions<small>Streaming · Stop · sources · feedback</small></div>
-    <div class="rise">Manage History<small>Side panel · reopen · rename · pin · delete</small></div>
-    <div class="rise">Open an Analytics App<small>Apps list · search · grid · Qlik's view (PoC)</small></div>
-    <div class="rise">Try the Agentic Assistant<small>Qlik's own agentic UI, same sign-in (PoC)</small></div>
-    <div class="rise">Settings and security<small>Profile · privacy lock · sign out</small></div>
-    <div class="rise">When things go wrong<small>Offline and service errors with clear next steps</small></div>
-  </div>
-  <p class="foot muted rise">Fallback: recorded walkthrough, then the web preview with sample data.</p>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 18 min</h4><p>Prove the value on a real device against the real Tenant. Full script: BRIEFING.md § Live demo script.</p>
-    <h4>Before the meeting</h4><ul><li>Tenant admin approval done. Demo user has the Answers Entitlement and space access to the Assistant, its Knowledge Bases and the Analytics Apps.</li><li>Device signed in already. Mirror the screen. Do Not Disturb on.</li><li>Use an Android development build for the embedded views (that is where the evidence is). iOS (Expo Go or dev build) is fine for native chat.</li><li>Rehearse every question on this Tenant the day before. Write down the Answers you get. Do not promise any Answer you have not seen.</li></ul>
-    <h4>Sequence (matches the slide numbers)</h4><ol><li><b>Unlock (1 min).</b> Cold start shows "Your workspace is locked". Unlock with device credential. Optional: show "Connect to your Tenant" on a second device.</li><li><b>Choose an Assistant (1 min).</b> Tap the header. Show Legacy and Agentic groups.</li><li><b>Ask (5 min).</b> Tap a Starter, then ask 2–3 rehearsed questions. Show streaming, tap Stop once, open "sources", give a thumbs-down with a reason.</li><li><b>History (2 min).</b> Open the side panel. Reopen a Thread, rename it, pin it, long-press delete (confirm dialog).</li><li><b>Apps (3 min).</b> Apps from the panel. Search a name, toggle grid. Open one app (PoC).</li><li><b>Agentic (3 min).</b> Choose the Agentic Assistant. Ask one question about an Analytics App (PoC).</li><li><b>Settings (1 min).</b> Profile, privacy lock switch, sign-out confirmation (do not confirm).</li><li><b>Errors (2 min).</b> Airplane mode, ask a question: "You're offline" with Retry. Turn the network back on and tap Retry. Optional: "Busy right now" (HTTP 429) shows a Retry countdown.</li></ol>
-    <h4>Question templates (replace with rehearsed ones)</h4><ul><li>"What does our [policy name] say about [topic]?"</li><li>"Summarize the main changes in [document] since last year."</li><li>Agentic: "Which [region/product] had the highest [measure] last quarter?"</li></ul>
-    <h4>If something fails</h4><p>Stay calm and name it: "This part is a proof of concept." Switch to the recorded walkthrough. Last resort: run the web preview (sample data only).</p>
-  </div></aside>
-</section>
-
-<!-- =============================== 6 · ARCHITECTURE =============================== -->
-<section class="slide" data-title="System architecture" data-min="7">
-  <p class="eyebrow rise">System architecture</p>
-  <h2 class="rise">The phone talks straight to your Tenant</h2>
-  <div class="legend rise"><span class="chip done"><span class="dot"></span>Built by MTC</span><span class="chip qlik">Managed by Qlik</span><span class="chip plan">Provided by the OS or a third party</span></div>
-  <svg class="arch rise" viewBox="0 0 1376 600" role="img" aria-label="Architecture: the Qurio app on the device connects directly to Qlik Cloud OAuth, REST APIs, Qlik Answers and the analytics engine. The embedded Qlik runtime loads from the jsDelivr CDN. There is no MTC backend.">
+<!-- 5 · Architecture -->
+<section class="slide" data-title="Architecture">
+  <p class="eyebrow rise">Architecture</p>
+  <h2 class="rise">The app connects directly to your Tenant</h2>
+  <div class="chips rise" style="margin-top:20px"><span class="chip ok"><span class="dot"></span>Built by MTC</span><span class="chip qlik">Managed by Qlik</span><span class="chip plan">Operating system or third party</span></div>
+  <svg class="arch rise" viewBox="0 0 1376 560" role="img" aria-label="The Qurio app connects directly to Qlik Cloud sign-in, published APIs, Qlik Answers and the analytics engine. The embedded Qlik component loads from the jsDelivr CDN. There is no MTC server.">
     <defs>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--primary)"/></marker>
       <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--border-strong)"/></marker>
     </defs>
-    <!-- device -->
-    <rect class="cont" x="0" y="0" width="640" height="600" rx="22"/>
-    <text class="ctitle" x="24" y="38">Qurio app on the phone</text>
-    <text class="csub" x="250" y="38">iOS · ANDROID · REACT NATIVE</text>
-    <g><rect class="m" x="24" y="64" width="290" height="96" rx="16"/><text class="bt" x="44" y="102">Screens</text><text class="bs" x="44" y="128">Assistant chat · History panel</text><text class="bs" x="44" y="148">Apps · Settings</text></g>
-    <g><rect class="m" x="24" y="176" width="290" height="96" rx="16"/><text class="bt" x="44" y="214">Privacy lock &amp; capture</text><text class="bs" x="44" y="240">Device biometrics or passcode</text><text class="bs" x="44" y="260">Screenshot protection</text></g>
-    <g><rect class="m" x="24" y="288" width="290" height="96" rx="16"/><text class="bt" x="44" y="326">Tenant configuration</text><text class="bs" x="44" y="352">Hostname typed by the user</text><text class="bs" x="44" y="372">or pushed by MDM (optional)</text></g>
-    <g><rect class="os" x="24" y="400" width="290" height="96" rx="16"/><text class="bt" x="44" y="438">System sign-in sheet</text><text class="bs" x="44" y="464">OS browser session shows</text><text class="bs" x="44" y="484">Qlik's own login page</text></g>
-    <g><rect class="m" x="330" y="64" width="290" height="96" rx="16"/><text class="bt" x="350" y="102">Sign-in &amp; tokens</text><text class="bs" x="350" y="128">OAuth 2.0 + PKCE, no secret</text><text class="bs" x="350" y="148">Refresh token in SecureStore</text></g>
-    <g><rect class="m" x="330" y="176" width="290" height="96" rx="16"/><text class="bt" x="350" y="214">Qlik adapter</text><text class="bs" x="350" y="240">REST · streaming · error mapping</text><text class="bs" x="350" y="260">Domain types, not Qlik JSON</text></g>
-    <g><rect class="m" x="330" y="288" width="290" height="96" rx="16"/><text class="bt" x="350" y="326">Embedded Qlik host</text><text class="bs" x="350" y="352">WebView · incognito · no cache</text><text class="bs" x="350" y="372">Token bridge (PoC)</text></g>
-    <rect class="band" x="24" y="520" width="596" height="56" rx="14"/>
-    <text class="bs" x="44" y="554" style="font-weight:600;fill:var(--text)">No MTC backend · no API key or client secret · Answers never written to storage</text>
-    <!-- qlik -->
-    <rect class="cont-q" x="880" y="0" width="496" height="600" rx="22"/>
+    <rect class="cont" x="0" y="0" width="640" height="560" rx="22"/>
+    <text class="ctitle" x="24" y="38">Qurio app</text>
+    <text class="csub" x="128" y="38">iOS · ANDROID · REACT NATIVE</text>
+    <g><rect class="m" x="24" y="60" width="290" height="96" rx="16"/><text class="bt" x="44" y="98">Screens</text><text class="bs" x="44" y="124">Assistant chat · History panel</text><text class="bs" x="44" y="144">Apps · Settings</text></g>
+    <g><rect class="m" x="24" y="168" width="290" height="96" rx="16"/><text class="bt" x="44" y="206">Privacy lock &amp; capture</text><text class="bs" x="44" y="232">Device biometrics or passcode</text><text class="bs" x="44" y="252">Screenshot protection</text></g>
+    <g><rect class="m" x="24" y="276" width="290" height="96" rx="16"/><text class="bt" x="44" y="314">Tenant configuration</text><text class="bs" x="44" y="340">Hostname typed by the user</text><text class="bs" x="44" y="360">or supplied by device management</text></g>
+    <g><rect class="os" x="24" y="384" width="290" height="96" rx="16"/><text class="bt" x="44" y="422">System sign-in sheet</text><text class="bs" x="44" y="448">Shows Qlik's own login page</text><text class="bs" x="44" y="468">inside the operating system</text></g>
+    <g><rect class="m" x="330" y="60" width="290" height="96" rx="16"/><text class="bt" x="350" y="98">Sign-in &amp; tokens</text><text class="bs" x="350" y="124">OAuth 2.0 with PKCE, no secret</text><text class="bs" x="350" y="144">Refresh token in secure storage</text></g>
+    <g><rect class="m" x="330" y="168" width="290" height="96" rx="16"/><text class="bt" x="350" y="206">Qlik connector</text><text class="bs" x="350" y="232">Published REST APIs · streaming</text><text class="bs" x="350" y="252">Clear error handling</text></g>
+    <g><rect class="m" x="330" y="276" width="290" height="96" rx="16"/><text class="bt" x="350" y="314">Embedded Qlik view</text><text class="bs" x="350" y="340">Private web view · no cache</text><text class="bs" x="350" y="360">Proof of concept</text></g>
+    <rect class="band" x="24" y="496" width="596" height="48" rx="14"/>
+    <text class="bs" x="44" y="526" style="font-weight:600;fill:var(--text)">No MTC server · no API key or client secret · Answers not stored</text>
+    <rect class="cont-q" x="880" y="0" width="496" height="560" rx="22"/>
     <text class="ctitle" x="904" y="38">Your Qlik Cloud Tenant</text>
-    <g><rect class="q" x="904" y="72" width="448" height="80" rx="16"/><text class="bt" x="924" y="106">OAuth endpoints</text><text class="bs" x="924" y="132">/oauth/authorize · /oauth/token · /oauth/revoke</text></g>
-    <g><rect class="q" x="904" y="184" width="448" height="80" rx="16"/><text class="bt" x="924" y="218">Published REST APIs</text><text class="bs" x="924" y="244">Assistants · Threads · Items · Apps · Users</text></g>
-    <g><rect class="q" x="904" y="296" width="448" height="80" rx="16"/><text class="bt" x="924" y="330">Qlik Answers</text><text class="bs" x="924" y="356">Assistants · Knowledge Bases · agentic UI</text></g>
-    <g><rect class="q" x="904" y="396" width="448" height="80" rx="16"/><text class="bt" x="924" y="430">Analytics engine</text><text class="bs" x="924" y="456">Analytics Apps and Sheets over WebSocket</text></g>
-    <g><rect class="q" x="904" y="496" width="448" height="80" rx="16"/><text class="bt" x="924" y="530">Access control</text><text class="bs" x="924" y="556">Entitlements · spaces · per-user permissions</text></g>
-    <!-- CDN -->
-    <g><rect class="os" x="664" y="512" width="192" height="72" rx="14"/><text class="bt" x="682" y="542" style="font-size:16px">jsDelivr CDN</text><text class="bs" x="682" y="564">qlik-embed runtime v1</text></g>
-    <!-- flows -->
-    <path class="ln" d="M620 112 H898"/>
-    <path class="ln" d="M620 224 H898"/>
-    <path class="ln" d="M620 330 H898"/>
-    <path class="ln" d="M620 350 H700 V436 H898"/>
-    <path class="ln2" d="M760 512 V470 H560 V390"/>
-    <circle class="num" cx="680" cy="94" r="11"/><text class="numt" x="676" y="99">1</text><text class="lt" x="698" y="99">Sign in · refresh · revoke</text>
-    <circle class="num" cx="680" cy="206" r="11"/><text class="numt" x="676" y="211">2</text><text class="lt" x="698" y="211">Ask · stream · list (bearer)</text>
-    <circle class="num" cx="680" cy="312" r="11"/><text class="numt" x="676" y="317">3</text><text class="lt" x="698" y="317">Agentic UI, user's token</text>
-    <circle class="num" cx="726" cy="419" r="11"/><text class="numt" x="722" y="424">4</text><text class="lt" x="744" y="424">Temp. engine token</text>
+    <g><rect class="q" x="904" y="68" width="448" height="80" rx="16"/><text class="bt" x="924" y="102">Sign-in service</text><text class="bs" x="924" y="128">Authorize · issue tokens · revoke tokens</text></g>
+    <g><rect class="q" x="904" y="176" width="448" height="80" rx="16"/><text class="bt" x="924" y="210">Published REST APIs</text><text class="bs" x="924" y="236">Assistants · conversations · Analytics Apps · users</text></g>
+    <g><rect class="q" x="904" y="284" width="448" height="80" rx="16"/><text class="bt" x="924" y="318">Qlik Answers</text><text class="bs" x="924" y="344">Assistants · Knowledge Bases · agentic interface</text></g>
+    <g><rect class="q" x="904" y="380" width="448" height="72" rx="16"/><text class="bt" x="924" y="410">Analytics engine</text><text class="bs" x="924" y="434">Analytics Apps and Sheets</text></g>
+    <g><rect class="q" x="904" y="468" width="448" height="72" rx="16"/><text class="bt" x="924" y="498">Access control</text><text class="bs" x="924" y="522">Entitlements · spaces · per-user permissions</text></g>
+    <g><rect class="os" x="664" y="472" width="192" height="68" rx="14"/><text class="bt" x="682" y="500" style="font-size:16px">jsDelivr CDN</text><text class="bs" x="682" y="522">Qlik embed component</text></g>
+    <path class="ln" d="M620 108 H898"/>
+    <path class="ln" d="M620 216 H898"/>
+    <path class="ln" d="M620 318 H898"/>
+    <path class="ln" d="M620 340 H700 V416 H898"/>
+    <path class="ln2" d="M760 472 V444 H560 V378"/>
+    <circle class="num" cx="680" cy="90" r="11"/><text class="numt" x="676" y="95">1</text><text class="lt" x="698" y="95">Sign in · refresh · sign out</text>
+    <circle class="num" cx="680" cy="198" r="11"/><text class="numt" x="676" y="203">2</text><text class="lt" x="698" y="203">Questions, lists, Answers</text>
+    <circle class="num" cx="680" cy="300" r="11"/><text class="numt" x="676" y="305">3</text><text class="lt" x="698" y="305">Agentic Assistant</text>
+    <circle class="num" cx="726" cy="399" r="11"/><text class="numt" x="722" y="404">4</text><text class="lt" x="744" y="404">Analytics App</text>
   </svg>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 7 min</h4><p>Show that the architecture is simple and keeps Qlik in charge of data and permissions. Distinguish MTC's parts (green) from Qlik's (grey).</p>
-    <h4>Walk the four flows</h4><ol><li><b>Sign in.</b> The app opens the OS sign-in sheet on Qlik's login page (OAuth 2.0 authorization code with PKCE, public Native client, no secret). Redirect: qlikanswers://auth. Scopes: user_default, offline_access. The access token stays in memory. The refresh token and its expiry go to SecureStore (Keychain / Keystore, this device only). Before each call the app refreshes silently with a 60-second margin. Concurrent calls share one refresh, because Qlik rotates refresh tokens. Sign-out revokes both tokens.</li><li><b>Ask.</b> The Qlik adapter calls /api/v1/assistants/&lt;id&gt;/threads/…/actions/stream. The stream is concatenated JSON. A parser in the app handles it and shows text as it arrives. Lists use /api/v1/items (Analytics Apps) and /api/v1/assistants. All screens use MTC's own domain types, never raw Qlik JSON (ADR-0006).</li><li><b>Agentic UI.</b> A WebView loads Qlik's own qlik-embed web component. The app gives it the person's own access token. Same-origin fetch calls get a bearer token. The runtime's token exchange is answered inside the app. This is a workaround, not a Qlik contract (ADR-0009).</li><li><b>Analytics engine.</b> For an Analytics App, the engine WebSocket needs a short-lived token. The app requests it natively from /oauth/token (about 90 seconds life), because the WebView's request is rejected (OAUTH-29).</li></ol>
-    <h4>Other facts</h4><ul><li>The qlik-embed script loads from jsDelivr at major version 1. It is not pinned to an exact release.</li><li>Errors map to clear states: Offline, Signed out, Busy (HTTP 429 with Retry-After), No access, Tenant Approval required (OAUTH-28), and more.</li><li>Pagination links are followed only if they stay on the configured Tenant, so the token never goes elsewhere.</li><li>The web build exists for development only. It uses sample data and cannot reach Qlik (ADR-0005).</li></ul>
-    <h4>Transition</h4><p>"Since the phone holds the person's own token, let's look at security."</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 7 · SECURITY =============================== -->
-<section class="slide" data-title="Security and access" data-min="5">
-  <p class="eyebrow rise">Security and access management</p>
-  <h2 class="rise">Qlik decides who sees what. The app protects the device.</h2>
-  <div class="sec">
-    <div class="card rise">
-      <h3>Controls in the app · verified in code</h3>
-      <ul class="checks">
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Per-person sign-in: OAuth 2.0 with PKCE. No shared account, no client secret, no backend.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Access token in memory only. Refresh token in the device keystore, this device only.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Sign-out revokes both tokens at Qlik, then clears them locally.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>The token is sent only to the configured Tenant.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>No Answer content stored. Embedded view runs incognito with cache off.</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Privacy lock on by default. Screenshot and recording protection in release builds.</span></li>
-      </ul>
+<!-- 6 · Security -->
+<section class="slide" data-title="Security and access">
+  <p class="eyebrow rise">Security and access</p>
+  <h2 class="rise">Qlik controls access. Qurio protects the device.</h2>
+  <div class="body">
+    <div class="sec">
+      <div class="card rise">
+        <p class="label">Controls in the app</p>
+        <ul class="list">
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Each person signs in as themselves with OAuth 2.0 and PKCE. No shared account, client secret or MTC server.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>The access token stays in memory. The refresh token is kept in the device's secure storage, on that device only.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Signing out revokes both tokens at Qlik, then clears them from the device.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Tokens are sent only to the configured Tenant.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Answers are not stored on the device. The embedded view runs privately with caching off.</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Privacy lock on by default. Release builds request screenshot and recording protection.</span></li>
+        </ul>
+      </div>
+      <div class="card tint rise">
+        <p class="label">Enforced by Qlik</p>
+        <ul class="list">
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Identity and login, including your identity provider</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg><span>One-time approval of the app by a Tenant admin</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span>Qlik Answers entitlement for each person</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/></svg><span>Access to spaces, Assistants and Knowledge Bases</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg><span>Rate limits and service guardrails</span></li>
+        </ul>
+      </div>
     </div>
-    <div class="card tint rise">
-      <h3>Enforced by Qlik</h3>
-      <ul class="checks">
-        <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Identity and login, including your identity provider</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg><span>Tenant admin approves the app once</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span>Answers Entitlement per person</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/></svg><span>Space, Assistant and Knowledge Base access per person</span></li>
-        <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg><span>Rate limits and service guardrails</span></li>
-      </ul>
+    <div class="note rise"><b>In progress</b><span>Hardening of the embedded Qlik view (navigation, on-device storage and sign-out) and resolution of open dependency advisories.</span></div>
+  </div>
+</section>
+
+<!-- 7 · Release status -->
+<section class="slide" data-title="Release status">
+  <p class="eyebrow rise">Release status</p>
+  <h2 class="rise">A signed Android beta is ready for acceptance testing</h2>
+  <div class="body">
+    <div class="rel">
+      <div class="card tint rise">
+        <p class="label">Current release</p>
+        <p class="ver">v1.0.0-beta.2</p>
+        <p class="muted" style="font-size:17px;margin-top:4px">GitHub pre-release · 19 October 2026</p>
+        <dl class="facts">
+          <dt>Platform</dt><dd>Android 7.0 or later</dd>
+          <dt>Package</dt><dd>Signed APK, about 103 MB</dd>
+          <dt>App version</dt><dd>1.0.0 (build 1)</dd>
+          <dt>Integrity</dt><dd>SHA-256 checksum published</dd>
+          <dt>Runs</dt><dd>Standalone, with internet access</dd>
+        </dl>
+      </div>
+      <div class="card rise">
+        <p class="label">Verified for this build</p>
+        <ul class="list">
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Release signature (APK Signature Scheme v2 and v3)</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Release build, not debuggable</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Checksum and 16 KB page alignment</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>Lint and type checks passed</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span>570 automated tests passed</span></li>
+        </ul>
+      </div>
+      <div class="card dashed rise">
+        <p class="label">Still to verify</p>
+        <ul class="list pending">
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg><span>Installation on physical Android devices</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg><span>End-to-end acceptance with a live Qlik Tenant</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg><span>Signed iOS build (not yet produced)</span></li>
+          <li><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg><span>Stable, non-beta release</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="timeline rise">
+      <div>v1.0.0-beta.1<span>First internal Android beta</span></div>
+      <div>v1.0.0-beta.2<span>Welcome screen and keyboard fixes</span></div>
+      <div class="later">Acceptance testing<span>Proposed</span></div>
+      <div class="later">Stable release<span>Proposed</span></div>
     </div>
   </div>
-  <div class="open rise"><b>Open before production</b><span>Embedded view hardening (navigation, storage, sign-out teardown) · token bridge has no Qlik contract · CDN runtime not pinned · iOS and physical-device acceptance · build-time dependency audit findings</span></div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 5 min</h4><p>Show what is protected, who is responsible for what, and what is still open. Do not claim the app is production-ready or compliant.</p>
-    <h4>Responsibility split</h4><ul><li><b>Qlik:</b> identity, login, entitlements, space and Knowledge Base permissions, rate limits, the data itself.</li><li><b>App (MTC):</b> where tokens live on the phone, what is cached, the device lock, screen-capture protection, and that tokens go only to the Tenant.</li><li><b>Client:</b> Tenant admin approval, who gets an Answers Entitlement and space access, MDM policy if used.</li></ul>
-    <h4>Evidence (source files)</h4><ul><li>PKCE and revoke: src/auth/session.ts, src/auth/oauth.ts. Access token in memory: src/auth/access-token.ts. SecureStore with WHEN_UNLOCKED_THIS_DEVICE_ONLY: src/auth/tokens.ts.</li><li>Tenant-only URLs: src/qlik/classic/http.ts (qlikUrl). No content on device: ADR-0007; WebView incognito and cacheEnabled=false in src/qlik-embed/qlik-embed-host.tsx.</li><li>Lock: src/components/lock-gate.tsx (default 5-minute background timeout, MDM can change it). Capture: src/config/screen-capture.ts.</li></ul>
-    <h4>Outstanding concerns (say them)</h4><ul><li>Ticket 24 is open: navigation containment, embedded runtime storage on disk, and teardown of an already-open embedded view at sign-out are not verified.</li><li>The token bridge depends on Qlik runtime behaviour that Qlik can change without notice.</li><li>The page holds the access token in JavaScript for the session (memory only).</li><li>qlik-embed loads from jsDelivr at major version 1, not pinned.</li><li>Evidence for embedded views is from an Android emulator and development builds. iOS is not established.</li><li>GitHub issue 24: high npm audit findings in build-time tools, waiting on upstream patches.</li><li>Local preferences (hostname, last Assistant, lock setting) are in AsyncStorage. They are not secrets.</li></ul>
-    <h4>Transition</h4><p>"How does this compare with Qlik's own mobile app?"</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 8 · COMPARISON =============================== -->
-<section class="slide" data-title="Qlik Analytics vs Qurio" data-min="3">
-  <p class="eyebrow rise">Native Qlik Analytics vs. MTC application</p>
-  <h2 class="rise" style="font-size:46px">Qurio extends Qlik. It does not replace it.</h2>
-  <table class="cmp rise">
-    <thead><tr><th></th><th>Qlik Analytics mobile app</th><th class="us">Qurio (MTC)</th></tr></thead>
-    <tbody>
-      <tr><td>Analytics</td><td>Full Sheets, native charts, offline apps for 7 days</td><td class="us">App list with search. Opens Qlik's embedded view (PoC). Online only.</td></tr>
-      <tr><td>Dashboard interaction</td><td>Selections, filter panes, bookmarks, View data</td><td class="us">Qlik's own interactions inside the embedded view (PoC)</td></tr>
-      <tr><td>Conversational</td><td>Store listings and mobile help do not mention Qlik Answers. Answers works in mobile browsers.</td><td class="us">Native Assistant chat with sources and feedback. Agentic Assistant in Qlik's UI (PoC).</td></tr>
-      <tr><td>UI customization</td><td>Qlik's design and roadmap</td><td class="us">MTC controls layout, navigation and branding</td></tr>
-      <tr><td>Integration</td><td>First-party. Intune MAM for enterprise policy.</td><td class="us">Published REST APIs and qlik-embed. Any MDM via standard app config.</td></tr>
-      <tr><td>Workflows</td><td>Alerts, push, monitored charts, several Tenants</td><td class="us">Ask → check sources → rate. One Tenant at a time. No alerts.</td></tr>
-      <tr><td>Security responsibility</td><td>Qlik owns app and data handling</td><td class="us">Qlik enforces access. MTC owns tokens, storage and lock on the device.</td></tr>
-      <tr><td>Maintenance</td><td>Qlik ships about monthly, at no cost to MTC</td><td class="us">MTC maintains two platforms, regional OAuth clients and runtime re-checks</td></tr>
-    </tbody>
-  </table>
-  <p class="foot rise">Qlik column: App Store, Google Play, help.qlik.com, read 15 Oct 2026 (docs/research-qlik-analytics-comparison.md). Absence in Qlik's materials is not proof of absence in the product.</p>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 3 min</h4><p>Give a fair comparison. Our honest position: Qurio is a strong Qlik Answers client and a companion to Qlik Analytics, not a substitute for it.</p>
-    <h4>Where Qlik Analytics is stronger</h4><ul><li>Full analytics: sheets, selections, bookmarks, native chart rendering.</li><li>Offline apps, alerts, push notifications, monitored charts.</li><li>Several Tenants at once, any Qlik Cloud region (except Qlik Cloud Government), mature release cadence (about monthly in 2026), public store presence.</li></ul>
-    <h4>Where Qurio adds value</h4><ul><li>Native Qlik Answers chat on mobile, with Citations, Feedback and History.</li><li>No browser exposure, which meets the no-browser requirement.</li><li>Less data on the device: no Answer content and no offline files. Qlik documents that offline data stays on the device after access is revoked.</li><li>Capture protection and privacy lock on by default, without needing Intune.</li><li>MTC can tailor the interface and add Answers features without waiting for Qlik.</li></ul>
-    <h4>Caveats to state</h4><ul><li>Qlik's column comes from public materials on 15 Oct 2026. A hands-on check of Qlik Analytics version 1.179.14 on an Answers-enabled Tenant was not done.</li><li>Our MDM path is implemented but not yet verified on a real MDM (ticket 14).</li></ul>
-    <h4>Transition</h4><p>"Let's sum up the advantages and limits."</p>
-  </div></aside>
+<!-- 8 · Live demonstration -->
+<section class="slide s-demo" data-title="Live demonstration">
+  <p class="eyebrow rise">Live demonstration</p>
+  <h1 class="rise" style="font-size:88px">Qurio in action</h1>
+  <div class="body" style="margin-top:56px">
+    <div class="demo-grid">
+      <div class="rise">Unlock and sign in<small>Privacy lock · Tenant hostname · Qlik sign-in</small></div>
+      <div class="rise">Choose an Assistant<small>Legacy and Agentic Assistants in one list</small></div>
+      <div class="rise">Ask business questions<small>Streaming · Stop · sources · feedback</small></div>
+      <div class="rise">Manage conversations<small>Side panel · reopen · rename · pin · delete</small></div>
+      <div class="rise">Open an Analytics App<small>Browse · search · Qlik's embedded view</small></div>
+      <div class="rise">Try the Agentic Assistant<small>Qlik's agentic interface, same sign-in</small></div>
+      <div class="rise">Settings and sign-out<small>Profile · privacy lock · sign out</small></div>
+      <div class="rise">Error handling<small>Clear messages and a retry when offline</small></div>
+    </div>
+  </div>
 </section>
 
-<!-- =============================== 9 · EVALUATION =============================== -->
-<section class="slide" data-title="Advantages, limitations, future" data-min="2">
+<!-- 9 · Comparison -->
+<section class="slide" data-title="Comparison">
+  <p class="eyebrow rise">Comparison</p>
+  <h2 class="rise">Qurio extends Qlik. It does not replace it.</h2>
+  <div class="body" style="margin-top:28px">
+    <table class="cmp rise">
+      <thead><tr><th></th><th>Qlik Analytics mobile app</th><th class="us">Qurio by MTC</th></tr></thead>
+      <tbody>
+        <tr><td>Analytics</td><td>Full Sheets, native charts, offline apps for 7 days</td><td class="us">App list with search. Opens Qlik's embedded view (proof of concept). Online only.</td></tr>
+        <tr><td>Dashboard interaction</td><td>Selections, filter panes, bookmarks, View data</td><td class="us">Qlik's own interactions inside the embedded view (proof of concept)</td></tr>
+        <tr><td>Conversational</td><td>Store listings and mobile help do not mention Qlik Answers. Qlik Answers runs in mobile browsers.</td><td class="us">Native Assistant chat with sources and feedback. Agentic Assistant in Qlik's interface (proof of concept).</td></tr>
+        <tr><td>Interface</td><td>Qlik's design and roadmap</td><td class="us">MTC controls layout, navigation and branding</td></tr>
+        <tr><td>Integration</td><td>First-party. Microsoft Intune for enterprise policy.</td><td class="us">Qlik's published APIs and embed component. Standard app configuration for any device management.</td></tr>
+        <tr><td>Workflows</td><td>Alerts, push notifications, monitored charts, several Tenants</td><td class="us">Ask, check sources, rate. One Tenant at a time. No alerts.</td></tr>
+        <tr><td>Security</td><td>Qlik owns the app and its data handling</td><td class="us">Qlik enforces access. MTC owns tokens, storage and lock on the device.</td></tr>
+        <tr><td>Maintenance</td><td>Qlik releases about monthly</td><td class="us">MTC maintains both platforms, regional sign-in clients and compatibility with Qlik updates</td></tr>
+      </tbody>
+    </table>
+    <p class="source rise">Qlik Analytics information: Apple App Store, Google Play and Qlik Help, October 2026.</p>
+  </div>
+</section>
+
+<!-- 10 · Evaluation -->
+<section class="slide" data-title="Evaluation">
   <p class="eyebrow rise">Evaluation</p>
-  <h2 class="rise">Advantages, limitations and what could come next</h2>
-  <div class="eval">
-    <div class="card rise"><h3>Advantages <span class="chip done">Today</span></h3><ul>
-      <li>Native Qlik Answers on mobile, with sources</li><li>Every request runs as the signed-in person</li><li>No backend to run, patch or secure</li><li>No Answer content kept on the phone</li><li>Hostname-only setup; any MDM can configure it</li><li>Interface and roadmap under MTC's control</li></ul></div>
-    <div class="card rise"><h3>Limitations <span class="chip poc">Known</span></h3><ul>
-      <li>Analytics viewer and Agentic Assistant are PoC</li><li>Embedded views rely on an unofficial token bridge</li><li>OAuth clients for ap and sg regions only</li><li>One Tenant at a time; online only; no alerts</li><li>Two chat experiences: native and Qlik's agentic UI</li><li>Internal builds only; no production build profile</li></ul></div>
-    <div class="card rise"><h3>Future <span class="chip plan">Proposed</span></h3><ul>
-      <li>iOS and physical-device acceptance</li><li>Harden the embedded host (ticket 24)</li><li>Production OAuth clients and more regions</li><li>Production build and distribution path</li><li>Verify MDM on a real MDM system</li><li>Pin the qlik-embed runtime version</li></ul></div>
+  <h2 class="rise">Advantages, limitations and next improvements</h2>
+  <div class="body">
+    <div class="grid3 eval">
+      <div class="card rise"><h3>Advantages <span class="chip ok">Today</span></h3><ul>
+        <li>Native Qlik Answers on mobile, with sources</li><li>Every request runs as the signed-in person</li><li>No MTC server to run, patch or secure</li><li>No Answers kept on the device</li><li>Hostname-only setup, or device management</li><li>Interface and roadmap under MTC's control</li></ul></div>
+      <div class="card rise"><h3>Limitations <span class="chip poc">Known</span></h3><ul>
+        <li>Analytics App viewer and Agentic Assistant are proofs of concept</li><li>Embedded views depend on Qlik behaviour without a formal contract</li><li>Sign-in clients for the AP and SG regions only</li><li>One Tenant at a time, online only, no alerts</li><li>Android beta only; no iOS release yet</li></ul></div>
+      <div class="card rise"><h3>Next <span class="chip plan">Proposed</span></h3><ul>
+        <li>Production sign-in clients and more regions</li><li>Hardened embedded Qlik views</li><li>Sheet browsing inside Analytics Apps</li><li>Signed iOS build</li><li>Validation with a real device-management system</li><li>Fixed version of the Qlik embed component</li></ul></div>
+    </div>
   </div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 2 min</h4><p>Leave a balanced picture. Separate what exists from what is proposed.</p>
-    <h4>Talking points</h4><ul><li>Advantages are all in the code today.</li><li>Limitations come from the README "Known limitations", the ADRs and the open tickets. Read two or three, not all.</li><li>The Future column is a set of proposals for discussion. None has an approved budget or date. Do not commit to any of them in the meeting.</li></ul>
-    <h4>More proposals if asked</h4><ul><li>Sheet browsing acceptance for Analytics Apps (ticket 20).</li><li>Decide whether to keep or retire native Legacy chat once the Agentic Assistant passes device acceptance (ticket 22, blocked).</li><li>Time-boxed spike on Qlik's published MCP server as a documented route to Analytics App data (docs/research-gemini-enterprise-mcp-integration.md). Research recommends not building a Gemini path now.</li><li>Tablet layout already docks the side panel at 768pt and wider (issue 37 awaits device sign-off).</li></ul>
-    <h4>Transition</h4><p>"To close, here is where we are and what we suggest next."</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 10 · CONCLUSION =============================== -->
-<section class="slide" data-title="Conclusion and next steps" data-min="2">
+<!-- 11 · Conclusion -->
+<section class="slide" data-title="Conclusion and next steps">
   <p class="eyebrow rise">Conclusion</p>
   <p class="big rise">Qurio is a <em>customizable analytics experience</em> powered by Qlik: governed answers and your Analytics Apps, in one native app.</p>
-  <div class="grid3 sum">
-    <div class="card rise"><b>Why</b><p>Qlik Answers on mobile, without a browser, beside the apps people already use.</p></div>
-    <div class="card rise"><b>What works</b><p>Sign-in, Assistant chat with sources and feedback, History, Apps list, device protection.</p></div>
-    <div class="card rise"><b>How it fits</b><p>Direct to your Tenant on Qlik's APIs and embed runtime. Qlik keeps control of data and access.</p></div>
+  <div class="body">
+    <div class="grid3 sum">
+      <div class="card rise"><p class="label">Why</p><p>Qlik Answers on mobile without a browser, beside the apps people already use.</p></div>
+      <div class="card rise"><p class="label">What works</p><p>Sign-in, Assistant chat with sources, conversation history, Apps browsing and device protection, in a signed Android beta.</p></div>
+      <div class="card rise"><p class="label">How it fits</p><p>Direct to your Tenant through Qlik's APIs and embed component. Qlik keeps control of data and access.</p></div>
+    </div>
+    <div class="steps rise">
+      <div>Your feedback<span>Today</span></div>
+      <div>Feature priorities<span>Together</span></div>
+      <div class="later">Beta acceptance testing<span>Proposed</span></div>
+      <div class="later">Security validation<span>Proposed</span></div>
+      <div class="later">iOS build<span>Proposed</span></div>
+      <div class="later">Production readiness<span>Proposed</span></div>
+    </div>
   </div>
-  <div class="steps rise">
-    <div>Your feedback<span>Today</span></div>
-    <div>Prioritize features<span>Together</span></div>
-    <div class="later">Security validation<span>Proposed</span></div>
-    <div class="later">Performance testing<span>Proposed</span></div>
-    <div class="later">User acceptance<span>Proposed</span></div>
-    <div class="later">Deployment readiness<span>Proposed</span></div>
-  </div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 2 min</h4><p>Summarize and ask for the next decision.</p>
-    <h4>Key messages</h4><ul><li><b>Why:</b> Qlik Answers on mobile without a browser, next to Analytics Apps.</li><li><b>What works:</b> the native Assistant experience end to end, History, the Apps list, and device protection.</li><li><b>How it fits:</b> no MTC server; the client's Tenant stays the source of truth.</li><li><b>Value:</b> a tailored experience on infrastructure the client already pays for.</li></ul>
-    <h4>Next steps (be precise)</h4><ul><li>Solid lines are what we ask for today: feedback and a joint priority list.</li><li>Dashed lines are proposed activities. No project document commits them yet. Present them as a recommended sequence, not a plan with dates.</li></ul>
-    <h4>Closing line</h4><p>"Qurio does not replace Qlik. It gives your people a tailored, governed way to ask questions and reach their Analytics Apps on their phones. We would like your feedback on what matters most next."</p>
-    <h4>Transition</h4><p>"Let's open it up for questions."</p>
-  </div></aside>
 </section>
 
-<!-- =============================== 11 · Q&A =============================== -->
-<section class="slide s-qa" data-title="Questions and discussion" data-min="10">
+<!-- 12 · Questions -->
+<section class="slide s-qa" data-title="Questions and discussion">
   <div class="brand rise"><img src="logo.svg" alt="" /><span>Qurio</span></div>
   <h1 class="rise">Questions &amp; discussion</h1>
-  <p class="lede rise">Thank you. We would value your feedback on priorities.</p>
-  <div class="topics rise"><span class="chip">Why not native Qlik Analytics?</span><span class="chip">How Qlik Answers integrates</span><span class="chip">Data protection</span><span class="chip">Current limitations</span><span class="chip">When Qlik changes its APIs</span><span class="chip">Maintenance effort</span><span class="chip">Production readiness</span></div>
-  <aside class="notes"><div class="nt">
-    <h4>Objective · 10 min</h4><p>Answer briefly and honestly. If unsure, say so and follow up in writing.</p>
-    <h4>Why use this instead of native Qlik Analytics?</h4><p>Use both. Qlik Analytics is best for full dashboards, offline and alerts. Qurio adds native Qlik Answers on mobile without a browser, with History, sources and feedback, in an interface we can tailor.</p>
-    <h4>What additional value does it provide?</h4><p>Conversational answers with Citations on a phone; one place for Assistants and Analytics Apps; no Answer content on the device; lock and capture protection on by default.</p>
-    <h4>How does Qlik Answers integrate?</h4><p>Legacy Assistants: native screens over Qlik's published Assistants REST API, with streamed Answers. Agentic Assistants: Qlik's own qlik-embed UI inside the app, using the same sign-in (proof of concept).</p>
-    <h4>How is user data protected?</h4><p>Each person signs in as themselves, so Qlik enforces their permissions. The access token stays in memory, the refresh token in the device keystore. Sign-out revokes tokens. No Answers are stored. Embedded hardening is still open (ticket 24).</p>
-    <h4>What are the current limitations?</h4><p>Analytics viewer and Agentic Assistant are PoC; two OAuth regions (ap, sg); one Tenant at a time; online only; no alerts; internal builds only.</p>
-    <h4>What happens when Qlik APIs or services change?</h4><p>Lists and Legacy chat use published, stable REST APIs. The embedded token bridge has no Qlik contract and loads runtime v1 from a CDN, so we re-check it after Qlik runtime updates. Pinning the runtime is a proposed improvement.</p>
-    <h4>How difficult is it to maintain?</h4><p>Moderate. One codebase for iOS and Android, no server. MTC owns regional OAuth clients, the Android managed-config module, and re-checks of embedded views. The repository has unit tests, lint and type checks in CI.</p>
-    <h4>Is it ready for production?</h4><p>No, not yet. The native Assistant experience is the most mature part. Production needs device acceptance on iOS and physical Android, embedded hardening, production OAuth clients (GitHub issue 8), and a production build profile.</p>
-    <h4>What are the recommended next steps?</h4><p>Your feedback and priorities today. Then, if you agree: security validation, performance testing, user acceptance testing, and a deployment readiness assessment.</p>
-  </div></aside>
+  <p class="lede rise">Thank you. We welcome your feedback and priorities.</p>
 </section>
 
 </div>
@@ -584,55 +526,42 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
 
 <div class="hud" id="hud">
   <button id="b-prev" aria-label="Previous slide">‹</button>
-  <span class="counter" id="counter">1 / 11</span>
+  <span class="counter" id="counter"></span>
   <button id="b-next" aria-label="Next slide">›</button>
   <button id="b-over" aria-label="Overview (O)">Overview</button>
-  <button id="b-pres" aria-label="Open presenter view (P)">Presenter</button>
+  <button id="b-pres" aria-label="Presenter window (P)">Presenter</button>
   <button id="b-full" aria-label="Fullscreen (F)">Fullscreen</button>
   <button id="b-help" aria-label="Keyboard help (?)">?</button>
 </div>
 
-<div class="panel notes-drawer" id="notes-drawer"></div>
-<div class="panel help" id="help" role="dialog" aria-label="Keyboard shortcuts">
+<div class="help" id="help" role="dialog" aria-label="Keyboard shortcuts">
   <b>Keyboard</b><br />
   <kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd> next · <kbd>←</kbd> <kbd>PgUp</kbd> previous · <kbd>Home</kbd> <kbd>End</kbd><br />
-  <kbd>F</kbd> fullscreen · <kbd>O</kbd> overview · <kbd>N</kbd> notes · <kbd>P</kbd> presenter window<br />
-  <kbd>T</kbd> light / dark · <kbd>Esc</kbd> close · <kbd>?</kbd> this help<br />
-  <span class="muted">Printable notes: open with <b>?notes</b> after the file name.</span>
+  <kbd>F</kbd> fullscreen · <kbd>O</kbd> overview · <kbd>P</kbd> presenter window<br />
+  <kbd>T</kbd> light / dark · <kbd>Esc</kbd> close · <kbd>?</kbd> this help
 </div>
 <div class="overview" id="overview"></div>
 
 <div class="pres" id="pres">
   <div class="pres-bar">
     <span class="clock" id="clock">00:00</span>
-    <span class="pace" id="pace">Timer stopped</span>
     <button id="p-timer">Start timer</button>
     <button id="p-reset">Reset</button>
     <span class="muted" id="p-slide"></span>
-    <span class="muted" style="margin-left:auto"><kbd>←</kbd> <kbd>→</kbd> control the audience window</span>
   </div>
-  <div class="pres-left"><div class="frame" id="f-cur"></div></div>
-  <div class="pres-right">
-    <div><div class="frame-label">Next</div><div class="frame next" id="f-next"></div></div>
-    <div class="pres-notes" id="p-notes"></div>
-  </div>
+  <div><div class="frame-label">Current</div><div class="frame" id="f-cur"></div></div>
+  <div><div class="frame-label">Next</div><div class="frame" id="f-next"></div></div>
 </div>
-
-<div class="handout-list" id="handout"></div>
 
 <script>
 (() => {
   const W = 1600, H = 900;
   const stage = document.getElementById('stage');
   const slides = [...stage.querySelectorAll('.slide')];
-  const params = new URLSearchParams(location.search);
-  const mode = params.has('presenter') ? 'presenter' : params.has('notes') ? 'handout' : 'deck';
-  const minutes = slides.map((s) => Number(s.dataset.min) || 0);
-  const ends = minutes.map((_, k) => minutes.slice(0, k + 1).reduce((a, b) => a + b, 0));
+  const presenter = new URLSearchParams(location.search).has('presenter');
   let index = 0;
   let presenterWin = null;
 
-  // Stagger the entrance of each slide's .rise elements in document order.
   slides.forEach((s) => s.querySelectorAll('.rise').forEach((el, k) => el.style.setProperty('--i', k)));
 
   const fitTo = (el, box) => el.style.setProperty('--s', Math.min(box.clientWidth / W, box.clientHeight / H));
@@ -642,32 +571,34 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
   };
   addEventListener('resize', fit);
 
-  // A detached copy of one slide in its own stage, for previews.
   function miniStage(k) {
     const st = document.createElement('div');
     st.className = 'stage';
     if (k < slides.length) { const c = slides[k].cloneNode(true); c.classList.add('active'); st.append(c); }
     return st;
   }
-  const notesOf = (k) => slides[k].querySelector('.notes')?.innerHTML ?? '';
 
   function render() {
     slides.forEach((s, k) => s.classList.toggle('active', k === index));
     document.getElementById('progress').style.width = `${((index + 1) / slides.length) * 100}%`;
     document.getElementById('counter').textContent = `${index + 1} / ${slides.length}`;
-    document.getElementById('notes-drawer').innerHTML = notesOf(index);
     document.title = `${index + 1}. ${slides[index].dataset.title} · Qurio`;
     history.replaceState(null, '', `${location.search}#${index + 1}`);
-    if (mode === 'presenter') renderPresenter();
+    if (presenter) {
+      document.getElementById('f-cur').replaceChildren(miniStage(index));
+      document.getElementById('f-next').replaceChildren(miniStage(index + 1));
+      document.getElementById('p-slide').textContent = `Slide ${index + 1} of ${slides.length} · ${slides[index].dataset.title}`;
+      fit();
+    }
   }
 
   function go(k, fromPeer = false) {
     index = Math.max(0, Math.min(slides.length - 1, k));
     render();
     if (fromPeer) return;
-    // The two windows mirror each other. postMessage works between file:// windows too.
+    // The audience and presenter windows mirror each other. postMessage also works between file:// windows.
     if (presenterWin && !presenterWin.closed) presenterWin.postMessage({ qurio: 'go', index }, '*');
-    if (mode === 'presenter' && opener && !opener.closed) opener.postMessage({ qurio: 'go', index }, '*');
+    if (presenter && opener && !opener.closed) opener.postMessage({ qurio: 'go', index }, '*');
   }
 
   addEventListener('message', (e) => {
@@ -678,45 +609,23 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
     if (d.qurio === 'hello' && presenterWin) presenterWin.postMessage({ qurio: 'go', index }, '*');
   });
 
-  // ---------- presenter window ----------
-  let t0 = null, elapsed = 0, tick = null;
-  const fmt = (ms) => { const s = Math.floor(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
-  function renderClock() {
-    const ms = elapsed + (t0 ? Date.now() - t0 : 0);
-    document.getElementById('clock').textContent = fmt(ms);
-    const pace = document.getElementById('pace');
-    const due = ends[index] * 60000;
-    if (!t0 && !elapsed) { pace.textContent = 'Timer stopped'; pace.classList.remove('late'); return; }
-    const left = due - ms;
-    pace.textContent = left >= 0 ? `On pace · ${fmt(left)} left for this slide` : `Over by ${fmt(-left)}`;
-    pace.classList.toggle('late', left < 0);
-  }
-  function renderPresenter() {
-    const cur = document.getElementById('f-cur'), next = document.getElementById('f-next');
-    cur.replaceChildren(miniStage(index));
-    next.replaceChildren(miniStage(index + 1));
-    if (index + 1 >= slides.length) next.textContent = 'End of deck';
-    document.getElementById('p-notes').innerHTML = notesOf(index);
-    document.getElementById('p-slide').textContent = `Slide ${index + 1} of ${slides.length} · ${slides[index].dataset.title} · ${minutes[index]} min · ends at ${ends[index]} min`;
-    fit();
-    renderClock();
-  }
-  if (mode === 'presenter') {
+  if (presenter) {
     document.body.classList.add('presenter');
+    let t0 = null, elapsed = 0, tick = null;
+    const clock = () => {
+      const s = Math.floor((elapsed + (t0 ? Date.now() - t0 : 0)) / 1000);
+      document.getElementById('clock').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    };
     document.getElementById('p-timer').onclick = (e) => {
       if (t0) { elapsed += Date.now() - t0; t0 = null; clearInterval(tick); e.target.textContent = 'Resume timer'; }
-      else { t0 = Date.now(); tick = setInterval(renderClock, 500); e.target.textContent = 'Pause timer'; }
-      renderClock();
+      else { t0 = Date.now(); tick = setInterval(clock, 500); e.target.textContent = 'Pause timer'; }
+      clock();
     };
-    document.getElementById('p-reset').onclick = () => { elapsed = 0; if (t0) t0 = Date.now(); renderClock(); };
+    document.getElementById('p-reset').onclick = () => { elapsed = 0; if (t0) t0 = Date.now(); clock(); };
     opener?.postMessage({ qurio: 'hello' }, '*');
   }
-  function openPresenter() {
-    const url = `${location.pathname}?presenter#${index + 1}`;
-    presenterWin = open(url, 'qurio-presenter', 'width=1400,height=850');
-  }
+  const openPresenter = () => { presenterWin = open(`${location.pathname}?presenter#${index + 1}`, 'qurio-presenter', 'width=1400,height=850'); };
 
-  // ---------- overview ----------
   function toggleOverview(force) {
     const on = document.body.classList.toggle('show-overview', force);
     if (!on) return;
@@ -736,29 +645,8 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
     ov.querySelector('.current')?.focus();
   }
 
-  // ---------- printable handout ----------
-  if (mode === 'handout') {
-    document.body.classList.add('handout');
-    const list = document.getElementById('handout');
-    const head = document.createElement('h1');
-    head.textContent = 'Qurio client presentation · presenter notes';
-    head.style.cssText = 'font-size:32px;margin:0 0 8px';
-    list.append(head);
-    slides.forEach((s, k) => {
-      const row = document.createElement('div');
-      row.className = 'ho-row';
-      const f = document.createElement('div');
-      f.className = 'frame';
-      f.append(miniStage(k));
-      const n = document.createElement('div');
-      n.innerHTML = `<h3>${k + 1}. ${s.dataset.title} · ${minutes[k]} min</h3>${notesOf(k)}`;
-      row.append(f, n);
-      list.append(row);
-    });
-  }
-
-  // ---------- input ----------
   const toggle = (cls, force) => document.body.classList.toggle(cls, force);
+  const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
   addEventListener('keydown', (e) => {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     const k = e.key;
@@ -766,23 +654,22 @@ body.handout .handout-list { display: block; padding: 32px; max-width: 1200px; m
     else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); go(index - 1); }
     else if (k === 'Home') go(0);
     else if (k === 'End') go(slides.length - 1);
-    else if (mode !== 'deck') return;
-    else if (k === 'f' || k === 'F') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    else if (presenter) return;
+    else if (k === 'f' || k === 'F') fullscreen();
     else if (k === 'o' || k === 'O') toggleOverview();
-    else if (k === 'n' || k === 'N') toggle('show-notes');
     else if (k === 'p' || k === 'P') openPresenter();
     else if (k === 't' || k === 'T') {
       const dark = getComputedStyle(document.documentElement).colorScheme === 'dark';
       document.documentElement.dataset.theme = dark ? 'light' : 'dark';
     }
     else if (k === '?') toggle('show-help');
-    else if (k === 'Escape') { toggle('show-help', false); toggle('show-notes', false); toggleOverview(false); }
+    else if (k === 'Escape') { toggle('show-help', false); toggleOverview(false); }
   });
   document.getElementById('b-prev').onclick = () => go(index - 1);
   document.getElementById('b-next').onclick = () => go(index + 1);
   document.getElementById('b-over').onclick = () => toggleOverview();
   document.getElementById('b-pres').onclick = openPresenter;
-  document.getElementById('b-full').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  document.getElementById('b-full').onclick = fullscreen;
   document.getElementById('b-help').onclick = () => toggle('show-help');
 
   let hideTimer;
