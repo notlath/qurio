@@ -19,6 +19,13 @@ describe('resolveTenant', () => {
     });
   });
 
+  it('resolves a us hostname with the us published client ID', () => {
+    expect(resolveTenant({ dev: { tenantHost: 'acme.us.qlikcloud.com' } })).toEqual({
+      kind: 'resolved',
+      config: { tenantHost: 'acme.us.qlikcloud.com', clientId: '01a15572dafb71aabe306ae5e87c3f95' },
+    });
+  });
+
   it('resolves a pasted browser URL', () => {
     const result = resolveTenant({ dev: { tenantHost: 'https://Acme.SG.qlikcloud.com/' } });
 
