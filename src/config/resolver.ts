@@ -8,6 +8,7 @@ type TenantSources = { managed?: PartialTenantConfig; dev?: PartialTenantConfig 
 const PUBLISHED_CLIENT_IDS: Record<string, string> = {
   ap: '01a10a79d20b4352bf7e0596e383407e',
   sg: '01a107a4b62d66ffc82d0ffc7e6b1098',
+  us: '01a15572dafb71aabe306ae5e87c3f95',
 };
 /** "<name>.<region>.qlikcloud.com". A custom domain, or a hostname with no region, does not match. */
 const REGIONAL_HOST =/^[^.]+\.([^.]+)\.qlikcloud\.com$/;
