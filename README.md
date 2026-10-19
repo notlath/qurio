@@ -129,8 +129,8 @@ Native UI uses a drawer with native navigation stacks, platform symbols, and Swi
 
 For live Qlik access, obtain:
 
-- A reachable Qlik Cloud Tenant in a region with a published client (`ap` or `sg`). For another region or a custom domain, supply your own Native OAuth client ID.
-- A Tenant admin approval of the published client, given once per Tenant. See [Authentication](#authentication).
+- A reachable Qlik Cloud Tenant at `<name>.<region>.qlikcloud.com`, in any region. A custom domain is not supported.
+- A Tenant admin approval of the app, given once per Tenant. The first sign-in at a Tenant must be by a Tenant admin. See [Authentication](#authentication).
 - A Qlik User with the Answers Entitlement for Assistant use.
 - Space access for the Qlik User to each Assistant, and to the Analytics Apps and Knowledge Bases that the Assistant uses.
 
@@ -230,12 +230,12 @@ The source contract is [src/config/types.ts](src/config/types.ts).
 | Key | Type | Required | Purpose |
 | --- | --- | --- | --- |
 | `tenantHost` | string | Yes | Tenant hostname, such as `acme.sg.qlikcloud.com`. Store no scheme or path. |
-| `clientId` | string | No | Native OAuth client ID. When absent, the app uses MTC's published client for the hostname's region. Required for a custom domain or a region without a published client. |
+| `clientId` | string | No | Native OAuth client ID. When absent, the app uses MTC's published client for the hostname's region, or the Metadata Client where MTC has no published client. Required for a custom domain. |
 | `assistantId` | string | No | Read, but not used. The Qlik User chooses the Assistant in the app. |
 | `agenticAssistantId` | string | No | An Agentic Assistant to offer in the Assistant sheet. Without it, the sheet lists the Agentic Assistants that the Qlik User can view. |
 | `biometricTimeoutMs` | number | No | Background duration before the enabled privacy lock locks again. Default: `300000` milliseconds. |
 
-[src/config/resolver.ts](src/config/resolver.ts) holds the published client ID for each region. Today it covers `ap` and `sg`. To add a region, add its client ID to `PUBLISHED_CLIENT_IDS`.
+[src/config/resolver.ts](src/config/resolver.ts) holds the published client ID for each region. Today it covers `ap`, `sg` and `us`. Every other region uses the Metadata Client (ADR-0012). Do not add a region unless Customers there need a published client.
 
 The resolver resolves each source on its own:
 
@@ -243,7 +243,7 @@ The resolver resolves each source on its own:
 2. Otherwise, use the configuration saved in the app if it resolves.
 3. Otherwise, report why the configuration did not resolve. If managed configuration supplied a hostname, the report is about that hostname.
 
-A source resolves when it has a hostname and a client ID, supplied or looked up by region. A hostname without a region (a custom domain) needs its own client ID. A region without a published client is reported as unsupported.
+A source resolves when it has a hostname and a client ID, supplied or looked up by region. A hostname without a region (a custom domain) needs its own client ID.
 
 The resolver does not combine fields from different sources. It removes whitespace and control characters from identifiers. It also normalizes a pasted Tenant URL to a lowercase hostname.
 

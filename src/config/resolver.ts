@@ -10,6 +10,13 @@ const PUBLISHED_CLIENT_IDS: Record<string, string> = {
   sg: '01a107a4b62d66ffc82d0ffc7e6b1098',
   us: '01a15572dafb71aabe306ae5e87c3f95',
 };
+/**
+ * MTC's Client ID Metadata Document, for every region with no published client (ADR-0012). Qlik makes a
+ * Native client from it when a Tenant admin approves the app. The URL is the client's identity: a new URL
+ * is a new client, and every Tenant that approved the old one must approve again.
+ * ponytail: GitHub Pages under a personal account is beta only. Move it to an MTC domain before a Customer release.
+ */
+const METADATA_CLIENT_ID = 'https://notlath.github.io/qurio-oauth/client.json';
 /** "<name>.<region>.qlikcloud.com". A custom domain, or a hostname with no region, does not match. */
 const REGIONAL_HOST =/^[^.]+\.([^.]+)\.qlikcloud\.com$/;
 
@@ -43,16 +50,15 @@ function clean(config?: PartialTenantConfig): PartialTenantConfig | undefined {
   return cleaned;
 }
 
-/** One source on its own: a client ID it supplies wins over the built-in one for its region. */
+/** One source on its own: a client ID it supplies wins over the built-in one for its region, and any region has one. */
 function resolveSource(source?: PartialTenantConfig): TenantResolution {
   const config = clean(source);
   if (!config?.tenantHost) return { kind: 'not-configured' };
   const { tenantHost } = config;
   const region = REGIONAL_HOST.exec(tenantHost)?.[1];
-  const clientId = config.clientId || (region ? PUBLISHED_CLIENT_IDS[region] : undefined);
+  const clientId = config.clientId || (region ? PUBLISHED_CLIENT_IDS[region] ?? METADATA_CLIENT_ID : undefined);
   if (clientId) return { kind: 'resolved', config: { ...config, tenantHost, clientId } };
-  if (!region) return { kind: 'custom-domain', tenantHost };
-  return { kind: 'unsupported-region', tenantHost, region };
+  return { kind: 'custom-domain', tenantHost };
 }
 
 /**

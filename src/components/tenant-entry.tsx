@@ -47,9 +47,7 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void
     if (result.kind !== 'resolved') {
       setMessage(result.kind === 'custom-domain'
         ? 'This is a custom domain. Enter your standard Tenant address ending in qlikcloud.com.'
-        : result.kind === 'unsupported-region'
-          ? `Region "${result.region}" is not supported. Contact your administrator.`
-          : 'Enter your Tenant hostname.');
+        : 'Enter your Tenant hostname.');
       return;
     }
     setBusy(true);
