@@ -1,7 +1,8 @@
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
-import type { NavigationProp } from 'expo-router/react-navigation';
+import { useHeaderHeight, type NavigationProp } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AssistantProblem } from '@/components/assistant-switcher';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
@@ -9,6 +10,7 @@ import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
 import { Icon } from '@/components/icon';
 import { InteractionRow } from '@/components/interaction-row';
+import { KeyboardCentered } from '@/components/keyboard-centered';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { TextStyles, ThemedText } from '@/components/themed-text';
 import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
@@ -18,6 +20,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { AnswersScope, useAnswersPort } from '@/qlik/context';
+
+// Relative, not `@/`: Jest maps `@/` to `src/` only.
+const LOGO = require('../../../../assets/images/logo.svg');
 
 /** This screen's navigation, so `setParams` accepts the chat params only. */
 const useChatNavigation = () => useNavigation<NavigationProp<{ index: ChatParams }, 'index'>>();
@@ -192,6 +197,12 @@ function Conversation({
     stop,
     dismissError,
   } = useThreadConversation(thread, initialInteractions);
+  const welcoming = !asking && interactions.length === 0 && !!starters;
+  // iOS: the list runs under the transparent header and starts below it, but its content still fills
+  // the list's full height, so a centred welcome sat half the header's height low. The same space at
+  // the bottom centres it in what the Qlik User sees (CHAT_HEADER, assistant/_layout.tsx).
+  const headerHeight = useHeaderHeight();
+  const underHeader = Platform.OS === 'ios' ? headerHeight : 0;
 
   return (
     <View style={styles.flex}>
@@ -210,23 +221,27 @@ function Conversation({
         renderItem={({ item }) => <InteractionRow interaction={item} />}
         keyboardDismissMode="interactive"
         contentInsetAdjustmentBehavior="automatic"
-        renderScrollComponent={(props) => <ChatScrollView {...props} />}
+        // The welcome keeps itself centred above the Composer, so the list does not also lift it.
+        renderScrollComponent={(props) => <ChatScrollView {...props} lift={!welcoming} />}
         ListEmptyComponent={
           asking ? null : starters ? (
-            <View style={styles.emptyState}>
-              <ThemedText type="title" style={styles.welcomeTitle}>
-                What can I help with?
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary" style={styles.welcomeCopy}>
-                Answers stay grounded in your organization&rsquo;s knowledge.
-              </ThemedText>
-              {starters.length > 0 && (
-                <View style={styles.startersSection} accessibilityLabel="Start with a prompt">
-                  {starters.map((starter) => (
-                    <StarterRow key={starter.id} starter={starter} onPress={ask} />
-                  ))}
-                </View>
-              )}
+            <View style={[styles.emptyState, { paddingBottom: styles.emptyState.paddingBottom + underHeader }]}>
+              <KeyboardCentered style={styles.welcome}>
+                <Image source={LOGO} style={styles.welcomeLogo} accessible={false} />
+                <ThemedText type="title" style={styles.welcomeTitle}>
+                  What can I help with?
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.welcomeCopy}>
+                  Answers stay grounded in your organization&rsquo;s knowledge.
+                </ThemedText>
+                {starters.length > 0 && (
+                  <View style={styles.startersSection} accessibilityLabel="Start with a prompt">
+                    {starters.map((starter) => (
+                      <StarterRow key={starter.id} starter={starter} onPress={ask} />
+                    ))}
+                  </View>
+                )}
+              </KeyboardCentered>
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -262,7 +277,13 @@ function ThreadSkeleton() {
   const fill = { backgroundColor: theme.backgroundSelected };
 
   return (
-    <View accessible accessibilityLabel="Loading conversation" style={[styles.listContent, ContentColumn]}>
+    // A scroll view, not a plain view, so iOS starts it below the transparent header as it does the list.
+    <ScrollView
+      scrollEnabled={false}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.listContent, ContentColumn]}
+      accessible
+      accessibilityLabel="Loading conversation">
       <View style={styles.skeletonTurn}>
         <View style={[styles.skeletonQuestion, Shape.continuous, fill]} />
         <View style={styles.skeletonAnswer}>
@@ -271,7 +292,7 @@ function ThreadSkeleton() {
           ))}
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -279,6 +300,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
+  // Stretched, so the starters still wrap across the full column.
+  welcome: { alignSelf: 'stretch', alignItems: 'center', gap: Spacing.three },
+  welcomeLogo: { width: Spacing.five + Spacing.four, height: Spacing.five + Spacing.four, borderRadius: Radius.control },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },
   welcomeCopy: { maxWidth: 480, textAlign: 'center' },
   startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },

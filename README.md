@@ -6,6 +6,7 @@ This README describes the current code. Some design documents describe changes t
 
 ## Contents
 
+- [Beta release and Android installation](#beta-release-and-android-installation)
 - [Current behavior](#current-behavior)
 - [Technology](#technology)
 - [Requirements](#requirements)
@@ -15,23 +16,76 @@ This README describes the current code. Some design documents describe changes t
 - [Authentication](#authentication)
 - [Architecture](#architecture)
 - [Development and verification](#development-and-verification)
+- [Beta verification status](#beta-verification-status)
 - [Security and storage](#security-and-storage)
 - [Troubleshooting](#troubleshooting)
 - [Known limitations](#known-limitations)
 - [Maintenance and related documents](#maintenance-and-related-documents)
 - [License](#license)
 
+## Beta release and Android installation
+
+The first release is **Qurio v1.0.0-beta.1**, an internal beta for installation and acceptance testing. It is not a stable release.
+
+On October 19, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.1](https://github.com/notlath/qlik-answers-mobile/releases/tag/v1.0.0-beta.1). The uploaded asset digests match the verified local files. The existing GitHub workflow runs CI only.
+
+Download the APK and checksum from the release Assets section. This repository is private, so GitHub downloads require repository access.
+
+| Prepared APK | Verified value |
+| --- | --- |
+| Filename | `qurio-1.0.0-release-signed.apk` |
+| Android package | `com.mtc.qlikanswersapp` |
+| Embedded version / version code | `1.0.0` / `1` |
+| Minimum Android version | Android 7.0, API 24 |
+| Build | Release, not debuggable, with the application bundle included |
+| Signature | Release certificate. APK Signature Scheme v2 and v3 passed |
+| Alignment | 16 KB alignment check passed |
+
+The beta release label does not change the APK's embedded `1.0.0` version or version code `1`.
+
+### Install the standalone APK
+
+1. Obtain the APK from the maintainer or an approved GitHub Release.
+2. Compare its SHA-256 checksum with the value below.
+3. Open the APK on Android. Complete Android's installation confirmation if device policy permits installation from that source.
+4. Open Qurio. Enter the Tenant hostname and complete Qlik sign-in.
+
+Expected SHA-256 for the prepared APK:
+
+```text
+48E5E1391710E15040C2BE34C229E335A978FEE449437292CC69E11A11DD94B2
+```
+
+On Windows, verify a downloaded copy with PowerShell:
+
+```powershell
+Get-FileHash -LiteralPath './qurio-1.0.0-release-signed.apk' -Algorithm SHA256
+```
+
+For USB installation, connect an authorized device with USB debugging enabled:
+
+```bash
+adb devices
+adb install ./qurio-1.0.0-release-signed.apk
+```
+
+The standalone APK runs without a computer or Expo/Metro server. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud. A development-client APK normally requires Metro, even when it is signed. Signing alone does not make a build standalone.
+
+No installable iOS artifact is recorded for this beta. Use the iOS development options below for testing.
+
 ## Current behavior
 
 On first start, the Qlik User types only the Tenant hostname, then signs in. The app looks up MTC's published OAuth client for the hostname's region. It then lists the Tenant's Assistants. See [Configure a Tenant](#configure-a-tenant).
 
-The app has three tabs:
+The app opens on the Assistant. A side panel provides navigation and the selected Assistant's History:
 
-| Tab | Behavior |
+| Destination | Behavior |
 | --- | --- |
 | Apps | Lists accessible Analytics Apps in update order. Supports list and grid views, name search, pagination, and pull to refresh. Opens an Analytics App in an embedded Qlik view. |
 | Assistant | Provides native classic Assistant chat. Supports streamed Answers, Stop, Starters, Citations, Feedback, and a **New conversation** action. The header shows the current Assistant. It opens a sheet that lists classic and Agentic Assistants. History lists the Threads of one Assistant at a time. |
 | Settings | Provides sign-in, sign-out, the privacy lock, and **Change tenant**. Internal builds also provide a Developer section with manual Tenant Configuration, screenshot, and token-expiry controls. |
+
+On narrow windows, the panel overlays the current screen. At widths of 768 points or more, it docks beside the content. The panel button can collapse the docked panel. Settings opens above the overlay on phones or beside the docked panel on wide windows.
 
 The app shows classic Assistants as "Legacy Assistants", which is Qlik's own name for them. The code and this README call them classic Assistants.
 
@@ -39,7 +93,7 @@ The Qlik User chooses the Assistant for each new Thread. A Thread keeps its Assi
 
 Classic Citations show document names and available excerpts. They do not open the source documents. Negative Feedback can include a reason and a comment.
 
-To delete a Thread from History, swipe the row left, long-press the row, or use the screen reader's Delete action. Each path asks for confirmation first.
+Long-press a Thread in History to **Pin** or **Unpin**, **Rename**, or **Delete** it. Screen-reader actions provide the same controls. Delete asks for confirmation. Pinned Threads appear above the other conversations. Swiping closes the overlay panel instead of deleting a Thread.
 
 The app finds Agentic Assistants in the same Assistant list. They open in Qlik's own interface inside a WebView. Their history is separate from classic Thread history. Recorded Android use shows that reopening starts a new chat. Qlik's history control provides access to earlier chats.
 
@@ -51,9 +105,9 @@ These versions are declared in [package.json](package.json). Exact installed ver
 
 | Component | Version or configuration |
 | --- | --- |
-| Expo | SDK 57; `~57.0.26` |
+| Expo | SDK 57; `~57.0.29` |
 | React / React Native | `19.2.3` / `0.86.3` |
-| Expo Router | `~57.0.24`; file-based routes and typed routes |
+| Expo Router | `~57.0.27`; file-based routes and typed routes |
 | TypeScript | `~6.0.3`; strict mode |
 | Reanimated / Worklets | `4.5.1` / `0.10.1` |
 | React Native WebView | `13.16.1` |
@@ -61,18 +115,17 @@ These versions are declared in [package.json](package.json). Exact installed ver
 | Lint | ESLint 9 with Expo configuration |
 | React Compiler | Enabled in `app.json` |
 
-Native UI uses Expo native tabs, platform symbols, and SwiftUI or Compose switches. The app follows the device's light or dark appearance.
+Native UI uses a drawer with native navigation stacks, platform symbols, and SwiftUI or Compose switches. The app follows the device's light or dark appearance.
 
 ## Requirements
 
-- Node.js compatible with React Native 0.86.3. The lockfile declares `^20.19.4 || ^22.13.0 || ^24.3.0 || >=25.0.0`.
+- Node.js 24.3 or later in the 24.x series. CI uses Node.js 24. Check `package-lock.json` for dependency engine requirements.
 - npm for dependency installation and the committed lockfile.
-- Bun for the `bunx` commands in this README.
 - An iOS device with an Expo Go version that supports SDK 57, or an installed development build.
-- An Android device or emulator with an installed development build.
+- An Android device or emulator with a development build for coding, or the standalone APK for acceptance testing.
 - An EAS account with project access for cloud builds.
-- Android SDK and Java for local Android builds.
-- macOS and Xcode for local iOS builds. Physical iOS device builds also require Apple signing credentials.
+- Android SDK Platform 36, Platform Tools, Build Tools, JDK 17, and the generated project's NDK/CMake versions for local Android builds.
+- macOS, compatible Xcode, and CocoaPods for local iOS builds. Physical iOS device builds also require Apple signing credentials.
 
 For live Qlik access, obtain:
 
@@ -81,7 +134,7 @@ For live Qlik access, obtain:
 - A Qlik User with the Answers Entitlement for Assistant use.
 - Space access for the Qlik User to each Assistant, and to the Analytics Apps and Knowledge Bases that the Assistant uses.
 
-CLI examples use `bunx`. Dependency installation uses npm because this repository maintains `package-lock.json`. [Bun's documentation](https://github.com/oven-sh/bun/blob/main/docs/pm/bunx.mdx) explains executable resolution. Do not add `--bun` to force a different runtime for these tools.
+CLI examples use npm and npx with the committed `package-lock.json`. These development tools are not required to run the standalone APK.
 
 ## Install dependencies
 
@@ -97,12 +150,18 @@ You do not need a `.env` file to configure the app. See [Environment template](#
 
 ## Run and build
 
+These commands are for developers. Testers with the standalone APK can use [Android installation](#install-the-standalone-apk).
+
+Only the `development` EAS profile is committed. It normally connects to Metro. The prepared standalone APK came from a local Release build with a temporary signing override and a separate signing step. No standalone EAS profile or release-publishing workflow was added.
+
+Verify the actual signing certificate before distributing a local Release APK. The generated Android project used the debug key by default during build preparation.
+
 ### iOS with Expo Go
 
 Start Metro with a tunnel and select Expo Go:
 
 ```bash
-bunx expo start --tunnel --go
+npx expo start --tunnel --go
 ```
 
 Open the project in Expo Go on your iPhone. The tunnel allows access without a shared local network. Tunnel mode requires internet access and the tunnel support requested by Expo CLI.
@@ -118,38 +177,38 @@ Android requires a development build. Expo Go does not contain the local managed
 Sign in to EAS:
 
 ```bash
-bunx eas-cli login
+npx eas-cli@latest login
 ```
 
 Build the Android app:
 
 ```bash
-bunx eas-cli build -p android --profile development
+npx eas-cli@latest build -p android --profile development
 ```
 
 Install the APK from the completed build on your device. Then start Metro for the installed development client:
 
 ```bash
-bunx expo start --tunnel --dev-client
+npx expo start --tunnel --dev-client
 ```
 
-Open the development client and connect to the Metro URL. Use `bunx expo start --dev-client` if the device can reach Metro through the local network.
+Open the development client and connect to the Metro URL. Use `npx expo start --dev-client` if the device can reach Metro through the local network.
 
-[eas.json](eas.json) defines the `development` profile with `developmentClient: true` and internal distribution. It requires EAS CLI 16.0.1 or later. [app.json](app.json) already contains an EAS project ID. Obtain access to that project before building. To use a different EAS project, link it with `bunx eas-cli init` and review the configuration change.
+[eas.json](eas.json) defines the `development` profile with `developmentClient: true` and internal distribution. It requires EAS CLI 16.0.1 or later. [app.json](app.json) already contains an EAS project ID. Obtain access to that project before building. To use a different EAS project, link it with `npx eas-cli@latest init` and review the configuration change.
 
 ### Local native builds
 
 These commands compile and run the app with local platform tools:
 
 ```bash
-bunx expo run:android
-bunx expo run:ios
+npx expo run:android
+npx expo run:ios
 ```
 
 For an iOS cloud development build, use:
 
 ```bash
-bunx eas-cli build -p ios --profile development
+npx eas-cli@latest build -p ios --profile development
 ```
 
 The iOS cloud build requires the applicable Apple signing setup. Install the resulting build before connecting it to Metro.
@@ -157,7 +216,7 @@ The iOS cloud build requires the applicable Apple signing setup. Install the res
 ### Web preview
 
 ```bash
-bunx expo start --web
+npx expo start --web
 ```
 
 Web uses an in-memory fixture adapter. It does not sign in to Qlik or load embedded Qlik content. Use it to check classic-chat layouts and simulated data states. Web configuration does not enable live Qlik access.
@@ -194,7 +253,7 @@ The resolver does not combine fields from different sources. It removes whitespa
 2. Type the Tenant hostname, such as `acme.sg.qlikcloud.com`.
 3. Select **Continue**.
 4. Select **Sign in**. Complete Qlik sign-in.
-5. Choose an Assistant from the Assistant tab header.
+5. Choose an Assistant from the Assistant screen header.
 
 **Continue** checks whether the Tenant serves `/.well-known/oauth-authorization-server`. It does not verify the client, Assistant access, permissions, or entitlement.
 
@@ -270,17 +329,18 @@ Routes belong in `src/app/`. Do not add a separate root `app/` directory.
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Analytics App list in the Apps tab |
+| `/` | Redirects to `/assistant` |
+| `/apps` | Analytics App list |
 | `/apps/[id]` | Embedded Analytics App |
-| `/assistant` | New classic Thread |
+| `/assistant` | New or resumed classic Thread. History supplies the Thread and Assistant parameters |
 | `/assistant/choose` | Assistant sheet (form sheet). `?agentic=1` also lists Agentic Assistants. |
-| `/assistant/history` | Classic Thread history |
-| `/assistant/thread/[id]` | Existing classic Thread |
 | `/assistant/agentic` | Embedded Agentic Assistant; redirects to classic chat when unavailable |
 | `/settings` | Account, security, and Tenant controls |
 | `/settings/change-tenant` | Hostname entry for another Tenant |
+| `/docked-settings` | Settings beside the panel on wide windows |
+| `/docked-settings/change-tenant` | Tenant change beside the docked panel |
 
-The root layout loads fonts, applies capture protection, creates the Qlik adapter, and mounts the privacy lock. It also shows the hostname and sign-in screen until a Tenant resolves and a session exists. Native tabs contain separate navigation stacks.
+History is part of the side panel, not a separate route. The root layout loads fonts, applies capture protection, creates the Qlik adapter, and mounts the privacy lock. It shows the hostname and sign-in screen until a Tenant resolves and a session exists. The drawer destinations contain separate navigation stacks.
 
 ### Native REST access
 
@@ -312,17 +372,17 @@ Run these commands from the repository root:
 
 | Task | Command |
 | --- | --- |
-| Start Metro | `bunx expo start` |
-| Start iOS Expo Go through a tunnel | `bunx expo start --tunnel --go` |
-| Start a development client through a tunnel | `bunx expo start --tunnel --dev-client` |
-| Build and run Android locally | `bunx expo run:android` |
-| Build and run iOS locally | `bunx expo run:ios` |
-| Build Android on EAS | `bunx eas-cli build -p android --profile development` |
-| Start web preview | `bunx expo start --web` |
-| Lint | `bunx expo lint` |
-| Type check | `bunx tsc --noEmit` |
-| Run tests | `bunx jest --runInBand` |
-| Run source tests only | `bunx jest --runInBand --roots ./src` |
+| Start Metro | `npx expo start` |
+| Start iOS Expo Go through a tunnel | `npx expo start --tunnel --go` |
+| Start a development client through a tunnel | `npx expo start --tunnel --dev-client` |
+| Build and run Android locally | `npx expo run:android` |
+| Build and run iOS locally | `npx expo run:ios` |
+| Build Android on EAS | `npx eas-cli@latest build -p android --profile development` |
+| Start web preview | `npx expo start --web` |
+| Lint | `npx expo lint` |
+| Type check | `npx tsc --noEmit` |
+| Run tests | `npx jest --runInBand` |
+| Run source tests only | `npx jest --runInBand --roots ./src` |
 
 These commands invoke the tools used by the existing package scripts. The EAS build command uses the existing development profile. The repository has no production build profile or release script.
 
@@ -331,7 +391,7 @@ Tests are stored beside source files as `*.test.ts` or `*.test.tsx`. They cover 
 For a focused run, pass a test path:
 
 ```bash
-bunx jest src/config/resolver.test.ts --runInBand
+npx jest src/config/resolver.test.ts --runInBand
 ```
 
 ### Development conventions
@@ -346,6 +406,31 @@ bunx jest src/config/resolver.test.ts --runInBand
 
 Web fixtures support failure checks. Asking `ERROR:Offline` or `ERROR:RateLimited` simulates those errors. A Feedback comment equal to `FAIL` simulates submission failure. These triggers are fixture behavior only.
 
+## Beta verification status
+
+Recorded on October 19, 2026:
+
+| Check | Result |
+| --- | --- |
+| Replacement PR [#44 checks](https://github.com/notlath/qlik-answers-mobile/pull/44/checks) | Lint, TypeScript, unit tests, platform bundles, dependency audit, and GitGuardian passed |
+| Unit tests | 47 suites, 566 tests passed |
+| Dependency audit | Passed the configured critical threshold. 26 high and 16 moderate advisories remained |
+| Android Release build | Compiled and packaged successfully |
+| Signed APK | Release certificate, v2/v3 signatures, checksum, embedded bundle, and alignment verified |
+| Prepared APK on a physical Android device | Installation and live acceptance remain unverified |
+| iOS native build and device installation | Remain unverified. A successful JavaScript bundle is not a signed iOS build |
+| GitHub Release and APK upload | Published as `v1.0.0-beta.1`. APK and checksum digests verified |
+
+CI and signature checks do not establish production readiness. Earlier proof-of-concept device evidence does not validate this prepared APK.
+
+For beta acceptance, use a test Tenant and disposable Threads:
+
+1. Install the standalone APK. Start it with Metro stopped and internet access available.
+2. Verify Tenant connection, sign-in callbacks, token refresh, background resume, and the privacy lock.
+3. Ask a question. Verify Answers, History, pin/unpin, rename, and confirmed deletion of a test Thread.
+4. Verify Analytics Apps, Agentic Assistants, sign-out, and session isolation where the Tenant permits access.
+5. Record the device, OS version, APK version, and results. Test iPhone and iPad behavior separately when an iOS build is available.
+
 ## Security and storage
 
 | Data or control | Current implementation |
@@ -355,6 +440,7 @@ Web fixtures support failure checks. Asking `ERROR:Offline` or `ERROR:RateLimite
 | Local Tenant Configuration | AsyncStorage key `qlik.devTenantConfig` |
 | Last chosen Assistant | AsyncStorage key `qlik.lastAssistant.<tenantHost>` |
 | Apps view preference | AsyncStorage key `qlik.appsViewMode` |
+| Docked panel preference | AsyncStorage key `qlik.sidePanelCollapsed` |
 | Privacy lock preference | AsyncStorage key `qlik.privacyLockEnabled` |
 | Development screenshot preference | AsyncStorage key `qlik.devAllowScreenshots` |
 | Native Answers and Thread data | React state; no application persistence layer |
@@ -379,7 +465,7 @@ Development traces report token-request outcomes, remaining lifetime, and saniti
 | Tenant validation fails | Check the hostname, internet connection, and public OAuth metadata endpoint. |
 | Sign-in shows "Tenant Approval required" | A Tenant admin must sign in once and approve the app. Then sign in again. |
 | OAuth rejects the client or callback | Check `clientId`, Native client type, and the exact `qlikanswers://auth` redirect. |
-| Assistant tab shows "No Assistants available" | Ask the Tenant admin to give the Qlik User access to the space of an Assistant. |
+| Assistant screen shows "No Assistants available" | Ask the Tenant admin to give the Qlik User access to the space of an Assistant. |
 | An Assistant opens but cannot answer | Give the Qlik User access to the spaces of the Assistant's Analytics Apps and Knowledge Bases. Make sure the Knowledge Base is indexed. |
 | Android Expo Go cannot start or sign in | Install an Android development build and connect with `--dev-client`. |
 | Agentic Assistant is absent from the sheet | Give the Qlik User access to the space of the Agentic Assistant. The entry is native-only. |
@@ -388,8 +474,10 @@ Development traces report token-request outcomes, remaining lifetime, and saniti
 | Embedded view requests sign-in | Sign in from Settings, then reopen or retry the embedded view. |
 | Answers access is denied | Check Answers Entitlement and Assistant permissions with the Tenant administrator. |
 | App is locked | Select **Unlock** and complete device authentication. |
-| Jest reports duplicate modules or unrelated worktree failures | Use `bunx jest --runInBand --roots ./src`. Jest otherwise scans local agent worktrees. |
-| Metro serves stale output | Restart with `bunx expo start --clear` and the required `--go` or `--dev-client` option. |
+| Standalone APK requests Metro | Verify that you installed the standalone Release APK rather than a development-client build. |
+| Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | The installed app uses a different signing identity. Ask the maintainer for an update or migration plan. |
+| Jest reports duplicate modules or unrelated worktree failures | Use `npx jest --runInBand --roots ./src`. Jest otherwise scans local agent worktrees. |
+| Metro serves stale output | Restart with `npx expo start --clear` and the required `--go` or `--dev-client` option. |
 
 Assistant HTTP 403 errors currently map to `NotEntitled`. The adapter cannot distinguish a missing entitlement from denied Assistant access. Tenant-level HTTP 403 errors map to `AccessDenied`.
 
@@ -408,7 +496,8 @@ HTTP 429 produces a visible retry delay. The adapter uses `Retry-After` seconds 
 - Classic Citations cannot resolve documents to viewable URLs. History can omit excerpt text because it is not hydrated separately.
 - Native classic chat is still present. Plans to retire it are not implemented.
 - A managed `assistantId` is read but not used. The Assistant always comes from the Qlik User's choice in the app.
-- Swipe-to-delete, the Assistant form sheet, and the press animations are not yet verified on physical devices.
+- Side-panel gestures, the Assistant form sheet, and the press animations still require physical-device acceptance for this beta.
+- History loads up to 100 pinned Threads in its separate pinned query. Further pinned Threads appear when their regular History page loads.
 - Web shows no Apps search field, because the native search bar is iOS and Android only. Web also cannot delete a Thread, because `Alert` does not show on web.
 - The app is online only. It has no offline content, alerts, or push notifications.
 

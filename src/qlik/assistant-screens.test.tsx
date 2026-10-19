@@ -10,11 +10,13 @@ const mockSetParams = jest.fn((params: Record<string, string | undefined>) => { 
 jest.mock('@/global.css', () => ({}));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
+jest.mock('expo-router/react-navigation', () => ({ useHeaderHeight: () => 0 }));
 jest.mock('expo-router', () => ({ useNavigation: () => ({ setParams: mockSetParams }), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => mockParams }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
 jest.mock('@/components/assistant-switcher', () => ({ AssistantProblem: () => null }));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
+jest.mock('@/components/keyboard-centered', () => ({ KeyboardCentered: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/composer', () => ({ Composer: (props: unknown) => jest.requireActual('react').createElement('Composer', props as object), PendingAnswer: () => null, ChatScrollView: (props: unknown) => jest.requireActual('react').createElement('Scroll', props as object) }));
 jest.setTimeout(30000);
 
@@ -160,6 +162,17 @@ it('resumes a Thread from History through its own Assistant port', async () => {
   expect(resumed.ask).toHaveBeenCalledWith('old-thread', 'Continue', expect.any(Object));
   expect(selected.ask).not.toHaveBeenCalled();
   expect(resumed.createThread).not.toHaveBeenCalled();
+  await act(async () => { renderer.unmount(); });
+});
+
+it('keeps the loading skeleton below the transparent header, where the conversation lands', async () => {
+  const loading = { ...makePort('a'), getThread: jest.fn(() => new Promise(() => {})) } as unknown as AnswersPort;
+  useAssistantSelection.mockReturnValue({ portFor: () => loading, selected: { id: 'a' } });
+  mockParams = { thread: 'old-thread', assistantId: 'a' };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={loading}><ChatScreen /></AnswersScope>); });
+  const insetting = renderer.root.findAll((node) => node.props.contentInsetAdjustmentBehavior === 'automatic');
+  expect(insetting.some((node) => node.findAllByProps({ accessibilityLabel: 'Loading conversation' }).length > 0)).toBe(true);
   await act(async () => { renderer.unmount(); });
 });
 
