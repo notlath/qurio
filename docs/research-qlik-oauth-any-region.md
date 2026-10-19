@@ -267,6 +267,8 @@ Still [Unverified]: the Analytics Apps list and the Assistant after sign-in, a t
 
 After a fresh sign-in with the Metadata Client on `mtcreports.us`, the engine WebSocket token exchange returned `minted, expires in 90s`, and the Analytics App connected. An earlier run failed with `OAUTH-31 Mismatch between clientId in subject token and one in body`. The cause was a stored session from a different client, not the Metadata Client. [High: observed]
 
+The Agentic Assistant, opened in the embedded view with the same session, returned answers. `mtcreports.us` has no legacy Assistant, so a legacy chat with the Metadata Client is [Unverified]. [High for the Agentic Assistant: reported by the tester]
+
 One sign-in returned a `502 BAD-GATEWAY` once and did not repeat. The cause is [Unverified]. Qlik reading the document from GitHub Pages is one possible cause.
 
 ### If CIMD fails
