@@ -227,12 +227,16 @@ Notes on rank:
 
 ### Test 1 result (2026-10-19): inconclusive
 
-Script: `scripts/cimd-probe.mjs`. I hosted a test document in a temporary public GitHub gist. The gist served it as `text/plain`. I deleted the gist after the run.
+Script: `scripts/cimd-probe.mjs`. I ran it twice. Both runs gave the same result.
+
+- Run 1: a test document in a temporary public GitHub gist. The gist served it as `text/plain`. I deleted the gist.
+- Run 2: five test documents on GitHub Pages (`https://notlath.github.io/Paradaisu-Rando/qurio-cimd-*.json`). Pages served them as `application/json`. One document listed three redirects. Four listed one redirect each: loopback, `qlikanswers://auth`, `com.mtc.qurio://auth`, and an `https` link on the same origin.
+- Run 2 also included a replica of the Claude Code document (loopback redirect, `client_uri`). Qlik did not reject `qlikanswers://auth` for the replica. So the content type and the redirect type are not the cause.
 
 - With the gist as `client_id`, every redirect got a 302 to login in `sg`, `ap`, `eu` and `us`. This included `qlikanswers://other`, which the document does not list.
 - With the Claude Code document as `client_id`, `qlikanswers://auth` got a 400 `OAUTH-1` in `sg` and `eu`. A listed loopback URI got a 302.
-- So Qlik did not check redirects against the gist document. The probe cannot show that Qlik accepts `qlikanswers://auth`. The gist was probably not read as a valid document. The cause may be the `text/plain` type, the host, or a deferred check. [Unverified]
-- Next: repeat with a host that serves `application/json` at an MTC HTTPS URL. Use a control redirect that the document does not list. Treat a 302 on the control as "document not read".
+- So an unauthenticated authorize request does not check redirects against a document on a host like `gist.githubusercontent.com` or `github.io`. A document at `claude.ai` is checked. The probe cannot show that Qlik accepts `qlikanswers://auth`. Qlik may check only known hosts before login, or it may read the document only after login or at admin approval. [Unverified]
+- The no-login test is therefore a dead end for a new host. Test 2 (full sign-in with an admin approval in an MTC Tenant) is the next step. It needs a person to sign in as a Tenant admin. Use the Pages documents above, one redirect at a time.
 
 ### If CIMD fails
 
