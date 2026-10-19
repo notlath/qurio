@@ -257,6 +257,12 @@ An iOS device ran Expo Go. The tester entered `mtcreports.us.qlikcloud.com`, the
 - The tester reported that the app opened. What the Analytics Apps list and the Assistant showed is [Unverified]. A refresh after the access token expires is [Unverified]. A non-admin sign-in is [Unverified].
 - Android and a release build are [Unverified].
 
+### Test 4 result (2026-10-20): the production Metadata Client address works
+
+Document: `https://notlath.github.io/qurio-oauth/client.json` (GitHub Pages, `application/json`). An admin approved it in `mtcreports.us`. Qlik created a native client with source CIMD. An iOS device then signed in with that address as the client ID, and the log showed `granted: offline_access user_default`. [High: observed]
+
+Still [Unverified]: the Analytics Apps list and the Assistant after sign-in, a token refresh, a non-admin first sign-in, and Android. The old test client `qurio-cimd-scheme.json` still exists in `mtcreports.us`. An admin must delete it on the OAuth page.
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).
