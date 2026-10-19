@@ -249,6 +249,14 @@ Tenant: `mtcreports.us.qlikcloud.com` (`us`, a region with no published MTC clie
 - Still [Unverified]: the code-for-token exchange, a refresh, and the `/api/v1/assistants` call with this client. Also unverified: what a non-admin sees before approval.
 - The test client stays in `mtcreports.us`. Delete it from the OAuth page when the tests end.
 
+### Test 3 result (2026-10-19): device sign-in works in a region with no published client
+
+An iOS device ran Expo Go. The tester entered `mtcreports.us.qlikcloud.com`, then typed the CIMD document URL as the client ID in the new client ID field. Qlik showed its sign-in page, and the app opened afterwards.
+
+- The app log showed `requested scope: user_default offline_access; granted: offline_access user_default`. So the code-for-token exchange succeeded, and Qlik granted both scopes. [High: observed]
+- The tester reported that the app opened. What the Analytics Apps list and the Assistant showed is [Unverified]. A refresh after the access token expires is [Unverified]. A non-admin sign-in is [Unverified].
+- Android and a release build are [Unverified].
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).
