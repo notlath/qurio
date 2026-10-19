@@ -79,16 +79,6 @@ export async function answerTokenRequest(
   }
 }
 
-/** The `clientId` claim of a JWT access token, or undefined when the token is opaque or has no such claim. */
-function clientIdClaim(token: string): string | undefined {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.clientId === 'string' ? payload.clientId : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * The engine WebSocket (an Analytics App) accepts only a temporary token minted for it by the
  * tenant's token exchange, which is what @qlik/api does in a browser. The page cannot make that
@@ -101,9 +91,6 @@ export async function exchangeForWebSocketToken(
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ ok: true; token: string; expiresIn: number } | { ok: false; reason: string }> {
   const origin = tenantOriginOf(config.tenantHost);
-  // Qlik refuses a body client ID that differs from the one in the subject token (OAUTH-31). A Metadata Client
-  // gets its own client ID inside the token, which is not the document's address.
-  const tokenClientId = clientIdClaim(accessToken);
   try {
     const response = await fetchImpl(`${origin}/oauth/token`, {
       method: 'POST',
@@ -114,7 +101,7 @@ export async function exchangeForWebSocketToken(
         grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
         purpose: 'websocket',
         redirect_uri: `${origin}/`,
-        client_id: tokenClientId ?? config.clientId,
+        client_id: config.clientId,
       }),
     });
     const body = await response.json().catch(() => null);
@@ -123,7 +110,7 @@ export async function exchangeForWebSocketToken(
     }
     const error = body?.errors?.[0];
     const detail = typeof error?.detail === 'string' ? safeText(error.detail) : '';
-    return { ok: false, reason: `http ${response.status} ${error?.code ?? ''} ${detail}${tokenClientId ? ` (token client ${tokenClientId})` : ''}`.replace(/\s+/g, ' ').trim() };
+    return { ok: false, reason: `http ${response.status} ${error?.code ?? ''} ${detail}`.trim() };
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? safeText(e.message) : 'network error' };
   }
