@@ -263,6 +263,12 @@ Document: `https://notlath.github.io/qurio-oauth/client.json` (GitHub Pages, `ap
 
 Still [Unverified]: the Analytics Apps list and the Assistant after sign-in, a token refresh, a non-admin first sign-in, and Android. The old test client `qurio-cimd-scheme.json` still exists in `mtcreports.us`. An admin must delete it on the OAuth page.
 
+### Test 5 result (2026-10-20): Analytics Apps open with the Metadata Client
+
+After a fresh sign-in with the Metadata Client on `mtcreports.us`, the engine WebSocket token exchange returned `minted, expires in 90s`, and the Analytics App connected. An earlier run failed with `OAUTH-31 Mismatch between clientId in subject token and one in body`. The cause was a stored session from a different client, not the Metadata Client. [High: observed]
+
+One sign-in returned a `502 BAD-GATEWAY` once and did not repeat. The cause is [Unverified]. Qlik reading the document from GitHub Pages is one possible cause.
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).

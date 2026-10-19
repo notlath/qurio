@@ -29,6 +29,7 @@ This amends [ADR-0010](0010-published-oauth-client-tenant-hostname-only.md): the
 - Qlik offers no way to approve in advance. The first sign-in at a new Tenant must be by a Tenant admin. A Qlik User who is not an admin sees the Tenant Approval message and can share a request with their admin.
 - A Tenant admin cannot set a Metadata Client to "trusted" consent.
 - Not verified: what Qlik shows a non-admin before approval, a token refresh after the access token expires, and Android. A non-admin test on `mtcreports.us` is a release gate.
+- A session stays tied to the client that signed it in. Qlik refuses the engine token exchange when the client the app names differs from the client in the token (`OAUTH-31`, seen 2026-10-20 after a client change without a new sign-in). If MTC later publishes a client for a Region that uses the Metadata Client, existing sessions there must sign in again.
 - Published Clients and the Metadata Client are separate clients. A Tenant in `sg`, `ap` or `us` never sees the Metadata Client.
 - The app accepts `<name>.<region>.qlikcloud.com`, including a Tenant alias. Custom domains stay rejected. Qlik publishes no domain for the government and sovereign clouds.
 - Qlik Answers is missing in some Regions (`fr`, `se`, `il`, `ae` are not listed), and the Agentic experience lacks some contexts in Singapore and Mumbai. These are limits of the Tenant. The app does not gate sign-in by Region.
