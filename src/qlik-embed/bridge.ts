@@ -108,7 +108,9 @@ export async function exchangeForWebSocketToken(
     if (response.ok && typeof body?.access_token === 'string') {
       return { ok: true, token: body.access_token, expiresIn: typeof body.expires_in === 'number' ? body.expires_in : 60 };
     }
-    return { ok: false, reason: `http ${response.status} ${body?.errors?.[0]?.code ?? ''}`.trim() };
+    const error = body?.errors?.[0];
+    const detail = typeof error?.detail === 'string' ? safeText(error.detail) : '';
+    return { ok: false, reason: `http ${response.status} ${error?.code ?? ''} ${detail}`.trim() };
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? safeText(e.message) : 'network error' };
   }
