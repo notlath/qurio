@@ -238,6 +238,17 @@ Script: `scripts/cimd-probe.mjs`. I ran it twice. Both runs gave the same result
 - So an unauthenticated authorize request does not check redirects against a document on a host like `gist.githubusercontent.com` or `github.io`. A document at `claude.ai` is checked. The probe cannot show that Qlik accepts `qlikanswers://auth`. Qlik may check only known hosts before login, or it may read the document only after login or at admin approval. [Unverified]
 - The no-login test is therefore a dead end for a new host. Test 2 (full sign-in with an admin approval in an MTC Tenant) is the next step. It needs a person to sign in as a Tenant admin. Use the Pages documents above, one redirect at a time.
 
+### Test 2 result (2026-10-19): Qlik accepts `qlikanswers://auth` in a CIMD client
+
+Tenant: `mtcreports.us.qlikcloud.com` (`us`, a region with no published MTC client). Document: `https://notlath.github.io/Paradaisu-Rando/qurio-cimd-scheme.json`. It lists only `qlikanswers://auth`. A Tenant admin signed in and opened the authorize URL in the browser pane.
+
+- Qlik showed the consent screen "Authorize app". It listed `qlikanswers://auth` as the redirect target and the scopes `user_default` and `offline_access`. [High: observed]
+- After the admin selected Approve, the browser pane showed `ERR_ABORTED` on `POST /oauth/consent`. The pane cannot open a `qlikanswers://` link. This is not a Qlik error. The approval had worked.
+- `GET /api/v1/oauth-clients` then listed the client: `appType` `native`, `createdByType` `cimd`, status `approved`, consent method `required`. Allowed grant types: `authorization_code` and `refresh_token`. Allowed scopes include `user_default`, `offline_access` and `mcp:execute`. [High: observed with an API key]
+- So Qlik accepts a custom-scheme redirect without a period in a CIMD client, and the client gets `offline_access`. This closes two of the three open facts in section 1.
+- Still [Unverified]: the code-for-token exchange, a refresh, and the `/api/v1/assistants` call with this client. Also unverified: what a non-admin sees before approval.
+- The test client stays in `mtcreports.us`. Delete it from the OAuth page when the tests end.
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).
