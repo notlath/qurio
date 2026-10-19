@@ -11,7 +11,7 @@ Contents:
 5. [Live demo script](#5-live-demo-script)
 6. [Assumptions and open questions](#6-assumptions-and-open-questions)
 
-Presenter notes for each slide are inside the deck. Press **P** for the presenter window, or open `index.html?notes` for a printable handout.
+The deck holds client-facing content only. Use this file for speaking guidance. Sections 2–4 predate v1.0.0-beta.2; the deck's Release status slide is current.
 
 ## 1. Run instructions
 
@@ -30,17 +30,14 @@ On macOS, use `open presentation/index.html`.
 | `→` `Space` `PgDn` / `←` `PgUp` | Next / previous slide |
 | `Home` / `End` | First / last slide |
 | `F` | Fullscreen |
-| `P` | Presenter window: current and next slide, notes, timer with pace against the 60-minute plan |
-| `N` | Notes drawer in the audience window (for rehearsal on one screen) |
+| `P` | Presenter window: current and next slide, timer |
 | `O` | Overview of all slides |
 | `T` | Switch light and dark theme |
 | `?` | Keyboard help |
 
 For two screens: open the deck, press **P**, drag the presenter window to the laptop screen, then press **F** in the audience window on the projector. Arrow keys work in both windows. The windows stay in sync.
 
-Printable notes: add `?notes` to the URL (for example `index.html?notes`), then print.
-
-To capture new app screenshots, start the web preview (`npx expo start --web --port 8082`). The web preview uses sample data only.
+The screenshots in `screens/` are iPhone captures from a live Qlik Cloud Tenant.
 
 ## 2. Codebase analysis summary
 
@@ -205,7 +202,7 @@ Replace these with questions you rehearsed on the demo Tenant:
 ## 6. Assumptions and open questions
 
 - **No `DESIGN.md` exists in the repository.** The only file with that name is a third-party skill under `.agents/`. The deck uses the app's own design system instead: colours, radii, motion durations, and elevation from `src/constants/theme.ts`, and the Plus Jakarta Sans font from `src/app/_layout.tsx`. Radii use the app's iOS values. Status chips use only existing tokens (no new colours).
-- **Screenshots** come from the app's web preview with built-in sample data, captured at 390 × 844. They show real app screens, not mock-ups. The deck labels them as sample data. Live Qlik content appears only in the demo.
+- **Screenshots** are iPhone captures (1206 × 2622) from a live Qlik Cloud Tenant. They show the signed-in user's name and real Analytics App names.
 - **Presenter name and client name** are not in the repository. The deck says "Analytics Integration Developer · MTC".
 - **Business value** is stated qualitatively. The repository has no usage, performance, or cost metrics. The deck shows none.
 - **Qlik Analytics facts** come from public materials read 2026-10-15. A hands-on check of Qlik Analytics 1.179.14 on an Answers-enabled Tenant was not done.
