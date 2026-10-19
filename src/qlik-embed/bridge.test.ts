@@ -166,4 +166,32 @@ describe('exchangeForWebSocketToken', () => {
       reason: 'http 400 OAUTH-31 redirect_uri is not registered',
     });
   });
+
+  describe('when the access token is a JWT that names its own client', () => {
+    const jwtFor = (claims: object) => `h.${btoa(JSON.stringify(claims)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}.s`;
+
+    it('sends the client ID the token names: Qlik refuses a body client ID that differs from it', async () => {
+      const fetchImpl = respond(200, { access_token: 'ws-token', expires_in: 300 });
+
+      await exchangeForWebSocketToken(config, jwtFor({ clientId: 'internal-client' }), fetchImpl as never);
+
+      expect(JSON.parse(fetchImpl.mock.calls[0][1].body).client_id).toBe('internal-client');
+    });
+
+    it('names the token client in a refusal, so a mismatch can be read from the trace', async () => {
+      const fetchImpl = respond(400, { errors: [{ code: 'OAUTH-31' }] });
+
+      const result = await exchangeForWebSocketToken(config, jwtFor({ clientId: 'internal-client' }), fetchImpl as never);
+
+      expect(result).toEqual({ ok: false, reason: 'http 400 OAUTH-31 (token client internal-client)' });
+    });
+  });
+
+  it('falls back to the app client ID when the token is not a readable JWT', async () => {
+    const fetchImpl = respond(200, { access_token: 'ws-token', expires_in: 300 });
+
+    await exchangeForWebSocketToken(config, 'opaque-token', fetchImpl as never);
+
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).client_id).toBe('client-1');
+  });
 });
