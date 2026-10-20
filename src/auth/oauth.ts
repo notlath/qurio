@@ -9,7 +9,7 @@ import type { TenantConfig } from '@/config';
  */
 export const redirectUri = (): string => 'qlikanswers://auth';
 
-/** Qlik publishes no discovery document; endpoints derive from the tenant host. */
+/** Endpoints derive from the tenant host. The tenant's `/.well-known/oauth-authorization-server` lists the same paths. */
 export const discoveryFor = (config: TenantConfig): AuthSession.DiscoveryDocument => ({
   authorizationEndpoint: `https://${config.tenantHost}/oauth/authorize`,
   tokenEndpoint: `https://${config.tenantHost}/oauth/token`,

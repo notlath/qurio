@@ -10,5 +10,4 @@ export type TenantConfig = {
 export type TenantResolution =
   | { kind: 'resolved'; config: TenantConfig }
   | { kind: 'not-configured' }
-  | { kind: 'custom-domain'; tenantHost: string } // no region in the hostname, and no client ID supplied
-  | { kind: 'unsupported-region'; tenantHost: string; region: string }; // MTC publishes no client there yet
+  | { kind: 'custom-domain'; tenantHost: string }; // no region in the hostname, and no client ID supplied

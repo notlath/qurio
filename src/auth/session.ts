@@ -29,9 +29,11 @@ export function useQlikAuth(config: TenantConfig) {
   );
 
   const signIn = useCallback(async () => {
-    const result = await promptAsync();
+    // iOS only: without this the sheet shares Safari cookies, so Qlik's web session outlives a sign-out and the next sign-in skips the login form.
+    const result = await promptAsync({ preferEphemeralSession: true });
     if (result.type === 'error' && result.params.error_code === 'OAUTH-28') {
-      throw new Error(errorMessageFor({ kind: 'TenantApprovalRequired' }).message);
+      // Named so the sign-in screen can offer to share the request with the Tenant admin.
+      throw Object.assign(new Error(errorMessageFor({ kind: 'TenantApprovalRequired' }).message), { name: 'TenantApprovalRequired' });
     }
     if (result.type !== 'success') return null;
 

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Share } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { PrimaryButton } from '@/components/pressable';
 import { adoptTokens, forgetAccessToken } from '@/auth/access-token';
 import type { QlikUser } from '@/domain';
 import { SignInSection } from './sign-in-section';
@@ -14,8 +15,9 @@ let mockActivePort = mockPort;
 jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn(), useAnswersPort: () => mockActivePort }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 const mockSignOut = jest.fn();
+const mockSignIn = jest.fn();
 jest.mock('@/auth/session', () => ({
-  useQlikAuth: () => ({ signIn: jest.fn(), signOut: mockSignOut, ready: true }),
+  useQlikAuth: () => ({ signIn: mockSignIn, signOut: mockSignOut, ready: true }),
 }));
 jest.mock('@/auth/tokens', () => ({
   loadExpiresAtMs: jest.fn().mockResolvedValue(null),
@@ -37,6 +39,7 @@ async function renderSection(): Promise<string> {
 
 beforeEach(() => {
   mockSignOut.mockReset();
+  mockSignIn.mockReset();
   mockGetCurrentUser.mockReset().mockResolvedValue({ id: 'user-1', name: 'Alex Morgan', email: 'alex@example.com' });
   mockActivePort = mockPort;
   forgetAccessToken();
@@ -196,5 +199,51 @@ describe('Sign out confirmation', () => {
     });
 
     expect(mockSignOut).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Tenant Approval request', () => {
+  async function failSignIn(error: Error) {
+    mockSignIn.mockRejectedValue(error);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<SignInSection config={config} />);
+    });
+    await act(async () => {
+      await renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+    return renderer;
+  }
+
+  it('lets the Qlik User share a request to the Tenant admin when the Tenant has not approved the app', async () => {
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    const error = Object.assign(new Error('Your Tenant admin must approve the app once.'), { name: 'TenantApprovalRequired' });
+    const renderer = await failSignIn(error);
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: 'Share approval request' }).props.onPress();
+    });
+
+    expect(share).toHaveBeenCalledWith({ message: expect.stringContaining(config.tenantHost) });
+  });
+
+  it('offers no share action for any other sign-in error', async () => {
+    const renderer = await failSignIn(new Error('Something went wrong.'));
+
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' })).toHaveLength(0);
+  });
+
+  it('explains a sign-in that did not finish, and offers the share action: Qlik shows a non-admin an error page, not a redirect', async () => {
+    mockSignIn.mockResolvedValue(null);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<SignInSection config={config} />);
+    });
+    await act(async () => {
+      await renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Tenant admin');
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' }).length).toBeGreaterThan(0);
   });
 });
