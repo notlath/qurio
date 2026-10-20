@@ -10,4 +10,4 @@ The app ships as a single codebase and single build that can connect to any Cust
 
 ## Consequences
 
-Qlik OAuth clients are per-Tenant with no cross-tenant registration, so onboarding a Customer always includes that Customer's admin creating a Native OAuth client in their own Tenant. There is no way to design that step away — see ADR-0004 for how the resulting values reach the app.
+Qlik OAuth clients are per-Tenant with no cross-tenant registration, so onboarding a Customer always includes that Customer's admin creating a Native OAuth client in their own Tenant. The Tenant admin's approval of a client cannot be designed away, but creating the client can. See ADR-0010 and ADR-0012.

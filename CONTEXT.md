@@ -84,8 +84,22 @@ A Qlik User's rating of a single Interaction, sent back to the Tenant. Attached 
 The values that point the app at one Customer's Tenant. Only the tenant hostname is needed: the Qlik User enters it, or the Customer's MDM supplies it. The Assistant is found after sign-in, never entered.
 _Avoid_: Settings, environment, tenant info, workspace connection
 
+**Region**:
+The Qlik Cloud region a Tenant lives in. It is part of the Tenant's hostname and never changes for that Tenant. A Qlik Answers capability can be missing in a Region. That is a limit of the Tenant, not an error in the app.
+_Avoid_: Data center, zone, cloud
+
+**Sign-in Client**:
+The identity the app presents to a Tenant when a Qlik User signs in. It is one of two kinds: a **Published Client** that MTC owns in one Region, or a **Metadata Client** that any Tenant in any Region can recognise from a document MTC hosts. Never means a Customer.
+_Avoid_: App registration, OAuth app
+
+**Published Client**:
+A Sign-in Client that MTC creates and publishes in one MTC-owned Tenant. It works only in that Tenant's Region.
+
+**Metadata Client**:
+A Sign-in Client that a Tenant creates on first use, from a document that MTC hosts at one permanent address. It works in every Region. That address is its identity. A new address is a new Metadata Client.
+
 **Tenant Approval**:
-A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User.
+A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User. Qlik offers no way to approve in advance, so the first sign-in at a new Tenant must be by a Tenant admin. A Qlik User who is not an admin cannot start it and is told to ask their Tenant admin.
 _Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
 
 **Starter**:
