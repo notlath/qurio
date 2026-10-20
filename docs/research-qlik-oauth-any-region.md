@@ -291,6 +291,12 @@ A release build has no Developer section, so it could not use the Metadata Clien
 
 Also unverified: what the sign-in sheet shows after a sign-out on Android. Chrome Custom Tabs have no ephemeral option.
 
+### Test 9 result (2026-10-20): Android development build with the Metadata Client
+
+The tester used an Android development build and the Developer override (`mtcreports.us` with the Metadata Client address as the client ID). Sign-in succeeded. [High: tester report]
+
+Still [Unverified] on Android with the Metadata Client: the Analytics Apps list, the Agentic Assistant, and what the sign-in sheet shows after a sign-out.
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).
