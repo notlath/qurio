@@ -271,6 +271,14 @@ The Agentic Assistant, opened in the embedded view with the same session, return
 
 One sign-in returned a `502 BAD-GATEWAY` once and did not repeat. The cause is [Unverified]. Qlik reading the document from GitHub Pages is one possible cause.
 
+### Test 6 result (2026-10-20): a non-admin cannot start the approval
+
+With the Metadata Client deleted from `mtcreports.us`, a non-admin signed in on a device. The sign-in sheet showed a plain JSON page: `OAUTH-28`, status 401, "The OAuth connection can only be approved by TenantAdmin." Qlik did not redirect to the app. The same page appeared in a browser. [High: observed]
+
+- The app cannot tell this from a Qlik User who closes the sheet. The old handler needed a redirect with `error_code=OAUTH-28`, so the app showed nothing. [High: code and observation]
+- The app now shows a hint and the Share approval request action whenever a sign-in does not finish.
+- A non-admin cannot sign in at a Tenant until an admin approves. No way around this is documented.
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).

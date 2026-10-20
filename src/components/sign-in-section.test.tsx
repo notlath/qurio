@@ -232,4 +232,18 @@ describe('Tenant Approval request', () => {
 
     expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' })).toHaveLength(0);
   });
+
+  it('explains a sign-in that did not finish, and offers the share action: Qlik shows a non-admin an error page, not a redirect', async () => {
+    mockSignIn.mockResolvedValue(null);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<SignInSection config={config} />);
+    });
+    await act(async () => {
+      await renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Tenant admin');
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' }).length).toBeGreaterThan(0);
+  });
 });

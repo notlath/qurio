@@ -143,7 +143,11 @@ ${message}`)) void handlePress();
       } else {
         const tokens = await signIn();
         setSignedIn(!!tokens);
-        if (tokens) {
+        if (!tokens) {
+          // Qlik shows a non-admin an error page, not a redirect, so the app cannot tell this from a cancel.
+          setError('Sign-in did not finish. If Qlik said only a Tenant admin can approve Qurio, ask your Tenant admin to approve it once. Then sign in again.');
+          setNeedsApproval(true);
+        } else {
           await onSignedIn?.();
           reloadPort();
         }
