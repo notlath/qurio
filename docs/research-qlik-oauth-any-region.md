@@ -295,7 +295,7 @@ Also unverified: what the sign-in sheet shows after a sign-out on Android. Chrom
 
 The tester used an Android development build and the Developer override (`mtcreports.us` with the Metadata Client address as the client ID). Sign-in succeeded. [High: tester report]
 
-Still [Unverified] on Android with the Metadata Client: the Analytics Apps list, the Agentic Assistant, and what the sign-in sheet shows after a sign-out.
+On the same build, the Analytics Apps list opened, the Agentic Assistant answered, and after a sign-out the Qlik login form appeared again. [High: tester report]
 
 ### If CIMD fails
 
