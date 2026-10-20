@@ -279,6 +279,10 @@ With the Metadata Client deleted from `mtcreports.us`, a non-admin signed in on 
 - The app now shows a hint and the Share approval request action whenever a sign-in does not finish.
 - A non-admin cannot sign in at a Tenant until an admin approves. No way around this is documented.
 
+### Test 7 result (2026-10-20): one admin approval then a non-admin signs in
+
+An admin signed in with the Metadata Client on `mtcreports.us` and approved it. Qlik created the client again. A non-admin then signed in on a device and gave their own consent on the "Authorize app" screen. After that the non-admin was signed in. So the Tenant approval is one admin action, and each Qlik User then gives consent once for themselves. [High: tester report, client list checked with the API]
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).
