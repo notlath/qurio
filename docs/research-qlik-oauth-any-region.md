@@ -283,9 +283,11 @@ With the Metadata Client deleted from `mtcreports.us`, a non-admin signed in on 
 
 An admin signed in with the Metadata Client on `mtcreports.us` and approved it. Qlik created the client again. A non-admin then signed in on a device and gave their own consent on the "Authorize app" screen. After that the non-admin was signed in. So the Tenant approval is one admin action, and each Qlik User then gives consent once for themselves. [High: tester report, client list checked with the API]
 
-### Test 8 result (2026-10-20): Android
+### Test 8 result (2026-10-20): Android release build
 
-The tester ran the built Android beta app, Qurio v1.0.0-beta.3, and reported that it works. What the test covered (sign-in with the Metadata Client, an Analytics App, the Assistant) was not recorded. [High that it ran. Unverified for each part.]
+The tester ran the built Android beta app, Qurio v1.0.0-beta.3. Sign-in, the Agentic Assistant, and viewing an Analytics App all worked. [High: tester report]
+
+Not recorded: which client the run used (the published `us` client or the Metadata Client through the Developer override), and what the sign-in sheet showed after a sign-out. So Android is [Unverified] for the Metadata Client, and for the sign-out behaviour in the iOS fix (ephemeral session). Chrome Custom Tabs have no ephemeral option.
 
 ### If CIMD fails
 
