@@ -157,4 +157,13 @@ describe('exchangeForWebSocketToken', () => {
       reason: 'http 401 OAUTH-29',
     });
   });
+
+  it('adds the Qlik error detail to the reason, so a refused exchange says why', async () => {
+    const fetchImpl = respond(400, { errors: [{ code: 'OAUTH-31', detail: 'redirect_uri is not registered' }] });
+
+    expect(await exchangeForWebSocketToken(config, 'access-1', fetchImpl as never)).toEqual({
+      ok: false,
+      reason: 'http 400 OAUTH-31 redirect_uri is not registered',
+    });
+  });
 });

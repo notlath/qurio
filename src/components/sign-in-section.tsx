@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Share, StyleSheet, View } from 'react-native';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
@@ -97,6 +97,7 @@ export function SignInSection({ config, onSignedIn, onSignedOut }: { config: Ten
   const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsApproval, setNeedsApproval] = useState(false);
 
   // This screen mounts long after sign-in (a later visit, or a restarted app), so what it shows
   // comes from the token authority, not from whether this instance's button was ever pressed.
@@ -123,8 +124,15 @@ ${message}`)) void handlePress();
     ]);
   }
 
+  function shareApprovalRequest() {
+    void Share.share({
+      message: `Please approve the Qurio app for our Qlik Cloud Tenant ${config.tenantHost}. Sign in to Qurio once as a Tenant admin and approve it. This is needed once for the whole Tenant.`,
+    });
+  }
+
   async function handlePress() {
     setError(null);
+    setNeedsApproval(false);
     setBusy(true);
     try {
       if (signedIn) {
@@ -135,13 +143,18 @@ ${message}`)) void handlePress();
       } else {
         const tokens = await signIn();
         setSignedIn(!!tokens);
-        if (tokens) {
+        if (!tokens) {
+          // Qlik shows a non-admin an error page, not a redirect, so the app cannot tell this from a cancel.
+          setError('Sign-in did not finish. If Qlik said only a Tenant admin can approve Qurio, ask your Tenant admin to approve it once. Then sign in again.');
+          setNeedsApproval(true);
+        } else {
           await onSignedIn?.();
           reloadPort();
         }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
+      setNeedsApproval(e instanceof Error && e.name === 'TenantApprovalRequired');
     } finally {
       setBusy(false);
     }
@@ -172,6 +185,11 @@ ${message}`)) void handlePress();
         <ThemedText type="small" themeColor="danger" selectable>
           {error}
         </ThemedText>
+      )}
+      {needsApproval && (
+        <AppPressable accessibilityLabel="Share approval request" onPress={shareApprovalRequest}>
+          <ThemedText type="linkPrimary">Share approval request</ThemedText>
+        </AppPressable>
       )}
     </View>
   );

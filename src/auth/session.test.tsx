@@ -89,3 +89,11 @@ it('retains the existing message when the token exchange fails', async () => {
 
   expect(JSON.stringify((await signIn()).toJSON())).toContain('Token exchange failed.');
 });
+
+it('opens the sign-in sheet without sharing the phone browser session: a sign-out must ask for credentials again', async () => {
+  mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+  await signIn();
+
+  expect(mockPromptAsync).toHaveBeenCalledWith({ preferEphemeralSession: true });
+});
