@@ -110,7 +110,10 @@ export const Elevation = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+// 800 left 270dp empty at each side of a 1280dp landscape tablet. The column still fills any window
+// up to this width, including the content beside the docked side panel.
+// ponytail: fixed cap, so a window wider than 1200dp still shows margins. Scale it with the window if tablets that wide matter.
+export const MaxContentWidth = 1200;
 
-/** Centres a list's content column at `MaxContentWidth` on tablets and the web preview. */
+/** Centres a list's content column at `MaxContentWidth` on wide tablet windows and the web preview. */
 export const ContentColumn = { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' } as const;
