@@ -35,6 +35,12 @@ describe('embedPageHtml', () => {
     expect(style).toMatch(/input,textarea,select,\[contenteditable\]\{font-size:max\(16px,1em\)!important\}/);
   });
 
+  it("widens Qlik's fixed 384px Agentic Assistant column to the full page", () => {
+    const style = embedPageHtml(input).match(/<style>([^<]*)<\/style>/)?.[1] ?? '';
+
+    expect(style).toContain('qlik-embed div[style*="width: 384px"]{width:100%!important}');
+  });
+
   describe('keeping the focused input in view (#18)', () => {
     type Listener = () => void;
     function run() {
