@@ -53,6 +53,10 @@ export const bottomInsetScript = (inset: number): string =>
  * the Qlik User can pinch-zoom (#25, WCAG 1.4.4). iOS zooms on focus into a field under 16px, so the
  * style raises text fields to 16px instead. The rule only reaches fields in this document, not inside
  * a shadow root or a cross-origin frame that Qlik may render.
+ *
+ * Qlik's Agentic Assistant embed (assistant-ui AssistantAgenticEmbedded) centres the chat in a div
+ * with an inline `width: 384px`. That left empty space at each side on tablets and overflowed
+ * phones narrower than 384px. No embed option changes it, so the style makes that div fill the page.
  */
 export function embedPageHtml({ tenantHost, clientId, surface, resourceId, session, bottomInset }: EmbedPageInput): string {
   const tenantOrigin = tenantOriginOf(tenantHost);
@@ -68,7 +72,7 @@ ${keyboardRevealScript}</script>
   data-host=${quotedAttr(tenantOrigin)}
   data-client-id=${quotedAttr(clientId)}
   data-get-access-token="getAccessToken"></script>
-<style>:root{--bottom-inset:${insetPx(bottomInset)}}html,body,qlik-embed{margin:0;height:100%;display:block}body{box-sizing:border-box;padding-bottom:var(--bottom-inset)}input,textarea,select,[contenteditable]{font-size:max(16px,1em)!important}</style>
+<style>:root{--bottom-inset:${insetPx(bottomInset)}}html,body,qlik-embed{margin:0;height:100%;display:block}body{box-sizing:border-box;padding-bottom:var(--bottom-inset)}input,textarea,select,[contenteditable]{font-size:max(16px,1em)!important}qlik-embed div[style*="width: 384px"]{width:100%!important}</style>
 </head><body>
 <qlik-embed ui=${quotedAttr(surface)} ${ID_ATTRIBUTE[surface]}=${quotedAttr(resourceId)}></qlik-embed>
 </body></html>`;
