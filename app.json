@@ -39,7 +39,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.mtc.qlikanswersapp",
-      "versionCode": 5
+      "versionCode": 6
     },
     "web": {
       "output": "static",
