@@ -17,6 +17,10 @@ A single Qlik Cloud instance belonging to one Customer, addressed by its own hos
 A person with an identity in a Tenant, holding an Answers Entitlement. In this project every app user is a Qlik User — there is no separate app-only identity.
 _Avoid_: End user, app user, member
 
+**Identity Provider**:
+The system a Tenant uses to check who a Qlik User is, such as Okta. The Customer's Tenant admin sets it in the Tenant. The app never talks to it directly: sign-in goes through the Tenant, which sends the Qlik User on to the Identity Provider.
+_Avoid_: IdP (in prose), SSO, user management
+
 **Answers Entitlement**:
 The per-Qlik-User license allocation that grants access to Qlik Answers. Without it a Qlik User can authenticate but cannot use an Assistant.
 
