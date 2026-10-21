@@ -11,8 +11,9 @@ const mockPort = { getCurrentUser: jest.fn().mockResolvedValue({ id: 'user-1', n
 jest.mock('@/qlik/context', () => ({ useReloadAnswersPort: () => jest.fn(), useAnswersPort: () => mockPort }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('expo-auth-session', () => ({
-  useAuthRequest: () => [{ codeVerifier: 'verifier' }, null, mockPromptAsync],
+  useAuthRequest: (...args: unknown[]) => mockUseAuthRequest(...args),
   exchangeCodeAsync: jest.fn(),
+  Prompt: { Login: 'login' },
 }));
 jest.mock('expo-device', () => ({
   DeviceType: { PHONE: 1, TABLET: 2 },
@@ -26,6 +27,7 @@ jest.mock('./tokens', () => ({
 }));
 
 const mockPromptAsync = jest.fn();
+const mockUseAuthRequest = jest.fn((..._args: unknown[]) => [{ codeVerifier: 'verifier' }, null, mockPromptAsync]);
 const config = { tenantHost: 'acme.sg.qlikcloud.com', clientId: 'client-1', assistantId: 'assistant-1' };
 
 async function signIn(): Promise<TestRenderer.ReactTestRenderer> {
@@ -88,4 +90,14 @@ it('retains the existing message when the token exchange fails', async () => {
   (AuthSession.exchangeCodeAsync as jest.Mock).mockRejectedValue(new Error('Token exchange failed.'));
 
   expect(JSON.stringify((await signIn()).toJSON())).toContain('Token exchange failed.');
+});
+
+// Android has no ephemeral sheet: Chrome keeps the Qlik web session after a sign-out, so the next
+// sign-in would finish without a login form and return the previous account.
+it('asks Qlik to authenticate again on every sign-in, so a browser session that outlives sign-out is not reused', async () => {
+  mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+  await signIn();
+
+  expect(mockUseAuthRequest.mock.calls[0][0]).toMatchObject({ prompt: 'login' });
 });

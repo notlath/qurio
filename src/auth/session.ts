@@ -24,7 +24,9 @@ export function useQlikAuth(config: TenantConfig) {
   const discovery = discoveryFor(config);
 
   const [request, , promptAsync] = AuthSession.useAuthRequest(
-    { clientId: config.clientId, scopes: SCOPES, redirectUri: redirectUri() },
+    // prompt=login (Qlik's /oauth/authorize documents it): Android has no ephemeral sheet, so Chrome keeps the Qlik
+    // web session after a sign-out and the next sign-in would return the previous account without a login form.
+    { clientId: config.clientId, scopes: SCOPES, redirectUri: redirectUri(), prompt: AuthSession.Prompt.Login },
     discovery,
   );
 
