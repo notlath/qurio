@@ -41,7 +41,7 @@ Download the APK and checksum from the release Assets section. This repository i
 | Signature | Release certificate. APK Signature Scheme v2 and v3 passed |
 | Alignment | 16 KB alignment check passed |
 
-The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`.
+The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`. Beta 6 uses version code `6`.
 
 ### Install the standalone APK
 
