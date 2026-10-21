@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppCover } from '@/components/app-cover';
+import { gridLayout } from '@/components/apps-grid';
 import { EmptyState } from '@/components/empty-state';
 import { ErrorState } from '@/components/error-state';
 import { selectionHaptic } from '@/components/haptics';
@@ -10,7 +11,7 @@ import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
 import { formatRelativeTime } from '@/components/relative-time';
 import { ThemedText } from '@/components/themed-text';
-import { ContentColumn, MaxContentWidth, Radius, Shape, Spacing } from '@/constants/theme';
+import { ContentColumn, Radius, Shape, Spacing } from '@/constants/theme';
 import type { AnalyticsApp, AppError } from '@/domain';
 import { useAppsViewMode, type AppsViewMode } from '@/hooks/use-apps-view-mode';
 import { useTheme } from '@/hooks/use-theme';
@@ -93,7 +94,7 @@ function AppRowSkeleton() {
 }
 
 /** A grid tile: the app's cover on top, its name and last update below. */
-function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
+function AppCard({ app }: { app: AnalyticsApp }) {
   const theme = useTheme();
   const { updated, label } = appSummary(app);
 
@@ -106,7 +107,8 @@ function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
         style={StyleSheet.flatten([
           styles.card,
           Shape.continuous,
-          { width, borderColor: theme.border, backgroundColor: theme.backgroundElement },
+          styles.gridCell,
+          { borderColor: theme.border, backgroundColor: theme.backgroundElement },
         ])}>
         <AppCover app={app} />
         <View style={styles.cardText}>
@@ -124,12 +126,12 @@ function AppCard({ app, width }: { app: AnalyticsApp; width: number }) {
   );
 }
 
-function AppCardSkeleton({ width }: { width: number }) {
+function AppCardSkeleton() {
   const theme = useTheme();
 
   return (
     <View
-      style={[styles.card, Shape.continuous, { width, borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+      style={[styles.card, styles.gridCell, Shape.continuous, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
       <View style={[styles.skeletonCover, { backgroundColor: theme.backgroundSelected }]} />
       <View style={styles.cardText}>
         <View style={[styles.skeletonLine, { width: '75%', backgroundColor: theme.backgroundSelected }]} />
@@ -139,12 +141,10 @@ function AppCardSkeleton({ width }: { width: number }) {
   );
 }
 
-/** Two columns on phones, three once there is room; card width shares the content column exactly. */
-function useGridLayout(): { columns: number; cardWidth: number } {
-  const { width } = useWindowDimensions();
-  const columns = width >= 600 ? 3 : 2;
-  const content = Math.min(width, MaxContentWidth) - Spacing.three * 2;
-  return { columns, cardWidth: Math.floor((content - Spacing.two * (columns - 1)) / columns) };
+/** Pads the grid's last row with empty cells, so its cards keep the width of the cards above. */
+function fillLastRow(apps: AnalyticsApp[], columns: number): (AnalyticsApp | null)[] {
+  const fillers = (columns - (apps.length % columns)) % columns;
+  return [...apps, ...Array<null>(fillers).fill(null)];
 }
 
 /** Switches to the other layout: the icon shows where a tap takes you, as Files and Drive do. */
@@ -171,7 +171,11 @@ function ViewModeToggle({ mode, onChange }: { mode: AppsViewMode; onChange: (mod
 
 export default function AppsScreen() {
   const [viewMode, setViewMode] = useAppsViewMode();
-  const { columns, cardWidth } = useGridLayout();
+  // The list's own width, not the window's: the docked side panel takes part of a wide window.
+  // The window width stands in until the first layout.
+  const windowSize = useWindowDimensions();
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  const { columns, gap } = gridLayout((listWidth ?? windowSize.width) - Spacing.three * 2);
   const grid = viewMode === 'grid';
   const port = useAnswersPort();
   const [state, setState] = useState<AppsState | null>(null);
@@ -280,24 +284,36 @@ export default function AppsScreen() {
         // numColumns cannot change on a mounted list, so each layout is its own list.
         key={grid ? `grid-${columns}` : 'list'}
         numColumns={grid ? columns : 1}
-        columnWrapperStyle={grid ? styles.gridRow : undefined}
+        columnWrapperStyle={grid ? { gap } : undefined}
+        onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.listContent, ContentColumn]}
-        data={current?.apps ?? []}
-        keyExtractor={(item) => item.id}
+        // The grid fills the width it has. The list keeps the centred content column.
+        contentContainerStyle={[styles.listContent, grid ? { gap } : ContentColumn]}
+        data={grid ? fillLastRow(current?.apps ?? [], columns) : (current?.apps ?? [])}
+        keyExtractor={(item, index) => item?.id ?? `filler-${index}`}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         refreshing={refreshing}
         onRefresh={refresh}
         ListHeaderComponent={header}
-        renderItem={({ item }) => (grid ? <AppCard app={item} width={cardWidth} /> : <AppRow app={item} />)}
+        renderItem={({ item }) =>
+          item === null ? <View style={styles.gridCell} /> : grid ? <AppCard app={item} /> : <AppRow app={item} />
+        }
         ListEmptyComponent={
           current === null ? (
             <View
               accessible
               accessibilityLabel="Loading Analytics Apps"
-              style={grid ? [styles.skeletons, styles.gridRow, styles.skeletonGrid] : styles.skeletons}>
-              {[0, 1, 2, 3].map((i) => (grid ? <AppCardSkeleton key={i} width={cardWidth} /> : <AppRowSkeleton key={i} />))}
+              style={grid ? [styles.skeletons, { gap }] : styles.skeletons}>
+              {grid
+                ? Array.from({ length: Math.ceil(4 / columns) }, (_, row) => (
+                    <View key={row} style={[styles.skeletonRow, { gap }]}>
+                      {Array.from({ length: columns }, (_, i) => (
+                        <AppCardSkeleton key={i} />
+                      ))}
+                    </View>
+                  ))
+                : [0, 1, 2, 3].map((i) => <AppRowSkeleton key={i} />)}
             </View>
           ) : current.erroredAt !== undefined ? null : name ? (
             <EmptyState
@@ -335,8 +351,9 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: Spacing.half },
   appTile: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.small },
   skeletons: { gap: Spacing.two },
-  gridRow: { gap: Spacing.two },
-  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  skeletonRow: { flexDirection: 'row' },
+  // Cards share each row equally, so they fill the width the row really has.
+  gridCell: { flex: 1 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.card, overflow: 'hidden', justifyContent: 'flex-start' },
   cardText: { gap: Spacing.half, padding: Spacing.three },
   skeletonCover: { aspectRatio: 16 / 10 },
