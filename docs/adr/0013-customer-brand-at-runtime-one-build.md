@@ -6,7 +6,7 @@ status: accepted
 
 Customers want the app to carry their company's Brand. We keep one build on the public stores and apply each Customer's Brand at runtime. The Brand is a logo and one main colour for each of light and dark. The app name and home-screen icon stay Qurio. A Customer that needs its own name and icon gets a White-label Build under a paid agreement, by private distribution.
 
-MTC hosts one Brand file per Customer as a static file, next to the Client ID Metadata Document, keyed by tenant hostname. The file holds the logo and the two colours. The logo is a PNG with a transparent background, with an optional second PNG for dark mode. Each tenant hostname has its own file, so no file lists MTC's Customers. A Tenant alias gets a copy of the file when the Customer asks. The app reads it as soon as it knows the tenant hostname, so the sign-in screen carries the Brand too.
+MTC hosts one Brand file per Customer as a static file, next to the Client ID Metadata Document, keyed by tenant hostname. The file holds the Customer's name, the logo and the two colours. The logo is a PNG with a transparent background, with an optional second PNG for dark mode. Each tenant hostname has its own file, so no file lists MTC's Customers. A Tenant alias gets a copy of the file when the Customer asks. The app reads it as soon as it knows the tenant hostname, so the sign-in screen carries the Brand colour too.
 
 This keeps [ADR-0003](0003-single-multi-tenant-app.md): one codebase and one build serve every Customer, and no code path names a Customer. It amends [ADR-0001](0001-per-user-native-oauth-no-backend.md): the app now reads a hosted file. There is still no server and no secret.
 
@@ -21,7 +21,7 @@ This keeps [ADR-0003](0003-single-multi-tenant-app.md): one codebase and one bui
 ## Consequences
 
 - Until the Qlik User enters a tenant hostname, the app shows Qurio's Brand. A tenant hostname with no Brand file also gets Qurio's Brand.
-- The Brand shows where the Qurio logo and the `primary` colour show today: the side-panel header and the sign-in screen. The splash screen and the icon are compiled in and stay Qurio.
+- The Brand shows where the Qurio logo and the `primary` colour show today. The logo replaces the Qurio logo in the side-panel header and on the chat welcome. The sign-in screen has no logo, so there it shows only the colour. The splash screen and the icon are compiled in and stay Qurio.
 - The Customer supplies one main colour per theme. The app computes the text colour on it. If the colour fails WCAG contrast (3:1 against the background, 4.5:1 with its text), the app uses Qurio green. Fonts, spacing and radii stay ours.
 - The app keeps the last Brand for each Tenant on the device, shows it at once on launch, and refreshes it in the background. It removes the Brand when the Qlik User removes the Tenant. A Brand is not Answer content, so [ADR-0007](0007-no-answer-content-on-device.md) does not apply.
 - Each new Customer's Brand is one file that MTC adds. The files share the beta GitHub Pages address and its release gate (ADR-0012).
