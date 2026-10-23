@@ -109,3 +109,13 @@ _Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
 **Starter**:
 A suggested opening question configured on an Assistant, shown before a Thread has any Interactions.
 _Avoid_: Prompt, suggestion, example
+
+### Branding
+
+**Brand**:
+A Customer's logo and main colour, one colour for each of light and dark, that the app shows in place of Qurio's. MTC keeps one Brand for each Customer. It never changes the app's name or home-screen icon. Until the Qlik User enters a tenant hostname, the app shows Qurio's Brand.
+_Avoid_: Theme, skin, white-label
+
+**White-label Build**:
+A separate build of the app for one Customer, with that Customer's name and icon. Made only under a paid agreement and given out by private distribution, never on the public stores.
+_Avoid_: Fork, custom app
