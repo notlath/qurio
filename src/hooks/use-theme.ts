@@ -10,7 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useTheme() {
   const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
+  const theme = scheme === 'dark' ? 'dark' : 'light';
   const { brand } = useBrand();
 
   return { ...Colors[theme], ...brandPrimary(brand, theme) };

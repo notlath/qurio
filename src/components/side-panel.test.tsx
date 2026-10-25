@@ -18,7 +18,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn() }));
-const mockRouter = { push: jest.fn() };
+const mockRouter = { push: jest.fn(), dismissTo: jest.fn() };
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useRouter: () => mockRouter }));
 
 const { useAssistantSelection } = jest.requireMock('@/qlik/assistant-selection');
@@ -90,6 +90,7 @@ const choose = async (renderer: TestRenderer.ReactTestRenderer, name: string, ti
 
 beforeEach(() => {
   mockRouter.push.mockReset();
+  mockRouter.dismissTo.mockReset();
   useAssistantSelection.mockReturnValue({ selected: knowledge, assistants: [knowledge] });
 });
 
@@ -124,11 +125,8 @@ describe('SidePanelContent', () => {
 
     await press(renderer, 'Open Q3 policy changes');
     expect(props.navigation.closeDrawer).toHaveBeenCalled();
-    expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
-      screen: 'index',
-      params: { thread: 'thread-1', assistantId: 'assistant-knowledge' },
-      pop: true,
-    });
+    expect(props.navigation.navigate).toHaveBeenCalledWith('assistant');
+    expect(mockRouter.dismissTo).toHaveBeenCalledWith({ pathname: '/assistant', params: { thread: 'thread-1', assistantId: 'assistant-knowledge' } });
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
@@ -285,11 +283,8 @@ describe('SidePanelContent', () => {
       await chooseDelete(renderer);
       await answer('Delete');
       expect(port.deleteThread).toHaveBeenCalledWith('thread-1');
-      expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
-        screen: 'index',
-        params: { chat: expect.any(String) },
-        pop: true,
-      });
+      expect(props.navigation.navigate).toHaveBeenCalledWith('assistant');
+      expect(mockRouter.dismissTo).toHaveBeenCalledWith({ pathname: '/assistant', params: { chat: expect.any(String) } });
     });
 
     it('keeps the deleted Thread open when the delete fails, and puts its row back', async () => {
@@ -464,11 +459,8 @@ describe('SidePanelContent', () => {
 
     await press(renderer, 'New chat');
     expect(props.navigation.closeDrawer).toHaveBeenCalled();
-    expect(props.navigation.navigate).toHaveBeenCalledWith('assistant', {
-      screen: 'index',
-      params: { chat: expect.any(String) },
-      pop: true,
-    });
+    expect(props.navigation.navigate).toHaveBeenCalledWith('assistant');
+    expect(mockRouter.dismissTo).toHaveBeenCalledWith({ pathname: '/assistant', params: { chat: expect.any(String) } });
   });
 
   it('opens Apps', async () => {

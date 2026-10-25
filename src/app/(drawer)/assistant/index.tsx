@@ -221,7 +221,7 @@ function Conversation({
         // The welcome keeps itself centred above the Composer, so the list does not also lift it.
         renderScrollComponent={(props) => <ChatScrollView {...props} lift={!welcoming} />}
         ListEmptyComponent={
-          asking ? null : starters ? (
+          asking ? undefined : starters ? (
             <View style={[styles.emptyState, { paddingBottom: styles.emptyState.paddingBottom + underHeader }]}>
               <KeyboardCentered style={styles.welcome}>
                 <BrandLogo style={styles.welcomeLogo} />
@@ -253,7 +253,7 @@ function Conversation({
             <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
           ) : error && erroredAt ? (
             <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
-          ) : null
+          ) : undefined
         }
       />
 

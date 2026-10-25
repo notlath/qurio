@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Duration, Radius, Spacing, TouchTarget } from '@/constants/theme';
@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 type PressFeedback = 'scale' | 'highlight' | 'opacity';
 
 type AppPressableProps = Omit<PressableProps, 'style'> & {
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
   feedback?: PressFeedback;
 };
 
