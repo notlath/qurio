@@ -18,7 +18,7 @@ const FILE = {
 
 async function renderLogo(file: object | null, scheme: 'light' | 'dark' = 'light') {
   useColorScheme.mockReturnValue(scheme);
-  globalThis.fetch = jest.fn().mockResolvedValue({ ok: file !== null, json: async () => file }) as typeof fetch;
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: file !== null, status: file ? 200 : 404, json: async () => file }) as typeof fetch;
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     renderer = TestRenderer.create(

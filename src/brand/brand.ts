@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { Colors } from '@/constants/theme';
 
 type Scheme = 'light' | 'dark';
@@ -39,15 +41,50 @@ export function parseBrand(json: unknown): Brand | null {
   return { name, logo, logoDark, primary: { light, dark } };
 }
 
-/** The tenant hostname's Brand, or null when it has no file, the request fails, or the file is malformed. */
+/**
+ * The tenant hostname's Brand, or null when it has no file or the file is malformed.
+ * Throws when the request fails, so the caller keeps the Brand it has.
+ */
 export async function fetchBrand(tenantHost: string): Promise<Brand | null> {
+  const response = await fetch(`${BRAND_FILES}${encodeURIComponent(tenantHost)}.json`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Brand file request failed: ${response.status}`);
+  return parseBrand(await response.json().catch(() => null));
+}
+
+// The device keeps one Brand: the Tenant's. A Brand is not Answer content, so ADR-0007 does not apply.
+const BRAND_KEY = 'qlik.brand';
+
+async function readStoredBrand(): Promise<{ tenantHost: string; brand: Brand } | null> {
   try {
-    const response = await fetch(`${BRAND_FILES}${encodeURIComponent(tenantHost)}.json`);
-    if (!response.ok) return null;
-    return parseBrand(await response.json());
+    const stored: { tenantHost?: unknown; brand?: unknown } | null = JSON.parse((await AsyncStorage.getItem(BRAND_KEY)) ?? 'null');
+    const brand = parseBrand(stored?.brand);
+    return typeof stored?.tenantHost === 'string' && brand ? { tenantHost: stored.tenantHost, brand } : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Shows the stored Brand of the tenant hostname at once, then the hosted Brand, which replaces the stored one.
+ * Another Tenant's stored Brand is removed. When the request fails, the stored Brand stays.
+ */
+export async function loadBrand(tenantHost: string, show: (brand: Brand | null) => void): Promise<void> {
+  const stored = await readStoredBrand();
+  if (stored?.tenantHost === tenantHost) show(stored.brand);
+  else if (stored) await AsyncStorage.removeItem(BRAND_KEY).catch(() => {});
+
+  let brand: Brand | null;
+  try {
+    brand = await fetchBrand(tenantHost);
+  } catch {
+    return;
+  }
+  show(brand);
+  await (brand
+    ? AsyncStorage.setItem(BRAND_KEY, JSON.stringify({ tenantHost, brand }))
+    : AsyncStorage.removeItem(BRAND_KEY)
+  ).catch(() => {});
 }
 
 /** WCAG 2 relative luminance of a "#RRGGBB" colour. */

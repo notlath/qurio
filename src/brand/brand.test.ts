@@ -1,4 +1,6 @@
-import { brandPrimary, contrastRatio, fetchBrand, parseBrand, type Brand } from './brand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { brandPrimary, contrastRatio, fetchBrand, loadBrand, parseBrand, type Brand } from './brand';
 import { Colors } from '@/constants/theme';
 
 jest.mock('@/global.css', () => ({}));
@@ -52,9 +54,12 @@ describe('fetchBrand', () => {
     expect(await fetchBrand('acme.sg.qlikcloud.com')).toBeNull();
   });
 
-  it('returns null when the request fails', async () => {
+  it('throws when the request fails', async () => {
     globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed')) as typeof fetch;
-    expect(await fetchBrand('acme.sg.qlikcloud.com')).toBeNull();
+    await expect(fetchBrand('acme.sg.qlikcloud.com')).rejects.toThrow();
+
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 }) as typeof fetch;
+    await expect(fetchBrand('acme.sg.qlikcloud.com')).rejects.toThrow();
   });
 
   it('returns null when the file is not JSON', async () => {
@@ -98,5 +103,68 @@ describe('contrastRatio', () => {
   it('matches the WCAG values for black and white', () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21);
     expect(contrastRatio('#FFFFFF', '#FFFFFF')).toBeCloseTo(1);
+  });
+});
+
+describe('loadBrand', () => {
+  const originalFetch = globalThis.fetch;
+  const NEWER = { primary: { light: '#8B0000', dark: '#FF8080' } };
+  const serve = (file: unknown) => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => file }) as typeof fetch;
+  };
+  const shown = async (tenantHost: string) => {
+    const show = jest.fn();
+    await loadBrand(tenantHost, show);
+    return show.mock.calls.map(([brand]) => brand);
+  };
+
+  beforeEach(() => AsyncStorage.clear());
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('shows the hosted Brand and stores it, so the next launch shows it before the network answers', async () => {
+    serve(FILE);
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([FILE]);
+
+    serve(NEWER);
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([FILE, NEWER]);
+  });
+
+  it('shows the stored Brand offline', async () => {
+    serve(FILE);
+    await shown('acme.sg.qlikcloud.com');
+
+    globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed')) as typeof fetch;
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([FILE]);
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([FILE]);
+  });
+
+  it('replaces the stored Brand with a newer one', async () => {
+    serve(FILE);
+    await shown('acme.sg.qlikcloud.com');
+    serve(NEWER);
+    await shown('acme.sg.qlikcloud.com');
+
+    globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed')) as typeof fetch;
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([NEWER]);
+  });
+
+  it('removes the stored Brand when the hostname no longer has a file', async () => {
+    serve(FILE);
+    await shown('acme.sg.qlikcloud.com');
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404 }) as typeof fetch;
+    expect(await shown('acme.sg.qlikcloud.com')).toEqual([FILE, null]);
+
+    expect(await AsyncStorage.getItem('qlik.brand')).toBeNull();
+  });
+
+  it("removes the old Tenant's Brand after a Tenant change, even offline", async () => {
+    serve(FILE);
+    await shown('acme.sg.qlikcloud.com');
+
+    globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed')) as typeof fetch;
+    expect(await shown('other.eu.qlikcloud.com')).toEqual([]);
+    expect(await AsyncStorage.getItem('qlik.brand')).toBeNull();
   });
 });
