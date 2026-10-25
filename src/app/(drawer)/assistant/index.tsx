@@ -68,10 +68,12 @@ export default function ChatScreen() {
   // A Thread keeps its Assistant. When the Qlik User selects another Assistant, they leave the Thread
   // for a new chat with that Assistant, as the header's switcher now shows.
   const resumed = thread !== undefined && assistantId !== undefined && assistantId === selected?.id;
+  // iOS: the header is transparent (CHAT_HEADER), so the message starts below it, not under it.
+  const headerHeight = useHeaderHeight();
 
   return (
     <View style={styles.flex}>
-      <AssistantProblem />
+      <AssistantProblem top={Platform.OS === 'ios' ? headerHeight : 0} />
       {resumed ? (
         <ResumedThread key={thread} id={thread} assistantId={assistantId} onNew={startNew} />
       ) : (
