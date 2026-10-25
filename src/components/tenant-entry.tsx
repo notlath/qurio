@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hasSession } from '@/auth/access-token';
 import { useQlikAuth } from '@/auth/session';
+import { useBrand } from '@/brand/context';
 import { AppPressable, PrimaryButton } from '@/components/pressable';
 import { SignInSection } from '@/components/sign-in-section';
 import { TenantConfigForm } from '@/components/tenant-config-form';
@@ -22,6 +23,7 @@ import { useReloadAnswersPort } from '@/qlik/context';
 export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void; signOut: () => Promise<void> } } = {}) {
   const theme = useTheme();
   const { reloadConfig } = useTenantConfig();
+  const { showBrandFor } = useBrand();
   const reloadPort = useReloadAnswersPort();
   const [hostname, setHostname] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void
         await reloadConfig();
         reloadPort();
       } else {
+        showBrandFor(tenantHost);
         setResolved(result.config);
       }
     } catch (error) {
@@ -77,7 +80,12 @@ export function HostnameEntry({ replacing }: { replacing?: { onBack?: () => void
     return (
       <View style={styles.form}>
         <SignInSection config={resolved} onSignedIn={reloadConfig} />
-        <AppPressable accessibilityLabel="Change tenant" onPress={() => setResolved(null)}>
+        <AppPressable
+          accessibilityLabel="Change tenant"
+          onPress={() => {
+            showBrandFor(null);
+            setResolved(null);
+          }}>
           <ThemedText type="linkPrimary" themeColor="primary">Change tenant</ThemedText>
         </AppPressable>
       </View>
