@@ -1,5 +1,4 @@
 import type { MenuAction, MenuComponentRef } from '@expo/ui/community/menu';
-import { Image } from 'expo-image';
 import { useNavigation, useRouter } from 'expo-router';
 import { getDrawerStatusFromState, type DrawerContentComponentProps } from 'expo-router/drawer';
 import { DrawerActions, getFocusedRouteNameFromRoute, type RouteProp } from 'expo-router/react-navigation';
@@ -8,6 +7,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { confirmDeleteThread } from '@/components/confirm-delete-thread';
 import { EmptyState } from '@/components/empty-state';
@@ -25,9 +25,6 @@ import type { Assistant, Thread } from '@/domain';
 import { useTheme } from '@/hooks/use-theme';
 import { useThreadHistory } from '@/hooks/use-thread-history';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
-
-// Relative, not `@/`: Jest maps `@/` to `src/` only.
-const LOGO = require('../../assets/images/logo.svg');
 
 /**
  * The left edge opens the side panel on a top-level screen only: the first screen of a drawer
@@ -131,7 +128,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
     <View style={[styles.panel, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.top}>
         <View style={styles.brand}>
-          <Image source={LOGO} style={styles.logo} accessible={false} />
+          <BrandLogo style={styles.logo} />
           <ThemedText type="headline" accessibilityRole="header">
             Qurio
           </ThemedText>

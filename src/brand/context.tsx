@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { fetchBrand, type Brand } from '@/brand/brand';
+import { loadBrand, type Brand } from '@/brand/brand';
 
 type BrandContextValue = { brand: Brand | null; showBrandFor: (tenantHost: string | null) => void };
 
@@ -8,8 +8,9 @@ type BrandContextValue = { brand: Brand | null; showBrandFor: (tenantHost: strin
 const BrandContext = createContext<BrandContextValue>({ brand: null, showBrandFor: () => {} });
 
 /**
- * Loads the Brand of the configured Tenant. Before the configuration saves (first sign-in),
- * the hostname entry calls `showBrandFor`, so the sign-in screen carries the Brand colour too.
+ * Loads the Brand of the configured Tenant: the stored one at once, then the hosted one.
+ * Before the configuration saves (first sign-in), the hostname entry calls `showBrandFor`,
+ * so the sign-in screen carries the Brand colour too.
  */
 export function BrandProvider({ configuredHost, children }: { configuredHost: string | null; children: ReactNode }) {
   const [enteredHost, showBrandFor] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export function BrandProvider({ configuredHost, children }: { configuredHost: st
   useEffect(() => {
     if (!tenantHost) return;
     let current = true;
-    void fetchBrand(tenantHost).then((brand) => {
+    void loadBrand(tenantHost, (brand) => {
       if (current) setLoaded({ tenantHost, brand });
     });
     return () => {
