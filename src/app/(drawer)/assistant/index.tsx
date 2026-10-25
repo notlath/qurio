@@ -1,10 +1,10 @@
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useHeaderHeight, type NavigationProp } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AssistantProblem } from '@/components/assistant-switcher';
+import { BrandLogo } from '@/components/brand-logo';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
@@ -20,9 +20,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { AnswersScope, useAnswersPort } from '@/qlik/context';
-
-// Relative, not `@/`: Jest maps `@/` to `src/` only.
-const LOGO = require('../../../../assets/images/logo.svg');
 
 /** This screen's navigation, so `setParams` accepts the chat params only. */
 const useChatNavigation = () => useNavigation<NavigationProp<{ index: ChatParams }, 'index'>>();
@@ -227,7 +224,7 @@ function Conversation({
           asking ? null : starters ? (
             <View style={[styles.emptyState, { paddingBottom: styles.emptyState.paddingBottom + underHeader }]}>
               <KeyboardCentered style={styles.welcome}>
-                <Image source={LOGO} style={styles.welcomeLogo} accessible={false} />
+                <BrandLogo style={styles.welcomeLogo} />
                 <ThemedText type="title" style={styles.welcomeTitle}>
                   What can I help with?
                 </ThemedText>
