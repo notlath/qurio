@@ -315,7 +315,7 @@ export default function AppsScreen() {
                   ))
                 : [0, 1, 2, 3].map((i) => <AppRowSkeleton key={i} />)}
             </View>
-          ) : current.erroredAt !== undefined ? null : name ? (
+          ) : current.erroredAt !== undefined ? undefined : name ? (
             <EmptyState
               icon={<Icon ios="magnifyingglass" android="search" size={28} color="primary" />}
               title="No matching Analytics Apps"
@@ -331,7 +331,7 @@ export default function AppsScreen() {
             />
           )
         }
-        ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : null}
+        ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} /> : undefined}
       />
     </>
   );

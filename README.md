@@ -105,13 +105,13 @@ These versions are declared in [package.json](package.json). Exact installed ver
 
 | Component | Version or configuration |
 | --- | --- |
-| Expo | SDK 57; `~57.0.29` |
-| React / React Native | `19.2.3` / `0.86.3` |
-| Expo Router | `~57.0.27`; file-based routes and typed routes |
+| Expo | SDK 58; `~58.0.19` |
+| React / React Native | `19.3.0` / `0.88.0` |
+| Expo Router | `~58.0.26`; file-based routes and typed routes |
 | TypeScript | `~6.0.3`; strict mode |
-| Reanimated / Worklets | `4.5.1` / `0.10.1` |
-| React Native WebView | `13.16.1` |
-| Tests | Jest 29 with `jest-expo` |
+| Reanimated / Worklets | `4.7.1` / `0.13.0` |
+| React Native WebView | `14.0.1` |
+| Tests | Jest 30 with `jest-expo` |
 | Lint | ESLint 9 with Expo configuration |
 | React Compiler | Enabled in `app.json` |
 
@@ -121,7 +121,7 @@ Native UI uses a drawer with native navigation stacks, platform symbols, and Swi
 
 - Node.js 24.3 or later in the 24.x series. CI uses Node.js 24. Check `package-lock.json` for dependency engine requirements.
 - npm for dependency installation and the committed lockfile.
-- An iOS device with an Expo Go version that supports SDK 57, or an installed development build.
+- An iOS device with an Expo Go version that supports SDK 58, or an installed development build.
 - An Android device or emulator with a development build for coding, or the standalone APK for acceptance testing.
 - An EAS account with project access for cloud builds.
 - Android SDK Platform 36, Platform Tools, Build Tools, JDK 17, and the generated project's NDK/CMake versions for local Android builds.
@@ -503,7 +503,7 @@ HTTP 429 produces a visible retry delay. The adapter uses `Retry-After` seconds 
 
 ## Maintenance and related documents
 
-Use [Expo SDK 57 documentation](https://docs.expo.dev/versions/v57.0.0/) when changing Expo code. Verify package versions and scripts in `package.json` before changing instructions.
+Use [Expo SDK 58 documentation](https://docs.expo.dev/versions/v58.0.0/) when changing Expo code. Verify package versions and scripts in `package.json` before changing instructions.
 
 Rebuild the development client after native dependency, plugin, or compiled app-configuration changes. Review `app.json`, `eas.json`, `modules/managed-config/`, and `plugins/` when changing platform setup.
 

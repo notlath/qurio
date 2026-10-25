@@ -73,6 +73,8 @@ export function useQlikAuth(config: TenantConfig) {
         : Promise.resolve(),
       refreshToken
         ? AuthSession.revokeAsync(
+            // The enum is exported. eslint-plugin-import cannot read the export from the SDK 58 build output.
+            // eslint-disable-next-line import/namespace
             { token: refreshToken, clientId: config.clientId, tokenTypeHint: AuthSession.TokenTypeHint.RefreshToken },
             discovery,
           )

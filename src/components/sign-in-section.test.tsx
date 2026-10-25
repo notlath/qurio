@@ -216,7 +216,7 @@ describe('Tenant Approval request', () => {
   }
 
   it('lets the Qlik User share a request to the Tenant admin when the Tenant has not approved the app', async () => {
-    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
     const error = Object.assign(new Error('Your Tenant admin must approve the app once.'), { name: 'TenantApprovalRequired' });
     const renderer = await failSignIn(error);
 
