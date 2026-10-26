@@ -310,8 +310,8 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   // Stretched, so the starters still wrap across the full column.
   welcome: { alignSelf: 'stretch', alignItems: 'center', gap: Spacing.three },
-  // A wide box, because a Brand logo is often a wordmark. A square logo keeps its 80pt height.
-  welcomeLogo: { width: Spacing.six * 4, maxWidth: '100%', height: Spacing.six + Spacing.three, borderRadius: Radius.control },
+  // A wide box, because a Brand logo is often a wordmark. A square logo keeps its 48pt height.
+  welcomeLogo: { width: Spacing.six * 2 + Spacing.five, maxWidth: '100%', height: Spacing.five + Spacing.three, borderRadius: Radius.small },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },
   welcomeCopy: { maxWidth: 480, textAlign: 'center' },
   startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },
