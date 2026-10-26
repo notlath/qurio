@@ -27,14 +27,17 @@ export function AssistantSwitcher({ includeAgentic = false, placement = 'inline'
 /** `header` is the compact trigger for a navigator header: the screen body shows any problem, via AssistantProblem. */
 type Placement = 'inline' | 'header';
 
-/** Why there is nothing to choose from: the Assistants request failed, or the Qlik User has none. */
-export function AssistantProblem() {
+/**
+ * Why there is nothing to choose from: the Assistants request failed, or the Qlik User has none.
+ * `top` moves it below a transparent header.
+ */
+export function AssistantProblem({ top = 0 }: { top?: number }) {
   const { assistants, agentic, loading, error } = useAssistantSelection();
   if (loading) return null;
   if (error) {
     const message = errorMessageFor(error);
     return (
-      <View style={{ padding: Spacing.three }}>
+      <View style={{ padding: Spacing.three, paddingTop: Spacing.three + top }}>
         <ThemedText type="smallBold">{message.title}</ThemedText>
         <ThemedText>{message.message}</ThemedText>
       </View>
@@ -44,7 +47,7 @@ export function AssistantProblem() {
   // for that. Agentic Assistants are a choice too, so they count.
   if (assistants.length > 0 || agentic.length > 0) return null;
   return (
-    <View style={{ padding: Spacing.three }}>
+    <View style={{ padding: Spacing.three, paddingTop: Spacing.three + top }}>
       <ThemedText type="smallBold">No Assistants available</ThemedText>
       <ThemedText>No Assistant is available to you yet. Ask your Tenant admin to give you access to an Assistant.</ThemedText>
     </View>
