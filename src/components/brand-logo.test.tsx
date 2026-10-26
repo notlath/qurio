@@ -16,14 +16,14 @@ const FILE = {
   primary: { light: '#0055A4', dark: '#7FB2FF' },
 };
 
-async function renderLogo(file: object | null, scheme: 'light' | 'dark' = 'light') {
+async function renderLogo(file: object | null, scheme: 'light' | 'dark' = 'light', mark = false) {
   useColorScheme.mockReturnValue(scheme);
   globalThis.fetch = jest.fn().mockResolvedValue({ ok: file !== null, status: file ? 200 : 404, json: async () => file }) as typeof fetch;
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     renderer = TestRenderer.create(
       <BrandProvider configuredHost="mtcai.sg.qlikcloud.com">
-        <BrandLogo style={{}} />
+        <BrandLogo style={{}} mark={mark} />
       </BrandProvider>,
     );
   });
@@ -64,4 +64,15 @@ it('shows the light logo when the dark logo fails to load', async () => {
   const logo = await renderLogo(FILE, 'dark');
   await act(async () => logo.props.onError());
   expect(logo.props.source).toEqual({ uri: 'https://example.com/logo.png' });
+});
+
+it('shows the mark where asked, and the logo when the Brand has no mark or the mark fails to load', async () => {
+  const withMark = { ...FILE, mark: 'https://example.com/mark.png' };
+  const mark = await renderLogo(withMark, 'dark', true);
+  expect(mark.props.source).toEqual({ uri: 'https://example.com/mark.png' });
+  await act(async () => mark.props.onError());
+  expect(mark.props.source).toEqual({ uri: 'https://example.com/logo-dark.png' });
+
+  expect((await renderLogo(FILE, 'light', true)).props.source).toEqual({ uri: 'https://example.com/logo.png' });
+  expect((await renderLogo(withMark)).props.source).toEqual({ uri: 'https://example.com/logo.png' });
 });

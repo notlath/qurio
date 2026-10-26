@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { brandPrimary, contrastRatio, fetchBrand, loadBrand, parseBrand, type Brand } from './brand';
+import { brandColors, brandPrimary, contrastRatio, fetchBrand, loadBrand, parseBrand, type Brand } from './brand';
 import { Colors } from '@/constants/theme';
 
 jest.mock('@/global.css', () => ({}));
@@ -9,6 +9,7 @@ const FILE = {
   name: 'Example',
   logo: 'https://example.com/logo.png',
   logoDark: 'https://example.com/logo-dark.png',
+  mark: 'https://example.com/mark.png',
   primary: { light: '#0055A4', dark: '#7FB2FF' },
 };
 
@@ -30,6 +31,7 @@ describe('parseBrand', () => {
     ['a short hex colour', { primary: { light: '#05A', dark: '#7FB2FF' } }],
     ['a name that is not a string', { ...FILE, name: 3 }],
     ['a logo that is not https', { ...FILE, logo: 'http://example.com/logo.png' }],
+    ['a mark that is not https', { ...FILE, mark: 'http://example.com/mark.png' }],
   ])('rejects %s', (_, json) => {
     expect(parseBrand(json)).toBeNull();
   });
@@ -81,11 +83,11 @@ describe('brandPrimary', () => {
     expect(brandPrimary(brand, 'dark')).toEqual({ primary: '#7FB2FF', primaryForeground: '#000000' });
   });
 
-  it('uses Qurio green with no Brand', () => {
+  it('uses Qurio blue with no Brand', () => {
     expect(brandPrimary(null, 'light')).toEqual({ primary: Colors.light.primary, primaryForeground: Colors.light.primaryForeground });
   });
 
-  it('uses Qurio green for a colour below 3:1 against the background, in that theme only', () => {
+  it('uses Qurio blue for a colour below 3:1 against the background, in that theme only', () => {
     const pale = { primary: { light: '#FFE066', dark: '#7FB2FF' } };
     expect(contrastRatio('#FFE066', Colors.light.background)).toBeLessThan(3);
 
@@ -93,9 +95,41 @@ describe('brandPrimary', () => {
     expect(brandPrimary(pale, 'dark').primary).toBe('#7FB2FF');
   });
 
-  it('uses Qurio green for a dark-theme colour that is too dark', () => {
+  it('uses Qurio blue for a dark-theme colour that is too dark', () => {
     const dim = { primary: { light: '#0055A4', dark: '#1A2A40' } };
     expect(brandPrimary(dim, 'dark')).toEqual({ primary: Colors.dark.primary, primaryForeground: Colors.dark.primaryForeground });
+  });
+});
+
+describe('brandColors', () => {
+  it('gives the neutrals the hue of the Brand colour, so no Qurio blue shows next to it', () => {
+    expect(brandColors({ primary: { light: '#146B43', dark: '#7FD3A2' } }, 'dark')).toMatchObject({
+      primary: '#7FD3A2',
+      background: '#101713',
+      backgroundSelected: '#254231',
+      border: '#31473A',
+    });
+  });
+
+  it('keeps Qurio’s neutrals with Qurio blue', () => {
+    expect(brandColors(null, 'light')).toEqual(brandPrimary(null, 'light'));
+    expect(brandColors({ primary: { light: '#FFE066', dark: '#7FB2FF' } }, 'light')).toEqual(brandPrimary(null, 'light'));
+  });
+
+  // One Brand colour per hue around the colour wheel: red, orange, yellow, green, cyan, blue, violet, magenta.
+  it.each([
+    ['light', ['#B00020', '#A04000', '#6B5D00', '#00703C', '#006A80', '#00529A', '#5B2DB0', '#A0006E']],
+    ['dark', ['#FF8A80', '#FFB074', '#E6D34D', '#7FD3A2', '#7FD8E8', '#7FB2E5', '#B9A0FF', '#FF8AD0']],
+  ] as const)('keeps every %s text pair at WCAG AA at any Brand hue', (scheme, primaries) => {
+    for (const primary of primaries) {
+      const colors = { ...Colors[scheme], ...brandColors({ primary: { light: primary, dark: primary } }, scheme) };
+      expect(colors.primary).toBe(primary);
+      expect(contrastRatio(colors.text, colors.background)).toBeGreaterThanOrEqual(4.5);
+      for (const surface of [colors.background, colors.backgroundElement, colors.backgroundSelected]) {
+        expect(contrastRatio(colors.textSecondary, surface)).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrastRatio(colors.borderStrong, colors.background)).toBeGreaterThanOrEqual(3);
+    }
   });
 });
 

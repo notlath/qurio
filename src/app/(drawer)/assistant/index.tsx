@@ -3,7 +3,7 @@ import { useHeaderHeight, type NavigationProp } from 'expo-router/react-navigati
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AssistantProblem } from '@/components/assistant-switcher';
+import { AssistantProblem, assistantProblem } from '@/components/assistant-switcher';
 import { BrandLogo } from '@/components/brand-logo';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
@@ -58,7 +58,8 @@ function NewConversationButton({ onNew }: { onNew: () => void }) {
 /** The one chat screen: a new chat, or a Thread opened from the side panel's History. */
 export default function ChatScreen() {
   const navigation = useChatNavigation();
-  const { selected } = useAssistantSelection();
+  const selection = useAssistantSelection();
+  const { selected } = selection;
   const { thread, assistantId, chat } = useLocalSearchParams<ChatParams>();
   // A new chat gets a new `chat` value, so it is a fresh mount: a pending question is aborted and nothing carries over.
   const startNew = useCallback(
@@ -69,9 +70,18 @@ export default function ChatScreen() {
   // for a new chat with that Assistant, as the header's switcher now shows.
   const resumed = thread !== undefined && assistantId !== undefined && assistantId === selected?.id;
 
+  // With no Assistant nothing can answer, so the reason replaces the welcome and the Composer.
+  // Centred on the whole screen, it stays clear of the transparent header on iOS.
+  if (assistantProblem(selection)) {
+    return (
+      <View style={styles.problem}>
+        <AssistantProblem />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.flex}>
-      <AssistantProblem />
       {resumed ? (
         <ResumedThread key={thread} id={thread} assistantId={assistantId} onNew={startNew} />
       ) : (
@@ -295,11 +305,13 @@ function ThreadSkeleton() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  problem: { flex: 1, justifyContent: 'center' },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   // Stretched, so the starters still wrap across the full column.
   welcome: { alignSelf: 'stretch', alignItems: 'center', gap: Spacing.three },
-  welcomeLogo: { width: Spacing.five + Spacing.four, height: Spacing.five + Spacing.four, borderRadius: Radius.control },
+  // A wide box, because a Brand logo is often a wordmark. A square logo keeps its 80pt height.
+  welcomeLogo: { width: Spacing.six * 4, maxWidth: '100%', height: Spacing.six + Spacing.three, borderRadius: Radius.control },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },
   welcomeCopy: { maxWidth: 480, textAlign: 'center' },
   startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },

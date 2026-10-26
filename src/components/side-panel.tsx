@@ -136,7 +136,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
     <View style={[styles.panel, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.top}>
         <View style={styles.brand}>
-          <BrandLogo style={styles.logo} />
+          <BrandLogo mark style={styles.logo} />
           <ThemedText type="headline" accessibilityRole="header">
             Qurio
           </ThemedText>

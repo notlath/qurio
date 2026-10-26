@@ -507,7 +507,7 @@ Development traces report token-request outcomes, remaining lifetime, and saniti
 | Android Expo Go cannot start or sign in | Install an Android development build and connect with `--dev-client`. |
 | Agentic Assistant is absent from the sheet | Give the Qlik User access to the space of the Agentic Assistant. The entry is native-only. |
 | Web shows sample content | This is expected. Web always uses fixtures. |
-| Customer Brand does not show | Check that `brands/<tenantHost>.json` exists and has valid `primary.light` and `primary.dark` colours. A colour with too little contrast falls back to Qurio green. |
+| Customer Brand does not show | Check that `brands/<tenantHost>.json` exists and has valid `primary.light` and `primary.dark` colours. A colour with too little contrast falls back to Qurio blue. |
 | Embedded view reports a load failure | Check internet access and CDN access. Select **Try again**. |
 | Embedded view requests sign-in | Sign in from Settings, then reopen or retry the embedded view. |
 | Answers access is denied | Check Answers Entitlement and Assistant permissions with the Tenant administrator. |

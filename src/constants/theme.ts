@@ -2,8 +2,8 @@
  * Design tokens. Every colour, type step, duration and radius in the app comes from here —
  * screens never hardcode a hex or a magic number (pro-rules: token-driven theming).
  *
- * Palette is Qlik-brand green, kept from the original build: every text pair already clears
- * WCAG AA (lowest is textSecondary at 5.11:1), so there was nothing to gain by replacing it.
+ * Palette is Qurio blue: the original green palette moved to the hue of the blue, with its saturation and
+ * lightness kept. Every text pair clears WCAG AA (lowest is textSecondary on backgroundSelected at 4.77:1).
  */
 
 import '@/global.css';
@@ -12,32 +12,32 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#17251D',
-    background: '#F6F9F6',
+    text: '#171E25',
+    background: '#F6F8F9',
     backgroundElement: '#FFFFFF',
-    backgroundSelected: '#E1F0E6',
-    textSecondary: '#5D6E63',
-    primary: '#146B43',
+    backgroundSelected: '#E1E9F0',
+    textSecondary: '#5D666E',
+    primary: '#00529A',
     primaryForeground: '#FFFFFF',
-    border: '#D7E4DB',
+    border: '#D7DEE4',
     // Control boundaries (inputs, outlined buttons, selected chips) need 3:1 against their
-    // neighbours; `border` at 1.24:1 is a decorative separator only. 3.24:1 vs background.
-    borderStrong: '#7C8F83',
+    // neighbours; `border` is a decorative separator only. 3.48:1 vs background.
+    borderStrong: '#7C868F',
     danger: '#B42318',
     dangerForeground: '#FFFFFF', // 6.57:1 on danger
     // Dims the screen behind a dialog.
     scrim: 'rgba(0, 0, 0, 0.4)',
   },
   dark: {
-    text: '#F2F7F2',
-    background: '#101713',
-    backgroundElement: '#19231C',
-    backgroundSelected: '#254232',
-    textSecondary: '#B4C4BA',
-    primary: '#7FD3A2',
-    primaryForeground: '#102117',
-    border: '#31473A',
-    borderStrong: '#5E7566', // 3.65:1 vs background
+    text: '#F2F4F7',
+    background: '#101417',
+    backgroundElement: '#191E23',
+    backgroundSelected: '#253442',
+    textSecondary: '#B4BCC4',
+    primary: '#7FB2E5',
+    primaryForeground: '#101921',
+    border: '#313C47',
+    borderStrong: '#5E6A75', // 3.34:1 vs background
     danger: '#FFB4AB',
     dangerForeground: '#690005', // 7.72:1 on danger
     scrim: 'rgba(0, 0, 0, 0.6)',
@@ -106,7 +106,7 @@ export const Shape = { continuous: { borderCurve: 'continuous' } } as const;
  * on the background and separate with a hairline — stacking shadows on every row reads as noise.
  */
 export const Elevation = {
-  floating: { boxShadow: '0 2px 12px rgba(11, 31, 20, 0.08)' },
+  floating: { boxShadow: '0 2px 12px rgba(11, 20, 31, 0.08)' },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
