@@ -25,13 +25,13 @@ This README describes the current code. Some design documents describe changes t
 
 ## Beta release and Android installation
 
-The latest release is **Qurio v1.0.0-beta.6**, an internal beta for installation and acceptance testing. It is not a stable release.
+The latest release is **Qurio v1.0.0-beta.7**, an internal beta for installation and acceptance testing. It is not a stable release.
 
-On October 21, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.6](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.6). The release tag points to merged `main` (`e9b8e24`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
+On October 26, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.7](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.7). The release tag points to merged `main` (`d9e6790`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
 
 Download the APK and checksum from the release Assets section. This repository is public, so GitHub downloads need no repository access.
 
-Beta 6 is built from an earlier `main`. `main` now also has these features, which beta 6 does not include:
+Beta 7 is built from `main` and includes these features, which beta 6 does not include:
 
 - The Customer Brand and the Qurio blue palette.
 - PR #49: the Metadata Client for every region, the iOS private sign-in sheet, and the Tenant approval message.
@@ -39,15 +39,15 @@ Beta 6 is built from an earlier `main`. `main` now also has these features, whic
 
 | Prepared APK | Verified value |
 | --- | --- |
-| Filename | `qurio-1.0.0-beta.6-e9b8e24-release-signed.apk` |
+| Filename | `qurio-1.0.0-beta.7-d9e6790-release-signed.apk` |
 | Android package | `com.mtc.qlikanswersapp` |
-| Embedded version / version code | `1.0.0` / `6` |
+| Embedded version / version code | `1.0.0` / `7` |
 | Minimum Android version | Android 7.0, API 24 |
 | Build | Release, not debuggable, with the application bundle included |
 | Signature | Release certificate. APK Signature Scheme v2 and v3 passed |
 | Alignment | 16 KB alignment check passed |
 
-The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`. Beta 6 uses version code `6`.
+The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`. Beta 6 uses version code `6`. Beta 7 uses version code `7`.
 
 ### Install the standalone APK
 
@@ -59,20 +59,20 @@ The beta release label does not change the APK's embedded `1.0.0` version name. 
 Expected SHA-256 for the prepared APK:
 
 ```text
-06678C1697E35B2850A40AAB1B6E935CEFF434E4890E7C58056949AE5321BFC9
+391158F8D122B11FB26254AC76F7EE86CA5272C156EA002BDACFB3920D5F9064
 ```
 
 On Windows, verify a downloaded copy with PowerShell:
 
 ```powershell
-Get-FileHash -LiteralPath './qurio-1.0.0-beta.6-e9b8e24-release-signed.apk' -Algorithm SHA256
+Get-FileHash -LiteralPath './qurio-1.0.0-beta.7-d9e6790-release-signed.apk' -Algorithm SHA256
 ```
 
 For USB installation, connect an authorized device with USB debugging enabled:
 
 ```bash
 adb devices
-adb install ./qurio-1.0.0-beta.6-e9b8e24-release-signed.apk
+adb install ./qurio-1.0.0-beta.7-d9e6790-release-signed.apk
 ```
 
 The standalone APK runs without a computer or Expo/Metro server. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud. A development-client APK normally requires Metro, even when it is signed. Signing alone does not make a build standalone.
@@ -446,17 +446,19 @@ Web fixtures support failure checks. Asking `ERROR:Offline` or `ERROR:RateLimite
 
 ## Beta verification status
 
-Recorded for beta 6 on October 21, 2026:
+Recorded for beta 7 on October 26, 2026:
 
 | Check | Result |
 | --- | --- |
-| PR [#53 checks](https://github.com/notlath/qurio/pull/53/checks) | All six CI checks passed |
-| Lint, TypeScript, and unit tests | Passed locally. 49 suites, 588 tests |
-| Signed APK | Release certificate (same as beta 1 to 5), v2/v3 signatures, checksum, and 16 KB alignment verified |
+| PR [#67 checks](https://github.com/notlath/qurio/pull/67/checks) | All six CI checks passed |
+| Lint, TypeScript, and unit tests | Passed locally. 53 suites, 631 tests |
+| Signed APK | Release certificate (same as beta 1 to 6), v2/v3 signatures, checksum, and 16 KB alignment verified |
+| Update over beta 6 | Passed on an Android emulator. The app opened after the update |
+| Emulator smoke test | Sign-in on two Tenants, the Malayan Brand, an Analytics App, the Agentic Assistant, the blue icon and splash |
 | `prompt=login` sign-in | Not verified against a real Tenant |
 | Prepared APK on a physical Android device | Installation and live acceptance remain unverified |
 | iOS native build and device installation | Remain unverified. No signed iOS application is included |
-| GitHub Release and APK upload | Published as `v1.0.0-beta.6` |
+| GitHub Release and APK upload | Published as `v1.0.0-beta.7` |
 
 CI and signature checks do not establish production readiness. Earlier proof-of-concept device evidence does not validate this prepared APK.
 
