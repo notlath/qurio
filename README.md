@@ -1,6 +1,6 @@
 # Qurio — QlikAnswersApp
 
-Qurio is an iOS and Android app for Qlik Cloud. It lists Analytics Apps and provides access to Qlik Answers Assistants. Each Qlik User signs in with their own Tenant identity. The repository name is `qlik-answers-mobile`. The Expo project slug is `QlikAnswersApp`.
+Qurio is an iOS and Android app for Qlik Cloud. It lists Analytics Apps and provides access to Qlik Answers Assistants. Each Qlik User signs in with their own Tenant identity. The repository name is `qurio`. The Expo project slug is `QlikAnswersApp`.
 
 This README describes the current code. Some design documents describe changes that are not implemented.
 
@@ -27,14 +27,15 @@ This README describes the current code. Some design documents describe changes t
 
 The latest release is **Qurio v1.0.0-beta.6**, an internal beta for installation and acceptance testing. It is not a stable release.
 
-On October 21, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.6](https://github.com/notlath/qlik-answers-mobile/releases/tag/v1.0.0-beta.6). The release tag points to merged `main` (`e9b8e24`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qlik-answers-mobile/releases) page.
+On October 21, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.6](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.6). The release tag points to merged `main` (`e9b8e24`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
 
-Download the APK and checksum from the release Assets section. This repository is private, so GitHub downloads require repository access.
+Download the APK and checksum from the release Assets section. This repository is public, so GitHub downloads need no repository access.
 
-Beta 6 is built from `main`. Some `dev` features in this README are not in beta 6:
+Beta 6 is built from an earlier `main`. `main` now also has these features, which beta 6 does not include:
 
-- The Customer Brand.
+- The Customer Brand and the Qurio blue palette.
 - PR #49: the Metadata Client for every region, the iOS private sign-in sheet, and the Tenant approval message.
+- Expo SDK 58.
 
 | Prepared APK | Verified value |
 | --- | --- |
@@ -449,7 +450,7 @@ Recorded for beta 6 on October 21, 2026:
 
 | Check | Result |
 | --- | --- |
-| PR [#53 checks](https://github.com/notlath/qlik-answers-mobile/pull/53/checks) | All six CI checks passed |
+| PR [#53 checks](https://github.com/notlath/qurio/pull/53/checks) | All six CI checks passed |
 | Lint, TypeScript, and unit tests | Passed locally. 49 suites, 588 tests |
 | Signed APK | Release certificate (same as beta 1 to 5), v2/v3 signatures, checksum, and 16 KB alignment verified |
 | `prompt=login` sign-in | Not verified against a real Tenant |

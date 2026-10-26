@@ -94,6 +94,8 @@ function Navigation() {
             <Stack screenOptions={screenOptions}>
               {/* No header, but the title names the Back button of Settings for screen readers. */}
               <Stack.Screen name="(drawer)" options={{ headerShown: false, title: 'Qurio' }} />
+              {/* `/` only redirects (src/app/index.tsx). Unlisted, it would draw a header titled "index". */}
+              <Stack.Screen name="index" options={{ headerShown: false }} />
               {/* Pushed over the overlay side panel, so the left edge stays swipe-to-go-back. Beside the
                   docked panel, Settings opens in (drawer)/docked-settings instead (settingsHref). */}
               <Stack.Screen name="settings/index" options={{ title: 'Settings', headerLargeTitle: true }} />
