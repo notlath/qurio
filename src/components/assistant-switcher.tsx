@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
 import { selectionHaptic } from '@/components/haptics';
 import { Icon } from '@/components/icon';
 import { AppPressable, IconButton } from '@/components/pressable';
@@ -27,27 +28,35 @@ export function AssistantSwitcher({ includeAgentic = false, placement = 'inline'
 /** `header` is the compact trigger for a navigator header: the screen body shows any problem, via AssistantProblem. */
 type Placement = 'inline' | 'header';
 
-/** Why there is nothing to choose from: the Assistants request failed, or the Qlik User has none. */
-export function AssistantProblem() {
-  const { assistants, agentic, loading, error } = useAssistantSelection();
+/** Why there is nothing to choose from: the Assistants request failed, or the Qlik User has none. Null when there is no problem. */
+export function assistantProblem({ assistants, agentic, loading, error }: ReturnType<typeof useAssistantSelection>): { title: string; message: string } | null {
   if (loading) return null;
-  if (error) {
-    const message = errorMessageFor(error);
-    return (
-      <View style={{ padding: Spacing.three }}>
-        <ThemedText type="smallBold">{message.title}</ThemedText>
-        <ThemedText>{message.message}</ThemedText>
-      </View>
-    );
-  }
+  if (error) return errorMessageFor(error);
   // An empty classic list does not mean a missing license: nobody has verified what Qlik returns
   // for that. Agentic Assistants are a choice too, so they count.
   if (assistants.length > 0 || agentic.length > 0) return null;
+  return {
+    title: 'No Assistants available',
+    message: 'No Assistant is available to you yet. Ask your Tenant admin to give you access to an Assistant.',
+  };
+}
+
+export function AssistantProblem() {
+  const selection = useAssistantSelection();
+  const problem = assistantProblem(selection);
+  if (!problem) return null;
   return (
-    <View style={{ padding: Spacing.three }}>
-      <ThemedText type="smallBold">No Assistants available</ThemedText>
-      <ThemedText>No Assistant is available to you yet. Ask your Tenant admin to give you access to an Assistant.</ThemedText>
-    </View>
+    <EmptyState
+      icon={
+        selection.error ? (
+          <Icon ios="exclamationmark.triangle" android="warning" size={28} color="primary" />
+        ) : (
+          <Icon ios="text.bubble" android="chat_bubble" size={28} color="primary" />
+        )
+      }
+      title={problem.title}
+      message={problem.message}
+    />
   );
 }
 

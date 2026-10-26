@@ -10,8 +10,10 @@ export default function AppsLayout() {
   return (
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ title: 'Apps', headerLargeTitle: true, headerLeft: SidePanelButton }} />
-      {/* Pushed in the Apps stack, so it opens beside the docked panel and keeps swipe-to-go-back on phones. */}
-      <Stack.Screen name="[id]" options={{ title: 'Analytics App' }} />
+      {/* Pushed in the Apps stack, so it opens beside the docked panel and keeps swipe-to-go-back on phones.
+          Opaque, as the Agentic Assistant's: iOS 26 draws the header as glass over the Qlik page, and the
+          title faded into the page in both themes. */}
+      <Stack.Screen name="[id]" options={{ title: 'Analytics App', headerTransparent: false }} />
     </Stack>
   );
 }

@@ -271,6 +271,32 @@ The Agentic Assistant, opened in the embedded view with the same session, return
 
 One sign-in returned a `502 BAD-GATEWAY` once and did not repeat. The cause is [Unverified]. Qlik reading the document from GitHub Pages is one possible cause.
 
+### Test 6 result (2026-10-20): a non-admin cannot start the approval
+
+With the Metadata Client deleted from `mtcreports.us`, a non-admin signed in on a device. The sign-in sheet showed a plain JSON page: `OAUTH-28`, status 401, "The OAuth connection can only be approved by TenantAdmin." Qlik did not redirect to the app. The same page appeared in a browser. [High: observed]
+
+- The app cannot tell this from a Qlik User who closes the sheet. The old handler needed a redirect with `error_code=OAUTH-28`, so the app showed nothing. [High: code and observation]
+- The app now shows a hint and the Share approval request action whenever a sign-in does not finish.
+- A non-admin cannot sign in at a Tenant until an admin approves. No way around this is documented.
+
+### Test 7 result (2026-10-20): one admin approval then a non-admin signs in
+
+An admin signed in with the Metadata Client on `mtcreports.us` and approved it. Qlik created the client again. A non-admin then signed in on a device and gave their own consent on the "Authorize app" screen. After that the non-admin was signed in. So the Tenant approval is one admin action, and each Qlik User then gives consent once for themselves. [High: tester report, client list checked with the API]
+
+### Test 8 result (2026-10-20): Android release build uses the published `us` client
+
+The tester ran the built Android beta app, Qurio v1.0.0-beta.3, signed in as a non-admin on `mtcreports.us`. Sign-in, the Agentic Assistant, and viewing an Analytics App all worked. [High: tester report and Settings screenshot]
+
+A release build has no Developer section, so it could not use the Metadata Client override. In `mtcreports.us` the build used the published `us` client. So this run proves the published `us` client on Android. It does not prove the Metadata Client on Android. That is [Unverified]. Testing it needs an internal Android build with the Developer override, or a Tenant in a Region with no published client.
+
+Also unverified: what the sign-in sheet shows after a sign-out on Android. Chrome Custom Tabs have no ephemeral option.
+
+### Test 9 result (2026-10-20): Android development build with the Metadata Client
+
+The tester used an Android development build and the Developer override (`mtcreports.us` with the Metadata Client address as the client ID). Sign-in succeeded. [High: tester report]
+
+On the same build, the Analytics Apps list opened, the Agentic Assistant answered, and after a sign-out the Qlik login form appeared again. [High: tester report]
+
 ### If CIMD fails
 
 - If Qlik rejects the redirect and no claimed link works, keep rank 3 and ask Qlik (rank 2).

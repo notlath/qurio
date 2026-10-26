@@ -1,10 +1,10 @@
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useHeaderHeight, type NavigationProp } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AssistantProblem } from '@/components/assistant-switcher';
+import { AssistantProblem, assistantProblem } from '@/components/assistant-switcher';
+import { BrandLogo } from '@/components/brand-logo';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { ChatScrollView, Composer, PendingAnswer } from '@/components/composer';
 import { ErrorState } from '@/components/error-state';
@@ -20,9 +20,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThreadConversation } from '@/hooks/use-thread-conversation';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 import { AnswersScope, useAnswersPort } from '@/qlik/context';
-
-// Relative, not `@/`: Jest maps `@/` to `src/` only.
-const LOGO = require('../../../../assets/images/logo.svg');
 
 /** This screen's navigation, so `setParams` accepts the chat params only. */
 const useChatNavigation = () => useNavigation<NavigationProp<{ index: ChatParams }, 'index'>>();
@@ -61,7 +58,8 @@ function NewConversationButton({ onNew }: { onNew: () => void }) {
 /** The one chat screen: a new chat, or a Thread opened from the side panel's History. */
 export default function ChatScreen() {
   const navigation = useChatNavigation();
-  const { selected } = useAssistantSelection();
+  const selection = useAssistantSelection();
+  const { selected } = selection;
   const { thread, assistantId, chat } = useLocalSearchParams<ChatParams>();
   // A new chat gets a new `chat` value, so it is a fresh mount: a pending question is aborted and nothing carries over.
   const startNew = useCallback(
@@ -72,9 +70,18 @@ export default function ChatScreen() {
   // for a new chat with that Assistant, as the header's switcher now shows.
   const resumed = thread !== undefined && assistantId !== undefined && assistantId === selected?.id;
 
+  // With no Assistant nothing can answer, so the reason replaces the welcome and the Composer.
+  // Centred on the whole screen, it stays clear of the transparent header on iOS.
+  if (assistantProblem(selection)) {
+    return (
+      <View style={styles.problem}>
+        <AssistantProblem />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.flex}>
-      <AssistantProblem />
       {resumed ? (
         <ResumedThread key={thread} id={thread} assistantId={assistantId} onNew={startNew} />
       ) : (
@@ -224,10 +231,10 @@ function Conversation({
         // The welcome keeps itself centred above the Composer, so the list does not also lift it.
         renderScrollComponent={(props) => <ChatScrollView {...props} lift={!welcoming} />}
         ListEmptyComponent={
-          asking ? null : starters ? (
+          asking ? undefined : starters ? (
             <View style={[styles.emptyState, { paddingBottom: styles.emptyState.paddingBottom + underHeader }]}>
               <KeyboardCentered style={styles.welcome}>
-                <Image source={LOGO} style={styles.welcomeLogo} accessible={false} />
+                <BrandLogo style={styles.welcomeLogo} />
                 <ThemedText type="title" style={styles.welcomeTitle}>
                   What can I help with?
                 </ThemedText>
@@ -256,7 +263,7 @@ function Conversation({
             <PendingAnswer question={pendingQuestion} partialAnswer={partialAnswer} />
           ) : error && erroredAt ? (
             <ErrorState error={error} erroredAt={erroredAt} onRetry={() => ask()} onDismiss={dismissError} />
-          ) : null
+          ) : undefined
         }
       />
 
@@ -298,11 +305,13 @@ function ThreadSkeleton() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  problem: { flex: 1, justifyContent: 'center' },
   listContent: { flexGrow: 1, padding: Spacing.three, paddingTop: Spacing.four, gap: Spacing.five },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.five, gap: Spacing.three },
   // Stretched, so the starters still wrap across the full column.
   welcome: { alignSelf: 'stretch', alignItems: 'center', gap: Spacing.three },
-  welcomeLogo: { width: Spacing.five + Spacing.four, height: Spacing.five + Spacing.four, borderRadius: Radius.control },
+  // A wide box, because a Brand logo is often a wordmark. A square logo keeps its 48pt height.
+  welcomeLogo: { width: Spacing.six * 2 + Spacing.five, maxWidth: '100%', height: Spacing.five + Spacing.three, borderRadius: Radius.small },
   welcomeTitle: { maxWidth: 480, textAlign: 'center' },
   welcomeCopy: { maxWidth: 480, textAlign: 'center' },
   startersSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two, marginTop: Spacing.three },

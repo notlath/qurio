@@ -31,7 +31,8 @@ export function useQlikAuth(config: TenantConfig) {
   );
 
   const signIn = useCallback(async () => {
-    const result = await promptAsync();
+    // iOS only: without this the sheet shares Safari cookies, so Qlik's web session outlives a sign-out and the next sign-in skips the login form.
+    const result = await promptAsync({ preferEphemeralSession: true });
     if (result.type === 'error' && result.params.error_code === 'OAUTH-28') {
       // Named so the sign-in screen can offer to share the request with the Tenant admin.
       throw Object.assign(new Error(errorMessageFor({ kind: 'TenantApprovalRequired' }).message), { name: 'TenantApprovalRequired' });
@@ -72,6 +73,8 @@ export function useQlikAuth(config: TenantConfig) {
         : Promise.resolve(),
       refreshToken
         ? AuthSession.revokeAsync(
+            // The enum is exported. eslint-plugin-import cannot read the export from the SDK 58 build output.
+            // eslint-disable-next-line import/namespace
             { token: refreshToken, clientId: config.clientId, tokenTypeHint: AuthSession.TokenTypeHint.RefreshToken },
             discovery,
           )

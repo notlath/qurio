@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import ChatScreen from '@/app/(drawer)/assistant';
 import { AnswersScope } from './context';
@@ -13,7 +14,12 @@ jest.mock('@/qlik/assistant-selection', () => ({ useAssistantSelection: jest.fn(
 jest.mock('expo-router/react-navigation', () => ({ useHeaderHeight: () => 0 }));
 jest.mock('expo-router', () => ({ useNavigation: () => ({ setParams: mockSetParams }), Stack: { Screen: (props: unknown) => jest.requireActual('react').createElement('Header', props as object) }, useLocalSearchParams: () => mockParams }));
 jest.mock('@/qlik-embed/agentic-entry', () => ({ useAgenticRows: () => ({ rows: [], noAccess: false }) }));
-jest.mock('@/components/assistant-switcher', () => ({ AssistantProblem: () => null }));
+// The problem `assistantProblem` finds for the selection. Null means none.
+let mockProblem: { title: string; message: string } | null = null;
+jest.mock('@/components/assistant-switcher', () => ({
+  assistantProblem: () => mockProblem,
+  AssistantProblem: () => jest.requireActual('react').createElement('AssistantProblem'),
+}));
 jest.mock('@/components/interaction-row', () => ({ InteractionRow: () => null }));
 jest.mock('@/components/icon', () => ({ Icon: () => null }));
 jest.mock('@/components/keyboard-centered', () => ({ KeyboardCentered: ({ children }: { children: unknown }) => children }));
@@ -34,7 +40,22 @@ const actions = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.find
 const greets = (renderer: TestRenderer.ReactTestRenderer) => renderer.root.findAll((node) => node.props.children === 'What can I help with?').length > 0;
 beforeEach(() => {
   mockParams = {};
+  mockProblem = null;
   mockSetParams.mockClear();
+});
+
+it('shows only the reason, centred, when no Assistant can answer', async () => {
+  mockProblem = { title: 'No Assistants available', message: 'Ask your Tenant admin.' };
+  useAssistantSelection.mockReturnValue({ selected: null, assistants: [], agentic: [] });
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(<AnswersScope port={makePort('a')}><ChatScreen /></AnswersScope>); });
+
+  // The element's parent is the mocked component. Its parent is the view that places it.
+  const problem = renderer.root.findByType('AssistantProblem' as never);
+  expect(StyleSheet.flatten(problem.parent?.parent?.props.style)).toMatchObject({ flex: 1, justifyContent: 'center' });
+  expect(greets(renderer)).toBe(false);
+  expect(renderer.root.findAllByType('Composer' as never)).toHaveLength(0);
+  await act(async () => { renderer.unmount(); });
 });
 
 it('creates a Thread only on the first question and resets for another Assistant', async () => {

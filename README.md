@@ -25,17 +25,22 @@ This README describes the current code. Some design documents describe changes t
 
 ## Beta release and Android installation
 
-The first release is **Qurio v1.0.0-beta.1**, an internal beta for installation and acceptance testing. It is not a stable release.
+The latest release is **Qurio v1.0.0-beta.6**, an internal beta for installation and acceptance testing. It is not a stable release.
 
-On October 19, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.1](https://github.com/notlath/qlik-answers-mobile/releases/tag/v1.0.0-beta.1). The uploaded asset digests match the verified local files. The existing GitHub workflow runs CI only.
+On October 21, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.6](https://github.com/notlath/qlik-answers-mobile/releases/tag/v1.0.0-beta.6). The release tag points to merged `main` (`e9b8e24`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qlik-answers-mobile/releases) page.
 
 Download the APK and checksum from the release Assets section. This repository is private, so GitHub downloads require repository access.
 
+Beta 6 is built from `main`. Some `dev` features in this README are not in beta 6:
+
+- The Customer Brand.
+- PR #49: the Metadata Client for every region, the iOS private sign-in sheet, and the Tenant approval message.
+
 | Prepared APK | Verified value |
 | --- | --- |
-| Filename | `qurio-1.0.0-release-signed.apk` |
+| Filename | `qurio-1.0.0-beta.6-e9b8e24-release-signed.apk` |
 | Android package | `com.mtc.qlikanswersapp` |
-| Embedded version / version code | `1.0.0` / `1` |
+| Embedded version / version code | `1.0.0` / `6` |
 | Minimum Android version | Android 7.0, API 24 |
 | Build | Release, not debuggable, with the application bundle included |
 | Signature | Release certificate. APK Signature Scheme v2 and v3 passed |
@@ -53,20 +58,20 @@ The beta release label does not change the APK's embedded `1.0.0` version name. 
 Expected SHA-256 for the prepared APK:
 
 ```text
-48E5E1391710E15040C2BE34C229E335A978FEE449437292CC69E11A11DD94B2
+06678C1697E35B2850A40AAB1B6E935CEFF434E4890E7C58056949AE5321BFC9
 ```
 
 On Windows, verify a downloaded copy with PowerShell:
 
 ```powershell
-Get-FileHash -LiteralPath './qurio-1.0.0-release-signed.apk' -Algorithm SHA256
+Get-FileHash -LiteralPath './qurio-1.0.0-beta.6-e9b8e24-release-signed.apk' -Algorithm SHA256
 ```
 
 For USB installation, connect an authorized device with USB debugging enabled:
 
 ```bash
 adb devices
-adb install ./qurio-1.0.0-release-signed.apk
+adb install ./qurio-1.0.0-beta.6-e9b8e24-release-signed.apk
 ```
 
 The standalone APK runs without a computer or Expo/Metro server. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud. A development-client APK normally requires Metro, even when it is signed. Signing alone does not make a build standalone.
@@ -99,19 +104,43 @@ The app finds Agentic Assistants in the same Assistant list. They open in Qlik's
 
 Live Qlik features require an internet connection. The app does not provide offline Qlik content.
 
+### Customer Brand
+
+A Brand is a Customer's logo and main colour ([ADR-0013](docs/adr/0013-customer-brand-at-runtime-one-build.md)). All Customers use the same build. The app applies the Brand at runtime. The source is [src/brand/brand.ts](src/brand/brand.ts).
+
+1. MTC hosts one static Brand file for each tenant hostname: `https://notlath.github.io/qurio-oauth/brands/<tenantHost>.json`.
+2. The app reads the file when it knows the hostname. This includes the sign-in screen, before the configuration is saved.
+3. The app shows the stored Brand for that hostname at once. It then fetches the hosted file and stores the result.
+
+The file holds `primary.light` and `primary.dark` as `#RRGGBB` colours. It can also hold `name`, `logo` and `logoDark`. Logos are `https://` PNG URLs with a transparent background. The app ignores a file that has a missing or malformed field.
+
+| Brand element | Where it shows |
+| --- | --- |
+| Main colour | Replaces the `primary` theme colour, also on the sign-in screen and in navigation headers. The text colour on it is white or black, whichever has more contrast. |
+| Logo | Replaces the Qurio logo in the side-panel header and on the chat welcome. Dark mode uses `logoDark` when present. A screen reader announces `name`. |
+
+The app uses Qurio's Brand in these cases:
+
+- No hostname is entered yet.
+- The hostname has no Brand file (HTTP 404).
+- A colour has less than 3:1 contrast with the background or 4.5:1 with its text. This applies to each theme separately.
+- A logo fails to load. Only the logo falls back.
+
+The app name, the home-screen icon and the splash screen are compiled in and stay Qurio. A Customer that needs its own name and icon needs a White-label Build. A failed request keeps the stored Brand.
+
 ## Technology
 
 These versions are declared in [package.json](package.json). Exact installed versions are recorded in [package-lock.json](package-lock.json).
 
 | Component | Version or configuration |
 | --- | --- |
-| Expo | SDK 57; `~57.0.29` |
-| React / React Native | `19.2.3` / `0.86.3` |
-| Expo Router | `~57.0.27`; file-based routes and typed routes |
+| Expo | SDK 58; `~58.0.19` |
+| React / React Native | `19.3.0` / `0.88.0` |
+| Expo Router | `~58.0.26`; file-based routes and typed routes |
 | TypeScript | `~6.0.3`; strict mode |
-| Reanimated / Worklets | `4.5.1` / `0.10.1` |
-| React Native WebView | `13.16.1` |
-| Tests | Jest 29 with `jest-expo` |
+| Reanimated / Worklets | `4.7.1` / `0.13.0` |
+| React Native WebView | `14.0.1` |
+| Tests | Jest 30 with `jest-expo` |
 | Lint | ESLint 9 with Expo configuration |
 | React Compiler | Enabled in `app.json` |
 
@@ -121,7 +150,7 @@ Native UI uses a drawer with native navigation stacks, platform symbols, and Swi
 
 - Node.js 24.3 or later in the 24.x series. CI uses Node.js 24. Check `package-lock.json` for dependency engine requirements.
 - npm for dependency installation and the committed lockfile.
-- An iOS device with an Expo Go version that supports SDK 57, or an installed development build.
+- An iOS device with an Expo Go version that supports SDK 58, or an installed development build.
 - An Android device or emulator with a development build for coding, or the standalone APK for acceptance testing.
 - An EAS account with project access for cloud builds.
 - Android SDK Platform 36, Platform Tools, Build Tools, JDK 17, and the generated project's NDK/CMake versions for local Android builds.
@@ -295,6 +324,13 @@ Authentication uses OAuth authorization code with PKCE. There is no application 
 
 MTC publishes one Native OAuth client per region ([ADR-0010](docs/adr/0010-published-oauth-client-tenant-hostname-only.md)). A Tenant admin approves it once for each Tenant, by signing in first and selecting **Approve**. After that, each Qlik User gives consent once, at first sign-in. If a non-admin signs in before the approval, Qlik returns `OAUTH-28`. The app then shows "Tenant Approval required".
 
+Each sign-in asks Qlik for a new login form, so a sign-out and a new sign-in do not return the previous account:
+
+- All platforms send `prompt=login`. Android needs it because Chrome keeps the Qlik web session after a sign-out.
+- iOS also opens a private sign-in sheet (`preferEphemeralSession`) that does not share Safari cookies.
+
+An Identity Provider session (for example Okta or Entra) can still select the same account without a form. This is not verified against a real Tenant.
+
 A client that you supply must use the exact redirect URI. No client secret is required. Expo Router sends the OAuth callback path to Settings while the authentication listener handles the callback.
 
 The access token stays in memory. The refresh token and access-token expiry timestamp use SecureStore. Expiry is derived from `expires_at`, with `expires_in` as a fallback. An unknown expiry requires refresh. The refresh check uses a 60-second margin. Concurrent requests share one refresh operation.
@@ -309,6 +345,7 @@ Sign-out attempts to revoke both tokens. It clears local tokens even if server r
 src/
   app/                 Expo Router routes and layouts
   auth/                OAuth, token storage, refresh, and lock decisions
+  brand/               Customer Brand file, stored Brand, and contrast checks
   components/          Shared controls, Answer rendering, and privacy lock
   config/              Tenant Configuration, platform readers, and capture policy
   constants/           Theme colors, fonts, spacing, and dimensions
@@ -408,18 +445,17 @@ Web fixtures support failure checks. Asking `ERROR:Offline` or `ERROR:RateLimite
 
 ## Beta verification status
 
-Recorded on October 19, 2026:
+Recorded for beta 6 on October 21, 2026:
 
 | Check | Result |
 | --- | --- |
-| Replacement PR [#44 checks](https://github.com/notlath/qlik-answers-mobile/pull/44/checks) | Lint, TypeScript, unit tests, platform bundles, dependency audit, and GitGuardian passed |
-| Unit tests | 47 suites, 566 tests passed |
-| Dependency audit | Passed the configured critical threshold. 26 high and 16 moderate advisories remained |
-| Android Release build | Compiled and packaged successfully |
-| Signed APK | Release certificate, v2/v3 signatures, checksum, embedded bundle, and alignment verified |
+| PR [#53 checks](https://github.com/notlath/qlik-answers-mobile/pull/53/checks) | All six CI checks passed |
+| Lint, TypeScript, and unit tests | Passed locally. 49 suites, 588 tests |
+| Signed APK | Release certificate (same as beta 1 to 5), v2/v3 signatures, checksum, and 16 KB alignment verified |
+| `prompt=login` sign-in | Not verified against a real Tenant |
 | Prepared APK on a physical Android device | Installation and live acceptance remain unverified |
-| iOS native build and device installation | Remain unverified. A successful JavaScript bundle is not a signed iOS build |
-| GitHub Release and APK upload | Published as `v1.0.0-beta.1`. APK and checksum digests verified |
+| iOS native build and device installation | Remain unverified. No signed iOS application is included |
+| GitHub Release and APK upload | Published as `v1.0.0-beta.6` |
 
 CI and signature checks do not establish production readiness. Earlier proof-of-concept device evidence does not validate this prepared APK.
 
@@ -439,6 +475,7 @@ For beta acceptance, use a test Tenant and disposable Threads:
 | Refresh token and expiry timestamp | SecureStore with `WHEN_UNLOCKED_THIS_DEVICE_ONLY` |
 | Local Tenant Configuration | AsyncStorage key `qlik.devTenantConfig` |
 | Last chosen Assistant | AsyncStorage key `qlik.lastAssistant.<tenantHost>` |
+| Customer Brand of the current Tenant | AsyncStorage key `qlik.brand`. Removed when the Tenant changes or its file returns 404 |
 | Apps view preference | AsyncStorage key `qlik.appsViewMode` |
 | Docked panel preference | AsyncStorage key `qlik.sidePanelCollapsed` |
 | Privacy lock preference | AsyncStorage key `qlik.privacyLockEnabled` |
@@ -470,6 +507,7 @@ Development traces report token-request outcomes, remaining lifetime, and saniti
 | Android Expo Go cannot start or sign in | Install an Android development build and connect with `--dev-client`. |
 | Agentic Assistant is absent from the sheet | Give the Qlik User access to the space of the Agentic Assistant. The entry is native-only. |
 | Web shows sample content | This is expected. Web always uses fixtures. |
+| Customer Brand does not show | Check that `brands/<tenantHost>.json` exists and has valid `primary.light` and `primary.dark` colours. A colour with too little contrast falls back to Qurio blue. |
 | Embedded view reports a load failure | Check internet access and CDN access. Select **Try again**. |
 | Embedded view requests sign-in | Sign in from Settings, then reopen or retry the embedded view. |
 | Answers access is denied | Check Answers Entitlement and Assistant permissions with the Tenant administrator. |
@@ -500,10 +538,11 @@ HTTP 429 produces a visible retry delay. The adapter uses `Retry-After` seconds 
 - History loads up to 100 pinned Threads in its separate pinned query. Further pinned Threads appear when their regular History page loads.
 - Web shows no Apps search field, because the native search bar is iOS and Android only. Web also cannot delete a Thread, because `Alert` does not show on web.
 - The app is online only. It has no offline content, alerts, or push notifications.
+- Brand files are hosted on a personal GitHub Pages site for the beta. They must move with the Client ID Metadata Document (#55).
 
 ## Maintenance and related documents
 
-Use [Expo SDK 57 documentation](https://docs.expo.dev/versions/v57.0.0/) when changing Expo code. Verify package versions and scripts in `package.json` before changing instructions.
+Use [Expo SDK 58 documentation](https://docs.expo.dev/versions/v58.0.0/) when changing Expo code. Verify package versions and scripts in `package.json` before changing instructions.
 
 Rebuild the development client after native dependency, plugin, or compiled app-configuration changes. Review `app.json`, `eas.json`, `modules/managed-config/`, and `plugins/` when changing platform setup.
 

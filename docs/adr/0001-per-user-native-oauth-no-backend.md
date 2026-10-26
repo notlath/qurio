@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+> **Amended 2026-10-23 by [ADR-0013](0013-customer-brand-at-runtime-one-build.md).** The app reads one static Brand file per Customer that MTC hosts. There is still no server and no secret.
+
 # Per-Qlik-User OAuth with PKCE, no backend token broker
 
 Every app user is a Qlik User holding an Answers Entitlement, so the app authenticates each person as themselves against their Tenant using a public Native OAuth client with Authorization Code + PKCE, and talks to Qlik directly. We deliberately introduce no backend to broker tokens.

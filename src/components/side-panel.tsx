@@ -1,13 +1,13 @@
 import type { MenuAction, MenuComponentRef } from '@expo/ui/community/menu';
-import { Image } from 'expo-image';
 import { useNavigation, useRouter } from 'expo-router';
 import { getDrawerStatusFromState, type DrawerContentComponentProps } from 'expo-router/drawer';
-import { DrawerActions, getFocusedRouteNameFromRoute, type RouteProp } from 'expo-router/react-navigation';
+import { DrawerActions, getFocusedRouteNameFromRoute } from 'expo-router/react-navigation';
 import type { AndroidSymbol, SFSymbol } from 'expo-symbols';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { newChatKey, type ChatParams } from '@/components/chat-params';
 import { confirmDeleteThread } from '@/components/confirm-delete-thread';
 import { EmptyState } from '@/components/empty-state';
@@ -26,16 +26,13 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThreadHistory } from '@/hooks/use-thread-history';
 import { useAssistantSelection } from '@/qlik/assistant-selection';
 
-// Relative, not `@/`: Jest maps `@/` to `src/` only.
-const LOGO = require('../../assets/images/logo.svg');
-
 /**
  * The left edge opens the side panel on a top-level screen only: the first screen of a drawer
  * screen's stack. On a pushed screen the left edge stays swipe-to-go-back. The drawer reads this
  * option from its focused screen, which holds the whole stack, so the stack's focused route decides.
  * Settings beside the docked panel is a drawer screen. It counts as pushed when the window narrows.
  */
-export function edgeSwipeEnabled(route: RouteProp<Record<string, object | undefined>>): boolean {
+export function edgeSwipeEnabled(route: Parameters<typeof getFocusedRouteNameFromRoute>[0]): boolean {
   if (route.name === 'docked-settings') return false;
   const focused = getFocusedRouteNameFromRoute(route);
   return focused === undefined || focused === 'index';
@@ -103,7 +100,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
   const insets = useSafeAreaInsets();
   const { selected } = useAssistantSelection();
   const { docked } = useSidePanelLayout();
-  const open = getDrawerStatusFromState(state) === 'open';
+  const open = getDrawerStatusFromState(state, 'closed') === 'open';
   const openThread = openThreadId(state);
 
   function closeThen(action: () => void) {
@@ -111,8 +108,16 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
     action();
   }
 
+  // The chat screen with these params. Back stays where it was: the Assistant's stack goes back to the
+  // chat screen under any screen pushed over it. `dismissTo` stays inside one drawer screen, so the drawer
+  // shows the Assistant first.
+  function openChat(params: ChatParams) {
+    navigation.navigate('assistant');
+    router.dismissTo({ pathname: '/assistant', params });
+  }
+
   function newChat() {
-    navigation.navigate('assistant', { screen: 'index', params: { chat: newChatKey() } satisfies ChatParams, pop: true });
+    openChat({ chat: newChatKey() });
   }
 
   const items = (
@@ -131,7 +136,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
     <View style={[styles.panel, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.top}>
         <View style={styles.brand}>
-          <Image source={LOGO} style={styles.logo} accessible={false} />
+          <BrandLogo mark style={styles.logo} />
           <ThemedText type="headline" accessibilityRole="header">
             Qurio
           </ThemedText>
@@ -167,14 +172,7 @@ export function SidePanelContent({ navigation, state }: DrawerContentComponentPr
           header={items}
           onOpenThread={(thread) =>
             // The open Thread is already the current chat. Opening it again would reload it.
-            closeThen(() =>
-              thread.id !== openThread &&
-              navigation.navigate('assistant', {
-                screen: 'index',
-                params: { thread: thread.id, assistantId: selected.id } satisfies ChatParams,
-                pop: true,
-              }),
-            )
+            closeThen(() => thread.id !== openThread && openChat({ thread: thread.id, assistantId: selected.id }))
           }
           // The panel stays open, but the Assistant view must not show a deleted Thread.
           onDeletedThread={(thread) => {
@@ -315,7 +313,7 @@ function PanelHistory({
             <ActivityIndicator style={styles.footerLoading} />
           ) : moreError ? (
             <ErrorState error={moreError} erroredAt={erroredAt} onRetry={() => void retryMore()} onDismiss={dismissMoreError} />
-          ) : null
+          ) : undefined
         }
       />
       {renaming && (

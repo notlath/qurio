@@ -41,7 +41,9 @@ export default function AssistantLayout() {
   return (
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ ...CHAT_HEADER, headerTitle: '', ...ASSISTANT_HEADER_LEFT, title: 'Assistant' }} />
-      <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant' }} />
+      {/* Opaque: iOS 26 draws the header as glass over the screen, and the WebView cannot move its page
+          below it. The Qlik page stays light in dark mode, so the light title disappeared on it. */}
+      <Stack.Screen name="agentic" options={{ title: 'Agentic Assistant', headerTransparent: false }} />
       <Stack.Screen
         name="choose"
         options={{

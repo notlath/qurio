@@ -45,7 +45,7 @@ export function QlikEmbedHost(props: QlikEmbedHostProps) {
 function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: QlikEmbedHostProps & { onRetry: () => void }) {
   const router = useRouter();
   const { docked } = useSidePanelLayout();
-  const webView = useRef<WebView>(null);
+  const webView = useRef<WebView<object>>(null);
   const [session] = useState(() => randomUUID());
   const [failure, setFailure] = useState<HostFailure | null>(null);
   const [page] = useState(() => ({
@@ -156,7 +156,8 @@ function HostSession({ config, surface, resourceId, bottomInset = 0, onRetry }: 
   }
 
   return (
-    <WebView
+    // `<object>`: react-native-webview 14 defaults its props type argument to `undefined`, which makes its props `never`.
+    <WebView<object>
       ref={webView}
       style={styles.flex}
       // Nothing from a Qlik session is kept on the device (ADR-0007).

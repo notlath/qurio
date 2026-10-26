@@ -92,6 +92,14 @@ it('retains the existing message when the token exchange fails', async () => {
   expect(JSON.stringify((await signIn()).toJSON())).toContain('Token exchange failed.');
 });
 
+it('opens the sign-in sheet without sharing the phone browser session: a sign-out must ask for credentials again', async () => {
+  mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+  await signIn();
+
+  expect(mockPromptAsync).toHaveBeenCalledWith({ preferEphemeralSession: true });
+});
+
 // Android has no ephemeral sheet: Chrome keeps the Qlik web session after a sign-out, so the next
 // sign-in would finish without a login form and return the previous account.
 it('asks Qlik to authenticate again on every sign-in, so a browser session that outlives sign-out is not reused', async () => {

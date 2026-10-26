@@ -216,7 +216,7 @@ describe('Tenant Approval request', () => {
   }
 
   it('lets the Qlik User share a request to the Tenant admin when the Tenant has not approved the app', async () => {
-    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
     const error = Object.assign(new Error('Your Tenant admin must approve the app once.'), { name: 'TenantApprovalRequired' });
     const renderer = await failSignIn(error);
 
@@ -231,5 +231,19 @@ describe('Tenant Approval request', () => {
     const renderer = await failSignIn(new Error('Something went wrong.'));
 
     expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' })).toHaveLength(0);
+  });
+
+  it('explains a sign-in that did not finish, and offers the share action: Qlik shows a non-admin an error page, not a redirect', async () => {
+    mockSignIn.mockResolvedValue(null);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<SignInSection config={config} />);
+    });
+    await act(async () => {
+      await renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Tenant admin');
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Share approval request' }).length).toBeGreaterThan(0);
   });
 });

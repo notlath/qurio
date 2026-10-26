@@ -15,10 +15,10 @@
 
 ## 2. Technology Stack
 
-- **Runtime:** Expo ~57.0.18, React 19.2.3, React Native 0.86.3, react-dom 19.2.3
-- **Navigation:** expo-router ~57.0.17 (typedRoutes enabled), react-native-screens, react-native-safe-area-context
-- **UI / Media:** @expo/ui ~57.0.14, expo-image, expo-symbols, expo-system-ui, expo-constants
-- **Animation:** react-native-reanimated 4.5.1, react-native-worklets 0.10.1, react-native-gesture-handler ~2.32.0
+- **Runtime:** Expo ~58.0.19, React 19.3.0, React Native 0.88.0, react-dom 19.3.0
+- **Navigation:** expo-router ~58.0.26 (typedRoutes enabled), react-native-screens, react-native-safe-area-context
+- **UI / Media:** @expo/ui ~58.0.23, expo-image, expo-symbols, expo-system-ui, expo-constants
+- **Animation:** react-native-reanimated 4.7.1, react-native-worklets 0.13.0, react-native-gesture-handler ~3.3.0
 - **Other Expo Modules:** expo-font, expo-linking, expo-splash-screen, expo-web-browser, expo-device
 - **Web Support:** react-native-web ~0.21.0
 - **Tooling:** TypeScript ~6.0.3, Expo ESLint (`expo lint`), React Compiler enabled (`experiments.reactCompiler: true`)
@@ -27,9 +27,9 @@
 
 ### 3.1 Expo Version Pin
 
-- **Expo SDK version is 57.** Always consult the exact versioned documentation before writing code:
-  `https://docs.expo.dev/versions/v57.0.0/`
-- Do not rely on memory, prior Expo versions, or generic React Native docs when an Expo v57 equivalent exists.
+- **Expo SDK version is 58.** Always consult the exact versioned documentation before writing code:
+  `https://docs.expo.dev/versions/v58.0.0/`
+- Do not rely on memory, prior Expo versions, or generic React Native docs when an Expo v58 equivalent exists.
 - If the versioned docs and a general guide conflict, the versioned docs take precedence.
 
 ## 4. Project Structure
@@ -181,7 +181,7 @@ These guidelines are working if:
 - Diffs contain fewer unnecessary changes.
 - Rewrites due to overcomplication decrease.
 - Clarifying questions are asked before implementation, not after mistakes.
-- Expo v57 APIs are used correctly per versioned docs.
+- Expo v58 APIs are used correctly per versioned docs.
 
 ## 10. Writing Standard: Simplified Technical English (ASD-STE100)
 
