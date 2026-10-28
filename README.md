@@ -6,7 +6,7 @@ This README describes the current code. Some design documents describe changes t
 
 ## Contents
 
-- [Beta release and Android installation](#beta-release-and-android-installation)
+- [Beta release and installation](#beta-release-and-installation)
 - [Current behavior](#current-behavior)
 - [Technology](#technology)
 - [Requirements](#requirements)
@@ -23,13 +23,15 @@ This README describes the current code. Some design documents describe changes t
 - [Maintenance and related documents](#maintenance-and-related-documents)
 - [License](#license)
 
-## Beta release and Android installation
+## Beta release and installation
 
 The latest release is **Qurio v1.0.0-beta.7**, an internal beta for installation and acceptance testing. It is not a stable release.
 
 On October 26, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.7](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.7). The release tag points to merged `main` (`d9e6790`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
 
-Download the APK and checksum from the release Assets section. This repository is public, so GitHub downloads need no repository access.
+On October 28, 2026, the maintainer added an unsigned iOS IPA and checksum to the same release. See [Install the unsigned iOS IPA](#install-the-unsigned-ios-ipa).
+
+Download the APK, the IPA, and their checksums from the release Assets section. This repository is public, so GitHub downloads need no repository access.
 
 Beta 7 is built from `main` and includes these features, which beta 6 does not include:
 
@@ -77,7 +79,107 @@ adb install ./qurio-1.0.0-beta.7-d9e6790-release-signed.apk
 
 The standalone APK runs without a computer or Expo/Metro server. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud. A development-client APK normally requires Metro, even when it is signed. Signing alone does not make a build standalone.
 
-No installable iOS artifact is recorded for this beta. Use the iOS development options below for testing.
+### Install the unsigned iOS IPA
+
+The IPA is a standalone Release build for a physical iPhone. It includes the application bundle and does not require Metro. The IPA is not signed. Each tester signs it with their own Apple ID in [Sideloadly](https://sideloadly.io) on a Mac or a Windows PC. A paid Apple Developer account is not necessary.
+
+| Prepared IPA | Verified value |
+| --- | --- |
+| Filename | `qurio-1.0.0-beta.7-79f4590-ios-unsigned.ipa` |
+| Bundle identifier | `com.mtc.qlikanswersapp` |
+| Embedded version / build | `1.0.0` / `1` |
+| Minimum iOS version | iOS 16.4 |
+| Architecture | arm64. The IPA does not run in the iOS Simulator |
+| Build | Release, with the application bundle included |
+| Signature | None. Sideloadly signs the IPA during installation |
+| Source | `79f4590`. This commit changes only the README after the tag `d9e6790` |
+
+Expected SHA-256 for the prepared IPA:
+
+```text
+457D1221A2A79A7DF157EB4C24E9AB199FE6FA6882DAF49258F7B7C7EA778F74
+```
+
+On macOS, verify a downloaded copy with this command:
+
+```bash
+shasum -a 256 -c qurio-1.0.0-beta.7-79f4590-ios-unsigned.ipa.sha256
+```
+
+You must have these items:
+
+- A Mac or a Windows PC with Sideloadly installed.
+- An iPhone with iOS 16.4 or later.
+- A USB cable that can transfer data.
+- An Apple ID, its password, and access to its two-factor code.
+
+Use a spare Apple ID if possible. Sideloadly sends the Apple ID password to Apple.
+
+#### 1. Connect the iPhone
+
+1. Unlock the iPhone.
+2. Connect the iPhone to the computer with the USB cable.
+3. On the iPhone, tap **Trust**.
+4. Enter the iPhone passcode.
+
+#### 2. Install the IPA with Sideloadly
+
+1. Open Sideloadly.
+2. In the **iDevice** list, select the iPhone. On a Mac with Apple silicon, do not select the item named **Apple Silicon**. That item is the Mac.
+3. Drag the IPA onto the **IPA** icon.
+4. Enter the Apple ID in the **Apple ID** field.
+5. Click **Start**.
+6. Enter the Apple ID password and the two-factor code when Sideloadly asks for them.
+7. Wait for Sideloadly to show **Done**.
+
+If Sideloadly shows a bundle identifier error, open **Advanced Options**. Select the option that changes the bundle identifier. Then click **Start** again. Sign-in still works, because the `qlikanswers://auth` redirect uses the URL scheme and not the bundle identifier.
+
+#### 3. Enable Developer Mode
+
+1. On the iPhone, open **Settings → Privacy & Security → Developer Mode**.
+2. Set the switch to on.
+3. Tap **Restart**.
+4. After the restart, tap **Turn On** and enter the iPhone passcode.
+
+The **Developer Mode** item shows only after Sideloadly installs the app.
+
+#### 4. Trust the developer profile
+
+1. On the iPhone, open **Settings → General → VPN & Device Management**.
+2. Under **Developer App**, tap the Apple ID.
+3. Tap **Trust**, then tap **Trust** again to confirm.
+
+#### 5. Open Qurio
+
+1. Tap **Qurio** on the Home Screen.
+2. Enter the Tenant hostname and complete Qlik sign-in.
+
+After installation, the iPhone does not need the computer. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud.
+
+#### Free Apple ID limits
+
+- The signature expires after 7 days. After that, the app does not open. Before the expiry date, connect the iPhone and click **Start** in Sideloadly again.
+- Use the same Apple ID and the same bundle identifier option every time. If you change them, iOS installs a second copy without the saved sign-in.
+- One free Apple ID can have a maximum of 3 sideloaded apps at one time.
+- A device policy from MDM can block Developer Mode or sideloaded apps.
+
+#### Build the IPA
+
+The maintainer built the IPA on macOS with Xcode and CocoaPods. The build did not use EAS or Apple signing credentials:
+
+```bash
+npm ci
+npx expo prebuild -p ios
+cd ios
+xcodebuild -workspace Qurio.xcworkspace -scheme Qurio -configuration Release \
+  -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/dd \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+mkdir -p build/ipa/Payload
+cp -R build/dd/Build/Products/Release-iphoneos/Qurio.app build/ipa/Payload/
+(cd build/ipa && zip -qry Qurio.ipa Payload)
+```
+
+The `ios` directory is generated and is not committed.
 
 ## Current behavior
 
@@ -180,7 +282,7 @@ You do not need a `.env` file to configure the app. See [Environment template](#
 
 ## Run and build
 
-These commands are for developers. Testers with the standalone APK can use [Android installation](#install-the-standalone-apk).
+These commands are for developers. Testers with the standalone APK can use [Android installation](#install-the-standalone-apk). Testers with the IPA can use [iOS installation](#install-the-unsigned-ios-ipa).
 
 Only the `development` EAS profile is committed. It normally connects to Metro. The prepared standalone APK came from a local Release build with a temporary signing override and a separate signing step. No standalone EAS profile or release-publishing workflow was added.
 
@@ -457,7 +559,7 @@ Recorded for beta 7 on October 26, 2026:
 | Emulator smoke test | Sign-in on two Tenants, the Malayan Brand, an Analytics App, the Agentic Assistant, the blue icon and splash |
 | `prompt=login` sign-in | Not verified against a real Tenant |
 | Prepared APK on a physical Android device | Installation and live acceptance remain unverified |
-| iOS native build and device installation | Remain unverified. No signed iOS application is included |
+| iOS native build and device installation | The unsigned Release IPA built locally. It installed on one physical iPhone through Sideloadly with a free Apple ID, and the app opened and worked. No other iOS checks were done. iPad was not tested |
 | GitHub Release and APK upload | Published as `v1.0.0-beta.7` |
 
 CI and signature checks do not establish production readiness. Earlier proof-of-concept device evidence does not validate this prepared APK.
