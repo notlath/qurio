@@ -103,7 +103,7 @@ A Sign-in Client that MTC creates and publishes in one MTC-owned Tenant. It work
 A Sign-in Client that a Tenant creates on first use, from a document that MTC hosts at one permanent address. It works in every Region. That address is its identity. A new address is a new Metadata Client.
 
 **Tenant Approval**:
-A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User. Qlik offers no way to approve in advance, so the first sign-in at a new Tenant must be by a Tenant admin. A Qlik User who is not an admin cannot start it and is told to ask their Tenant admin.
+A Tenant admin's one-time approval that lets this app sign in that Tenant's Qlik Users. Needed once per Tenant, not once per Qlik User. Qlik offers no way to approve in advance, so the first sign-in at a new Tenant must be by a Tenant admin. A Qlik User who is not an admin cannot start it and is told to ask their Tenant admin. To approve outside the app, the admin opens the link from `node scripts/authorize-url.mjs <host> <client-id>` in a browser signed in to the Tenant.
 _Avoid_: Consent (that is the per-sign-in screen), registration, onboarding
 
 **Starter**:
@@ -119,3 +119,12 @@ _Avoid_: Theme, skin, white-label
 **White-label Build**:
 A separate build of the app for one Customer, with that Customer's name and icon. Made only under a paid agreement and given out by private distribution, never on the public stores.
 _Avoid_: Fork, custom app
+
+### Builds
+
+**Release Build**:
+A build with `__DEV__` false, such as every APK on a GitHub Release, even one given only to testers. It has no Developer section in Settings. Its client ID comes from MDM or from the built-in table in `src/config/resolver.ts`, never from a typed value.
+_Avoid_: Internal build (testers say it for a Release Build, the code says it for a Development Build)
+
+**Development Build**:
+A dev-client build that runs with `__DEV__` true, normally against Metro. Only it shows Settings → Developer, where a Tenant hostname and client ID can be typed. `IS_INTERNAL_BUILD` in the code means this build.
