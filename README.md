@@ -25,31 +25,29 @@ This README describes the current code. Some design documents describe changes t
 
 ## Beta release and installation
 
-The latest release is **Qurio v1.0.0-beta.7**, an internal beta for installation and acceptance testing. It is not a stable release.
+The latest release is **Qurio v1.0.0-beta.8**, an internal beta for installation and acceptance testing. It is not a stable release.
 
-On October 26, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.7](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.7). The release tag points to merged `main` (`d9e6790`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
+On November 4, 2026, the maintainer published the signed standalone Android APK and checksum in [Qurio v1.0.0-beta.8](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.8). The release tag points to `29f7aba`, the PR #70 branch commit. Its code is the same as the squash merge on `main` (`7edd577`). The existing GitHub workflow runs CI only. Earlier betas remain on the [Releases](https://github.com/notlath/qurio/releases) page.
 
-On October 28, 2026, the maintainer added an unsigned iOS IPA and checksum to the same release. See [Install the unsigned iOS IPA](#install-the-unsigned-ios-ipa).
+No iOS IPA is attached to beta 8. On October 28, 2026, the maintainer added an unsigned iOS IPA and checksum to [Qurio v1.0.0-beta.7](https://github.com/notlath/qurio/releases/tag/v1.0.0-beta.7). See [Install the unsigned iOS IPA](#install-the-unsigned-ios-ipa).
 
-Download the APK, the IPA, and their checksums from the release Assets section. This repository is public, so GitHub downloads need no repository access.
+Download the APK, the IPA, and their checksums from the Assets section of each release. This repository is public, so GitHub downloads need no repository access.
 
-Beta 7 is built from `main` and includes these features, which beta 6 does not include:
+Beta 8 includes this change, which beta 7 does not include:
 
-- The Customer Brand and the Qurio blue palette.
-- PR #49: the Metadata Client for every region, the iOS private sign-in sheet, and the Tenant approval message.
-- Expo SDK 58.
+- PR #70: `mtcmalayan.sg.qlikcloud.com` signs in with its own Native OAuth client, which uses trusted consent. That Tenant needs no Tenant Approval.
 
 | Prepared APK | Verified value |
 | --- | --- |
-| Filename | `qurio-1.0.0-beta.7-d9e6790-release-signed.apk` |
+| Filename | `qurio-1.0.0-beta.8-29f7aba-release-signed.apk` |
 | Android package | `com.mtc.qlikanswersapp` |
-| Embedded version / version code | `1.0.0` / `7` |
+| Embedded version / version code | `1.0.0` / `8` |
 | Minimum Android version | Android 7.0, API 24 |
 | Build | Release, not debuggable, with the application bundle included |
 | Signature | Release certificate. APK Signature Scheme v2 and v3 passed |
 | Alignment | 16 KB alignment check passed |
 
-The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`. Beta 6 uses version code `6`. Beta 7 uses version code `7`.
+The beta release label does not change the APK's embedded `1.0.0` version name. Beta 1 to 3 use version code `1`. Beta 4 uses version code `4`. Beta 5 uses version code `5`. Beta 6 uses version code `6`. Beta 7 uses version code `7`. Beta 8 uses version code `8`.
 
 ### Install the standalone APK
 
@@ -61,20 +59,20 @@ The beta release label does not change the APK's embedded `1.0.0` version name. 
 Expected SHA-256 for the prepared APK:
 
 ```text
-391158F8D122B11FB26254AC76F7EE86CA5272C156EA002BDACFB3920D5F9064
+5C01AB3FC6DF64EBEA8D4EC2D6996367666F81C59598D6E25FBE05183493B1F2
 ```
 
 On Windows, verify a downloaded copy with PowerShell:
 
 ```powershell
-Get-FileHash -LiteralPath './qurio-1.0.0-beta.7-d9e6790-release-signed.apk' -Algorithm SHA256
+Get-FileHash -LiteralPath './qurio-1.0.0-beta.8-29f7aba-release-signed.apk' -Algorithm SHA256
 ```
 
 For USB installation, connect an authorized device with USB debugging enabled:
 
 ```bash
 adb devices
-adb install ./qurio-1.0.0-beta.7-d9e6790-release-signed.apk
+adb install ./qurio-1.0.0-beta.8-29f7aba-release-signed.apk
 ```
 
 The standalone APK runs without a computer or Expo/Metro server. Sign-in, Answers, and Analytics Apps still require internet access to Qlik Cloud. A development-client APK normally requires Metro, even when it is signed. Signing alone does not make a build standalone.
