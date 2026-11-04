@@ -27,6 +27,13 @@ describe('resolveTenant', () => {
     });
   });
 
+  it("resolves a Tenant with its own client ID over its region's published one", () => {
+    expect(resolveTenant({ dev: { tenantHost: 'https://MTCMalayan.sg.qlikcloud.com/' } })).toEqual({
+      kind: 'resolved',
+      config: { tenantHost: 'mtcmalayan.sg.qlikcloud.com', clientId: '01a1a45c813c30b5f544ef20033e8f49' },
+    });
+  });
+
   it('resolves a pasted browser URL', () => {
     const result = resolveTenant({ dev: { tenantHost: 'https://Acme.SG.qlikcloud.com/' } });
 

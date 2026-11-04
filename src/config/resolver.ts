@@ -11,6 +11,13 @@ const PUBLISHED_CLIENT_IDS: Record<string, string> = {
   us: '01a15572dafb71aabe306ae5e87c3f95',
 };
 /**
+ * A Tenant's own Native client, for a Tenant that cannot approve the published one. It wins over the region's client.
+ * mtcmalayan: Qlik Account login hung, so the admin could not approve the `sg` client. This client uses trusted consent.
+ */
+const TENANT_CLIENT_IDS: Record<string, string> = {
+  'mtcmalayan.sg.qlikcloud.com': '01a1a45c813c30b5f544ef20033e8f49',
+};
+/**
  * MTC's Client ID Metadata Document, for every region with no published client (ADR-0012). Qlik makes a
  * Native client from it when a Tenant admin approves the app. The URL is the client's identity: a new URL
  * is a new client, and every Tenant that approved the old one must approve again.
@@ -56,7 +63,7 @@ function resolveSource(source?: PartialTenantConfig): TenantResolution {
   if (!config?.tenantHost) return { kind: 'not-configured' };
   const { tenantHost } = config;
   const region = REGIONAL_HOST.exec(tenantHost)?.[1];
-  const clientId = config.clientId || (region ? PUBLISHED_CLIENT_IDS[region] ?? METADATA_CLIENT_ID : undefined);
+  const clientId = config.clientId || TENANT_CLIENT_IDS[tenantHost] || (region ? PUBLISHED_CLIENT_IDS[region] ?? METADATA_CLIENT_ID : undefined);
   if (clientId) return { kind: 'resolved', config: { ...config, tenantHost, clientId } };
   return { kind: 'custom-domain', tenantHost };
 }
